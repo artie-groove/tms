@@ -1,4 +1,6 @@
-comefly
+Automated information system for timetable monitoring for VPI (branch) VSTU
+Автоматизированная информационная система мониторинга расписания занятий ВПИ (филиал) ВолгГТУ
 =======
 
-Social Network Initiatives
+Developed by VC://VPI
+Инициатор разработки: Вычислительный центр ВПИ (филиал) ВолгГТУ

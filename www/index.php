@@ -1,0 +1,1 @@
+<p>This is a stub for index.php of the project</p>

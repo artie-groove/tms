@@ -143,7 +143,7 @@
                             $str=  str_replace($maches[0], "", $str);
                             $str=trim($str);
                         }
-                      if(preg_match("/(([а-я](\.)?( )*){0,2}[а-я][а-я]+)|[а-я][а-я]+( )+(([а-я](\.)?( )*){0,2})/ui", $str,$maches))
+                      if(preg_match("/(([а-я](\.)?( )*){0,2}[а-я][а-я]+)( )*(([а-я](\.)?( )*){0,2})/ui", $str,$maches))
                         {
                             //print("Препод:".$maches[0]."<BR>");
                              $result[4]=$maches[0]; 
@@ -515,7 +515,7 @@
                              {
                                $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Type;  
                              }
-                             print($NewPar->Predmet." ".$NewPar->Type." ".$NewPar->Auditoria." ".$NewPar->Prepod."<BR>");
+                            // print($NewPar->Predmet." ".$NewPar->Type." ".$NewPar->Auditoria." ".$NewPar->Prepod."<BR>");
                              //_______________________________________
                              $par_count=floor($res[6]/2);//ЗАМЕТКА!!!!!_______ потом рассчитать длинну в стоках для пары. На основе размера ячейки с указанием номера пары.
                              for($d=0;$d<$par_count;$d++)
@@ -585,9 +585,40 @@
         /**/
      /**/  
        // var_dump($Group);
+        
+        $link = mysql_connect('localhost', 'root', '') or die('Не удалось соединиться: ' . mysql_error());
+        mysql_select_db('raspisanie') or die('Не удалось выбрать базу данных');
+
+        
         for($i=0;$i<count($Group);$i++)
         {
            print("<BR>".$Group[$i]["NameGroup"].":<BR>");
+           //проверяем, есть ли такая группа
+            $query = "SELECT * FROM groups Where Number_Group='".$Group[$i]["NameGroup"]."'";
+            $res_SQL = mysql_query($query);
+             $temp=mysql_fetch_array($res_SQL);
+             $group_id=false;
+            if($temp)
+            {
+             $group_id= $temp['ID_group'];  
+            }
+            else
+            {
+               $query="INSERT INTO groups (Number_Group,Form_of_study) VALUES ('".$Group[$i]["NameGroup"]."',0)"; 
+                mysql_query($query) or die('Не удалось добавить группу ' . mysql_error());
+               $query = "SELECT * FROM groups Where Number_Group='".$Group[$i]["NameGroup"]."'";
+               $res_SQL = mysql_query($query);
+               $temp=mysql_fetch_array($res_SQL);
+               if($temp)
+               { 
+                   $group_id=$temp['ID_group'];
+               }
+               else
+               {
+                  die('Не удалось найти добавленную группу');
+               }   
+            }
+            
            for($k=0;$k<count($Group[$i]["Para"]);$k++)
            {
                print($Group[$i]["Para"][$k]->Predmet." ".$Group[$i]["Para"][$k]->Type);
@@ -598,7 +629,97 @@
                         print($Group[$i]["Para"][$k]->Auditoria[$u]." ");
                     }
                }
-               print($Group[$i]["Para"][$k]->Prepod." Комментарий:".$Group[$i]["Para"][$k]->Comment." Даты:".$Group[$i]["Para"][$k]->Date." Номер пары:".$Group[$i]["Para"][$k]->ParNumber."<BR>");//Date
+               print($Group[$i]["Para"][$k]->Prepod." Комментарий:".$Group[$i]["Para"][$k]->Comment." Даты:".$Group[$i]["Para"][$k]->Date." Номер пары:".$Group[$i]["Para"][$k]->ParNumber."");//Date
+               //проверяем, есть ли такой препод
+               $query = "SELECT * FROM lecturer Where Family='".$Group[$i]["Para"][$k]->Prepod."'";
+               $res_SQL = mysql_query($query);
+               $temp=mysql_fetch_array($res_SQL);
+               $prepod_id=false;
+               if($temp)
+               {                   
+                $prepod_id= $temp['ID_Lecturer'];  
+               }
+                else
+                {
+                    $query="INSERT INTO lecturer (Family,Department_ID) VALUES ('".$Group[$i]["Para"][$k]->Prepod."',1)"; 
+                    mysql_query($query) or die('Не удалось добавить преподавателя ' . mysql_error());
+                    $query = "SELECT * FROM lecturer Where Family='".$Group[$i]["Para"][$k]->Prepod."'";
+                    $res_SQL = mysql_query($query);
+                    $temp=mysql_fetch_array($res_SQL);
+               if($temp)
+               { 
+                   $prepod_id=$temp['ID_Lecturer'];
+               }
+               else
+               {
+                  die('Не удалось найти добавленную преподавателя');
+               }   
+            }
+               //проверяем, есть ли такой кабинет
+                if($Group[$i]["Para"][$k]->Auditoria=="")
+                {
+                   $Group[$i]["Para"][$k]->Auditoria[0]=-1; 
+                   print("!!!НЕТ АУДИТОРИИ!!!");
+                }
+                else
+                {
+                    for($ts=1;$ts<count($Group[$i]["Para"][$k]->Auditoria);$ts++)
+                    {
+                       $Group[$i]["Para"][$k]->Comment.=" ".$Group[$i]["Para"][$k]->Auditoria[$ts]; 
+                    }
+                    
+                }
+                 $query = "SELECT * FROM classroom Where Number_classroom='".$Group[$i]["Para"][$k]->Auditoria[0]."'";
+                 $res_SQL = mysql_query($query);
+                 $temp=mysql_fetch_array($res_SQL);
+                 $Auditoria_id=false;
+                if($temp)
+                {                   
+                $Auditoria_id= $temp['ID_Classroom'];  
+               }
+                else
+                {
+                    $query="INSERT INTO classroom (Number_classroom,ID_Department,Building) VALUES ('".$Group[$i]["Para"][$k]->Auditoria[0]."',1,'0')"; 
+                    mysql_query($query) or die('Не удалось добавить аудиторию ' . mysql_error());
+                    $query = "SELECT * FROM classroom Where Number_classroom='".$Group[$i]["Para"][$k]->Auditoria[0]."'";
+                    $res_SQL = mysql_query($query);
+                    $temp=mysql_fetch_array($res_SQL);
+               if($temp)
+               { 
+                   $Auditoria_id=$temp['ID_Classroom'];
+               }
+               else
+               {
+                  die('Не удалось найти добавленную аудиторию');
+               }   
+            }
+            $type=0;
+            
+            if(preg_match("/лаб(( )*\.)?/", $Group[$i]["Para"][$k]->Type,$maches))
+            {
+             $type=1;   
+            }elseif(preg_match("/лек(( )*\.)?/", $Group[$i]["Para"][$k]->Type,$maches))
+            {
+              $type=2;   
+            }elseif(preg_match("/пр(( )*\.)?/", $Group[$i]["Para"][$k]->Type,$maches))
+            {
+              $type=3;  
+            }
+            //заносим в расписание.
+             $date_m = explode(",",$Group[$i]["Para"][$k]->Date);
+             $nau_ear = date("Y");
+             $correct=0;
+             if(trim($date_m[count($date_m)-1])=="")
+             {
+                 $correct=1;
+             }
+             for($in=0;$in<count($date_m)-$correct;$in++)
+             {
+               $d_a_m = explode(".",$date_m[$in]);
+              $query="INSERT INTO timetable (ID_Grup,ID_Lecturer,ID_classroom,Time,Date,Type,Subject,Comment) VALUES (".$group_id.",".$prepod_id.",".$Auditoria_id.",".$Group[$i]["Para"][$k]->ParNumber.",'".$nau_ear."-".$d_a_m[1]."-".$d_a_m[0]."',".$type.",'".$Group[$i]["Para"][$k]->Predmet."','".$Group[$i]["Para"][$k]->Comment."')";  
+               mysql_query($query) or die('Не удалось добавить пару ' . mysql_error());
+             }
+             print("<BR>");
            }
         }
   /**/      

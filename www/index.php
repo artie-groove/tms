@@ -48,7 +48,8 @@
         require_once dirname(__FILE__) . '/lib/Classes/PHPExcel.php';
        // $objPHPExcel = PHPExcel_IOFactory::load("fei5.xlsx");
         //fei4_140213
-        $objPHPExcel = PHPExcel_IOFactory::load("fei4_140213.xlsx");
+       $objPHPExcel = PHPExcel_IOFactory::load("fei4_140213.xlsx");//vf5_140213.xlsx
+          //$objPHPExcel = PHPExcel_IOFactory::load("vf5_140213.xlsx");
       //-----------------------------------------------------------------------  
       // Функциональная зона. Возвращает: 0)Предмет. 1) Тип занятия. 2)Аудитории (массив) 3) даты 4) преподаватель 5) комментарий. 6)Число строк 7) число столбцов
       function read_cell($Staret_Row,$Start_Coll,$Sheet)//Читает ячейку
@@ -250,62 +251,38 @@
          //print("<BR>Было: ".$str.". Номер пары:".$rez."<BR>");
          return $rez;
       }
-      //-----------------------------------------------------------------------
-       // $objPHPExcel->getAllSheets();
-       // var_dump($objPHPExcel->getSheet(0)->getCell()->getStyle()->getBorders()->getRight()->getBorderStyle());
-        /*
-        for($i=10;$i<156;$i++)
-        {
-        echo $objPHPExcel->getSheet(0)->getCellByColumnAndRow(21, $i);
-        echo "<br>";
-        var_dump($objPHPExcel->getSheet(0)->getCellByColumnAndRow(21, $i)->getStyle()->getBorders()->getRight()->getBorderStyle());
-        echo "<br>";
-        $objPHPExcel->getSheet();
-        }
-        $str=trim($objPHPExcel->getSheet(0)->getCellByColumnAndRow(1, 10));
-         str_replace("a", "а", $str); 
-         str_replace("A", "А", $str);
-         str_replace("c", "с", $str); 
-         str_replace("C", "с", $str);
-         str_replace("e", "е", $str); 
-         str_replace("E", "Е", $str);
-         str_replace("o", "о", $str); 
-         str_replace("O", "О", $str);
-      if($str=="Сентябрь")
-      {print("Да"."<BR>");}
-      else
-      {print("Нет"."<BR>");}
-         */
-       // ----------------------------------------------------------------------
-       //Тестовая зона
-        /** /
-      echo $objPHPExcel->getSheet(0)->getCellByColumnAndRow(1, 35)->getStyle()->getBorders()->getBottom()->getBorderStyle();
-      echo "<br>";
-      echo"--------------------------------------------------------------------<br>";
-      /**/
-       //----------------------------------------------------------------------
-        $Coll_Start=1;//начало таблицы (непосредственно данных)
-        $Coll_End=1;//за концом таблицы
-        $Row_Start=0;//начало таблицы
-        $Row_End=0;//за концом таблицы
-        $Sheat=0;//Текущий лист
-        $Row_Start_Date=0;//начало данных
-        $Group=array();//массив с данными.
-        $Shirina_na_gruppu=1;//Число ячеек, отведённых на одну группу.
+      //---------------------------------------------------------------------
+        $objPHPExcel->getSheetCount();
+        $Sheat;//Текущий лист
+        $Coll_Start;//начало таблицы (непосредственно данных)
+        $Coll_End;//за концом таблицы
+        $Row_Start;//начало таблицы
+        $Row_End;//за концом таблицы
+        $Row_Start_Date;//начало данных
+        $Group;//массив с данными.
+        $Shirina_na_gruppu;//Число ячеек, отведённых на одну группу.
+        $gani; //массив хранит границы дней недели
+        $date_massiv; // сохраняет названия месяцев и соответсвующие им дни
+      //---------------------------------------------------------------------
+      function get_orientirs_d($Sheat)//определяет границы таблицы, а так же ширину колонки для группы.Устанавливает глобальные переменные. 
+      {
+        global $objPHPExcel;
+        global $Coll_Start;//начало таблицы (непосредственно данных)//инициализирует
+        global $Coll_End;//за концом таблицы//инициализирует
+        global $Row_Start;//начало таблицы//инициализирует
+        global $Row_End;//за концом таблицы//инициализирует
+        global $Row_Start_Date;//начало данных//инициализирует
+        global $Shirina_na_gruppu;//инициализирует
         While($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $Row_Start)->getStyle()->getBorders()->getBottom()->getBorderStyle()==="none"&&$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $Row_Start+1)->getStyle()->getBorders()->getTop()->getBorderStyle()==="none")
         {
           $Row_Start++; 
         }
         $Row_Start++;
-        //echo  $Row_Start; 
-        //$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $Row_End)->getStyle()->getBorders()->getTop()->getBorderStyle()!=="none"
-        //$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $Row_End)->getStyle()->getFill()->getStartColor()->getRGB();
         $Row_Start_Date =  $Row_Start+1;
         While($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $Row_Start_Date)->getStyle()->getFill()->getStartColor()->getRGB()!=="FFFFFF")
         {
           $Row_Start_Date++;
         }
-        //echo $Row_Start_Date;
         $Row_End=$Row_Start_Date;
          While(!($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $Row_End)->getStyle()->getBorders()->getTop()->getBorderStyle()==="none"&&$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $Row_End-1)->getStyle()->getBorders()->getBottom()->getBorderStyle()==="none"))
          {
@@ -317,22 +294,14 @@
                 {
                  $Row_End+=2;
                 }
-           //Print($Row_End.":".$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $Row_End)->getStyle()->getBorders()->getTop()->getBorderStyle()."<Br>");     
-         }
+           }
          $Row_End-=2;
-         //echo $Row_End;
-         //print (trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(8, $Row_Start))."<BR>");
-         //print(preg_match("/[А-Яа-я]+( )*-( )*\d\d\d/",trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(8, $Row_Start))));
-         while (!preg_match("/[А-Яа-я]+( )*-( )*\d\d\d/",trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($Coll_Start, $Row_Start))))
+          while (!preg_match("/[А-Яа-я]+( )*-( )*\d\d\d/",trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($Coll_Start, $Row_Start))))
          {
              $Coll_Start++;
          }
-         //$Coll_Start++;
-        //print( $Coll_Start."<BR>");
-         $coll = $Coll_Start;
-         //print($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($coll+1, $Row_Start)->getStyle()->getBorders()->getLeft()->getBorderStyle());
-        
         $count_z=0;
+        $coll=$Coll_Start;
         while($count_z<1)
         {
             $coll++;
@@ -348,23 +317,26 @@
           {
              $Coll_End+=$Shirina_na_gruppu; 
           }
-         $Coll_End-=$Shirina_na_gruppu;
-        // print($Coll_End."<BR>");
-         //var_dump(read_cell(28,8,0)) ; 
-         //var_dump($objPHPExcel->getSheet(0)->getCellByColumnAndRow(9, 28)->getStyle()->getBorders()->getRight()->getBorderStyle())  ;
+         $Coll_End-=$Shirina_na_gruppu; 
+      }
+      function group_init_d($Coll_Start,$Coll_End,$Row_Start,$Sheat,$Shirina_na_gruppu)//распознавание групп. Объявляет глобальные переменные
+      {
+          global $Group;//инициализирует
+          global $objPHPExcel;
           $gr_cl=0;
           for($i=$Coll_Start;$i<$Coll_End;$i+=$Shirina_na_gruppu)
           {
            $Group[$gr_cl]["NameGroup"]=trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($i, $Row_Start));  
            $Group[$gr_cl]["Para"]= array();
            $gr_cl++;
-          }
-          //echo  $Coll_End;
-          //var_dump($Group);
-          /**/
-          $gani;
+          } 
+      }
+      function dey_gran_d($Row_Start_Date,$Row_End,$Sheat)//устанавливает грани между днями недели.
+      {
+          global $objPHPExcel;
+          global $gani;//инициализирует
           $k=0;
-          for($i=$Row_Start_Date;$i<$Row_End;$i++)
+           for($i=$Row_Start_Date;$i<$Row_End;$i++)
           {
               if($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $i)->getStyle()->getBorders()->getBottom()->getBorderStyle()!=="none"||$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $i+1)->getStyle()->getBorders()->getTop()->getBorderStyle()!=="none")
               {
@@ -375,8 +347,12 @@
                 }
               }
           }
-          $date_massiv;
-          
+      }
+      function get_mounday_d($Coll_Start,$Row_Start,$Sheat,$Row_Start_Date)
+      {
+          global $gani;
+          global $objPHPExcel;
+          global $date_massiv; //инициализирует
           for($k=1;$k<$Coll_Start-1;$k++)
           {
               $date_massiv[$k-1]["month"]=trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $Row_Start));
@@ -401,191 +377,11 @@
                    }
                   }
               }
-          }
-        // var_dump($date_massiv);
-          /**/
-          for($i=$Row_Start_Date;$i<$Row_End;$i++)
-        {
-            for($k=$Coll_Start;$k<$Coll_End;$k++)
-            {
-                if(($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i)->getStyle()->getBorders()->getLeft()->getBorderStyle()!="none"||$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k-1, $i)->getStyle()->getBorders()->getRight()->getBorderStyle()!="none")&&($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i)->getStyle()->getBorders()->getTop()->getBorderStyle()!="none"||$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i-1)->getStyle()->getBorders()->getBottom()->getBorderStyle()!="none"))
-                {  
-                   
-                   $res= read_cell($i,$k,$Sheat);
-                   //var_dump($res);
-                   //print("<BR><BR><BR>");
-                 //  print($i.":".$k.":".$res[0].":".$res[1].":".$res[2]."<BR>");
-                   $nau= floor(($k-$Coll_Start)/$Shirina_na_gruppu);
-                   if($res[0]!="")//Если есть название предмета
-                   {                       //var_dump($Group[$nau]);
-                       //$Prev_par= $Group[$nau][count($Group[$nau])-1];
-                       $nau_par_count =count($Group[$nau]["Para"]); 
-                       //print("<BR><BR>".$nau_par_count."<BR><BR>");
-                       if($nau_par_count>0)//Проверяем, если у нас пара не первая
-                       {   //["Para"]
-                           
-                           $Prev_par=$nau_par_count-1;
-                           if($Group[$nau]["Para"][$Prev_par]->Predmet==false)//если у предыдущей пары нет предмета
-                           {
-                               $NewPar=array_pop($Group[$nau]["Para"]);//Вытягиваем предыдущую пару на заполнение.
-                           }
-                            else
-                           {
-                               $NewPar=new para();  // Иначе создаём новую пару.
-                           }
-                       }
-                       else// если у нас первая пара
-                       {
-                           $Prev_par=$nau_par_count;
-                           $NewPar=new para();
-                       }
-                               
-                                 if($res[3]=="")//если у нас нет дат в ячейке
-                                     {  
-                                     //var_dump($date_massiv);
-                                        for($d=0;$d<count($date_massiv);$d++)
-                                         {
-                                           $moun=Mesac_to_chislo ($date_massiv[$d]["month"]);
-                                          //print($date_massiv[$d]["month"]."=".$moun."<BR>");
-                                             $f=0;
-                                             while($i>$gani[$f])
-                                             {
-                                                 $f++;
-                                             }
-                                             $dart=$date_massiv[$d]["date"][$f];
-                                             //var_dump($date_massiv[$d]["date"][$f]);
-                                             //print("<BR><BR>");
-                                             $dart= explode("|",$dart);
-                                             //var_dump($dart[0]);
-                                             //print("<BR>");
-                                             for($l=0;$l<count($dart)-1;$l++)
-                                             {
-                                               $NewPar->Date.=$dart[$l].".".$moun.",";
-                                               //print($dart[$l]." ");
-                                             }
-                                             //print("<BR>");
-                                             //print($NewPar->Date);
-                                            
-                                         }
-                                     }
-                                     else// если даты в ячейке есть
-                                    {
-                                      $NewPar->Date=$res[3];
-                                    }
-                           $NewPar->Predmet=$res[0];
-                           $NewPar->Type=$res[1];
-                           $NewPar->Auditoria=$res[2];
-                           $NewPar->Prepod=$res[4];
-                           $NewPar->Comment.=trim($res[5]);
-                           $group_count= floor($res[7]/$Shirina_na_gruppu);
-                           //$Coll_Start-1;
-                           $NewPar->ParNumber=get_par_number($i,$Coll_Start,$Sheat);
-                           if($group_count==0&& !is_int(($k-$Coll_Start+$Shirina_na_gruppu)/$Shirina_na_gruppu))
-                           { print($NewPar->Predmet." ".$NewPar->Type." ".$NewPar->Auditoria." ".$NewPar->Prepod."<BR>");
-                             if($NewPar->Auditoria=="")
-                             {
-                              $NewPar->Auditoria= $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Auditoria;  
-                             }
-                             if($NewPar->Prepod=="")
-                             {
-                               $NewPar->Prepod= $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Prepod;     
-                             }
-                             if($NewPar->Comment=="")
-                             {//print("Много мыши!!".$Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Predmet."!");
-                              $NewPar->Comment= $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Comment;    
-                             }
-                             if($NewPar->Type=="")
-                             {
-                                $NewPar->Type= $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Type;  
-                             }
-                             //_____________________________________________
-                             if($Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Auditoria=="")
-                             {
-                             $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Auditoria= $NewPar->Auditoria;  
-                             }
-                             if($Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Prepod=="")
-                             {
-                              $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Prepod= $NewPar->Prepod;     
-                             }
-                             if($Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Comment=="")
-                             {//print("Много мыши!!".$Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Predmet."!");
-                             $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Comment= $NewPar->Comment;    
-                             }
-                             if($Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Type=="")
-                             {
-                               $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Type;  
-                             }
-                            // print($NewPar->Predmet." ".$NewPar->Type." ".$NewPar->Auditoria." ".$NewPar->Prepod."<BR>");
-                             //_______________________________________
-                             $par_count=floor($res[6]/2);//ЗАМЕТКА!!!!!_______ потом рассчитать длинну в стоках для пары. На основе размера ячейки с указанием номера пары.
-                             for($d=0;$d<$par_count;$d++)
-                               {    
-                                       $par_temp= new para;
-                                       $par_temp->copy($NewPar);
-                                       $par_temp->ParNumber+=$d;
-                                       array_push( $Group[$nau]["Para"],$par_temp);
-                                   
-                               }
-                           }
-                           else
-                           {
-                                $par_count=floor($res[6]/2);//ЗАМЕТКА!!!!!_______ потом рассчитать длинну в стоках для пары. На основе размера ячейки с указанием номера пары.
-                               
-                                if($group_count==0)
-                                {
-                                    $group_count=1;
-                                }
-                                for($l=0;$l<$group_count;$l++)
-                               {
-                               if(count($Group[$nau+$l]["Para"])>0)
-                                {
-                                   if($Group[$nau+$l]["Para"][count($Group[$nau+$l]["Para"])-1]->Predmet=="")
-                                   {
-                                     array_pop($Group[$nau+$l]["Para"]);  
-                                   }
-                                       
-                                }
-                                for($z=0;$z<$par_count;$z++)
-                                    {
-                                       $par_temp= new para;
-                                       $par_temp->copy($NewPar);
-                                       $par_temp->ParNumber+=$z;
-                                       array_push( $Group[$nau+$l]["Para"],$par_temp);
-                                    }  
-                               }
-                           }
-                           //print($NewPar->Predmet." ".$NewPar->Prepod." ".$NewPar->Auditoria." !".$NewPar->ParNumber."!".$group_count."  ".$Group[$nau]["NameGroup"]."<BR>");
-                           //var_dump($Group[$nau]);
-                          
-                       
-                    }
-                else // названия предммета нет.
-                    {
-                     if(trim($res[5])!="")
-                        {
-                         $NewPar= new para();
-                         $NewPar->Predmet=false;
-                         $NewPar->Comment=$res[5];  
-                         array_push( $Group[$nau]["Para"],$NewPar); 
-                        } 
-                    }
-                }
-             
-            }
-        }
-        /** /
-        $stroka=135;
-        $stolbec=7;
-        print($objPHPExcel->getSheet(0)->getCellByColumnAndRow($stolbec,$stroka-1)->getStyle()->getBorders()->getBottom()->getBorderStyle().":".$objPHPExcel->getSheet(0)->getCellByColumnAndRow($stolbec,$stroka)->getStyle()->getBorders()->getTop()->getBorderStyle()."!!!");  
-        print($objPHPExcel->getSheet(0)->getCellByColumnAndRow($stolbec,$stroka)->getStyle()->getBorders()->getLeft()->getBorderStyle().":".$objPHPExcel->getSheet(0)->getCellByColumnAndRow($stolbec-1,$stroka)->getStyle()->getBorders()->getRight()->getBorderStyle()."<BR>");  
-         /**/
-         //    var_dump($res);
-       //  echo  preg_match("/[с]( )+\d{1,2}[-:\.]\d\d/iu", $res[0], $matches) ;
-       //  var_dump($matches);
-        /**/
-     /**/  
-       // var_dump($Group);
-        
+          } 
+      }
+      function writ_to_bd_d()//Запись в базу данных массива GROUP
+      {
+         global $Group; 
         $link = mysql_connect('localhost', 'root', '') or die('Не удалось соединиться: ' . mysql_error());
         mysql_select_db('raspisanie') or die('Не удалось выбрать базу данных');
 
@@ -717,12 +513,227 @@
              {
                $d_a_m = explode(".",$date_m[$in]);
               $query="INSERT INTO timetable (ID_Grup,ID_Lecturer,ID_classroom,Time,Date,Type,Subject,Comment) VALUES (".$group_id.",".$prepod_id.",".$Auditoria_id.",".$Group[$i]["Para"][$k]->ParNumber.",'".$nau_ear."-".$d_a_m[1]."-".$d_a_m[0]."',".$type.",'".$Group[$i]["Para"][$k]->Predmet."','".$Group[$i]["Para"][$k]->Comment."')";  
-               mysql_query($query) or die('Не удалось добавить пару ' . mysql_error());
+              // mysql_query($query) or die('Не удалось добавить пару ' . mysql_error());
              }
              print("<BR>");
            }
         }
-  /**/      
-          ?>
+      }
+      
+      function get_day_raspisanie ()// анализирует дневное распсиание.
+      {
+            global $objPHPExcel;
+            global $Coll_Start;//начало таблицы (непосредственно данных)
+            global $Coll_End;//за концом таблицы
+            global $Row_Start;//начало таблицы
+            global $Row_End;//за концом таблицы
+            global $Row_Start_Date;//начало данных
+            global $Group;//массив с данными.
+            global $Shirina_na_gruppu;//Число ячеек, отведённых на одну группу.
+            global $gani; //массив хранит границы дней недели
+            global $date_massiv;
+          for($Sheat=0;$Sheat<$objPHPExcel->getSheetCount();$Sheat++)
+        { 
+            $Coll_Start=1;//начало таблицы (непосредственно данных)
+            $Coll_End=1;//за концом таблицы
+            $Row_Start=0;//начало таблицы
+            $Row_End=0;//за концом таблицы
+            $Row_Start_Date=0;//начало данных
+            $Group=array();//массив с данными.
+            $Shirina_na_gruppu=1;//Число ячеек, отведённых на одну группу.
+            $gani=false; //массив хранит границы дней недели
+            $date_massiv=false;
+            
+         get_orientirs_d($Sheat);
+         group_init_d($Coll_Start,$Coll_End,$Row_Start,$Sheat,$Shirina_na_gruppu);
+         dey_gran_d($Row_Start_Date,$Row_End,$Sheat);
+         get_mounday_d($Coll_Start,$Row_Start,$Sheat,$Row_Start_Date);          
+          for($i=$Row_Start_Date;$i<$Row_End;$i++)
+        {
+            for($k=$Coll_Start;$k<$Coll_End;$k++)
+            {
+                if(($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i)->getStyle()->getBorders()->getLeft()->getBorderStyle()!="none"||$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k-1, $i)->getStyle()->getBorders()->getRight()->getBorderStyle()!="none")&&($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i)->getStyle()->getBorders()->getTop()->getBorderStyle()!="none"||$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i-1)->getStyle()->getBorders()->getBottom()->getBorderStyle()!="none"))
+                {  
+                   
+                   $res= read_cell($i,$k,$Sheat);
+                   //var_dump($res);
+                   //print("<BR><BR><BR>");
+                 //  print($i.":".$k.":".$res[0].":".$res[1].":".$res[2]."<BR>");
+                   $nau= floor(($k-$Coll_Start)/$Shirina_na_gruppu);
+                   if($res[0]!="")//Если есть название предмета
+                   {                       //var_dump($Group[$nau]);
+                       //$Prev_par= $Group[$nau][count($Group[$nau])-1];
+                       $nau_par_count =count($Group[$nau]["Para"]); 
+                       //print("<BR><BR>".$nau_par_count."<BR><BR>");
+                       if($nau_par_count>0)//Проверяем, если у нас пара не первая
+                       {   //["Para"]
+                           
+                           $Prev_par=$nau_par_count-1;
+                           if($Group[$nau]["Para"][$Prev_par]->Predmet==false)//если у предыдущей пары нет предмета
+                           {
+                               $NewPar=array_pop($Group[$nau]["Para"]);//Вытягиваем предыдущую пару на заполнение.
+                           }
+                            else
+                           {
+                               $NewPar=new para();  // Иначе создаём новую пару.
+                           }
+                       }
+                       else// если у нас первая пара
+                       {
+                           $Prev_par=$nau_par_count;
+                           $NewPar=new para();
+                       }
+                               
+                                 if($res[3]=="")//если у нас нет дат в ячейке
+                                     {  
+                                     //var_dump($date_massiv);
+                                        for($d=0;$d<count($date_massiv);$d++)
+                                         {
+                                           $moun=Mesac_to_chislo ($date_massiv[$d]["month"]);
+                                          //print($date_massiv[$d]["month"]."=".$moun."<BR>");
+                                             $f=0;
+                                             while($i>$gani[$f])
+                                             {
+                                                 $f++;
+                                             }
+                                             $dart=$date_massiv[$d]["date"][$f];
+                                             //var_dump($date_massiv[$d]["date"][$f]);
+                                             //print("<BR><BR>");
+                                             $dart= explode("|",$dart);
+                                             //var_dump($dart[0]);
+                                             //print("<BR>");
+                                             for($l=0;$l<count($dart)-1;$l++)
+                                             {
+                                               $NewPar->Date.=$dart[$l].".".$moun.",";
+                                               //print($dart[$l]." ");
+                                             }
+                                             //print("<BR>");
+                                             //print($NewPar->Date);
+                                            
+                                         }
+                                     }
+                                     else// если даты в ячейке есть
+                                    {
+                                      $NewPar->Date=$res[3];
+                                    }
+                           $NewPar->Predmet=$res[0];
+                           $NewPar->Type=$res[1];
+                           $NewPar->Auditoria=$res[2];
+                           $NewPar->Prepod=$res[4];
+                           $NewPar->Comment.=trim($res[5]);
+                           $group_count= floor($res[7]/$Shirina_na_gruppu);
+                           //$Coll_Start-1;
+                           $NewPar->ParNumber=get_par_number($i,$Coll_Start,$Sheat);
+                           if($group_count==0&& !is_int(($k-$Coll_Start+$Shirina_na_gruppu)/$Shirina_na_gruppu))
+                           { 
+                               //print($NewPar->Predmet." ".$NewPar->Type." ".$NewPar->Auditoria." ".$NewPar->Prepod."<BR>");
+                             if($NewPar->Auditoria=="")
+                             {
+                              $NewPar->Auditoria= $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Auditoria;  
+                             }
+                             if($NewPar->Prepod=="")
+                             {
+                               $NewPar->Prepod= $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Prepod;     
+                             }
+                             if($NewPar->Comment=="")
+                             {//print("Много мыши!!".$Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Predmet."!");
+                              $NewPar->Comment= $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Comment;    
+                             }
+                             if($NewPar->Type=="")
+                             {
+                                $NewPar->Type= $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Type;  
+                             }
+                             //_____________________________________________
+                             if($Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Auditoria=="")
+                             {
+                             $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Auditoria= $NewPar->Auditoria;  
+                             }
+                             if($Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Prepod=="")
+                             {
+                              $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Prepod= $NewPar->Prepod;     
+                             }
+                             if($Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Comment=="")
+                             {//print("Много мыши!!".$Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Predmet."!");
+                             $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Comment= $NewPar->Comment;    
+                             }
+                             if($Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Type=="")
+                             {
+                               $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Type;  
+                             }
+                            // print($NewPar->Predmet." ".$NewPar->Type." ".$NewPar->Auditoria." ".$NewPar->Prepod."<BR>");
+                             //_______________________________________
+                             $par_count=floor($res[6]/2);//ЗАМЕТКА!!!!!_______ потом рассчитать длинну в стоках для пары. На основе размера ячейки с указанием номера пары.
+                             for($d=0;$d<$par_count;$d++)
+                               {    
+                                       $par_temp= new para;
+                                       $par_temp->copy($NewPar);
+                                       $par_temp->ParNumber+=$d;
+                                       array_push( $Group[$nau]["Para"],$par_temp);
+                                   
+                               }
+                           }
+                           else
+                           {
+                                $par_count=floor($res[6]/2);//ЗАМЕТКА!!!!!_______ потом рассчитать длинну в стоках для пары. На основе размера ячейки с указанием номера пары.
+                               
+                                if($group_count==0)
+                                {
+                                    $group_count=1;
+                                }
+                                for($l=0;$l<$group_count;$l++)
+                               {
+                               if(count($Group[$nau+$l]["Para"])>0)
+                                {
+                                   if($Group[$nau+$l]["Para"][count($Group[$nau+$l]["Para"])-1]->Predmet=="")
+                                   {
+                                     array_pop($Group[$nau+$l]["Para"]);  
+                                   }
+                                       
+                                }
+                                for($z=0;$z<$par_count;$z++)
+                                    {
+                                       $par_temp= new para;
+                                       $par_temp->copy($NewPar);
+                                       $par_temp->ParNumber+=$z;
+                                       array_push( $Group[$nau+$l]["Para"],$par_temp);
+                                    }  
+                               }
+                           }
+                           //print($NewPar->Predmet." ".$NewPar->Prepod." ".$NewPar->Auditoria." !".$NewPar->ParNumber."!".$group_count."  ".$Group[$nau]["NameGroup"]."<BR>");
+                           //var_dump($Group[$nau]);
+                          
+                       
+                    }
+                else // названия предммета нет.
+                    {
+                     if(trim($res[5])!="")
+                        {
+                         $NewPar= new para();
+                         $NewPar->Predmet=false;
+                         $NewPar->Comment=$res[5];  
+                         array_push( $Group[$nau]["Para"],$NewPar); 
+                        } 
+                    }
+                }
+             
+            }
+        }
+        /** /
+        $stroka=135;
+        $stolbec=7;
+        print($objPHPExcel->getSheet(0)->getCellByColumnAndRow($stolbec,$stroka-1)->getStyle()->getBorders()->getBottom()->getBorderStyle().":".$objPHPExcel->getSheet(0)->getCellByColumnAndRow($stolbec,$stroka)->getStyle()->getBorders()->getTop()->getBorderStyle()."!!!");  
+        print($objPHPExcel->getSheet(0)->getCellByColumnAndRow($stolbec,$stroka)->getStyle()->getBorders()->getLeft()->getBorderStyle().":".$objPHPExcel->getSheet(0)->getCellByColumnAndRow($stolbec-1,$stroka)->getStyle()->getBorders()->getRight()->getBorderStyle()."<BR>");  
+         /**/
+         //    var_dump($res);
+       //  echo  preg_match("/[с]( )+\d{1,2}[-:\.]\d\d/iu", $res[0], $matches) ;
+       //  var_dump($matches);
+        /**/
+      writ_to_bd_d();  
+        }
+      }
+       //----------------------------------------------------------------------//конец дневных функций 
+        
+      get_day_raspisanie ();
+      ?>
     </body>
 </html>

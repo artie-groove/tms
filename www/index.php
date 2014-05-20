@@ -7,7 +7,12 @@
     </head>
     <body>
         <?php
-        /**/
+        /**//*
+         * Немного о коде - функцции с постфиксом _d подходят для работы с дневным и вечерним расписанием.
+         * Многие функции используют глобальные переменные. Есл ифункция инициализирует глобальную переменную - 
+         * то ряддом с её объявлением стоит соответсвующий коментарий.
+         * 
+         */
         class cell
         {
             public $date;
@@ -47,12 +52,32 @@
        // include '/lib/excel_reader2.php';
         require_once dirname(__FILE__) . '/lib/Classes/PHPExcel.php';
        // $objPHPExcel = PHPExcel_IOFactory::load("fei5.xlsx");
-        //fei4_140213
-       $objPHPExcel = PHPExcel_IOFactory::load("fei4_140213.xlsx");//vf5_140213.xlsx
-          //$objPHPExcel = PHPExcel_IOFactory::load("vf5_140213.xlsx");
+       //fei4_140213
+       //$objPHPExcel = PHPExcel_IOFactory::load("fei4_140213.xlsx");//vf5_140213.xlsx
+       $objPHPExcel = PHPExcel_IOFactory::load("vf5_140213.xlsx");//postal_3course_140506.xlsx
+       //$objPHPExcel = PHPExcel_IOFactory::load("postal_3course_140506.xlsx");
       //-----------------------------------------------------------------------  
       // Функциональная зона. Возвращает: 0)Предмет. 1) Тип занятия. 2)Аудитории (массив) 3) даты 4) преподаватель 5) комментарий. 6)Число строк 7) число столбцов
-      function read_cell($Staret_Row,$Start_Coll,$Sheet)//Читает ячейку
+      
+      
+      //---------------------------------------------------------------------переменные общего назначения
+        $objPHPExcel->getSheetCount();
+        $Sheat;//Текущий лист
+        $Coll_Start;//начало таблицы (непосредственно данных)
+        $Coll_End;//за концом таблицы
+        $Row_Start;//начало таблицы
+        $Row_End;//за концом таблицы
+        $Row_Start_Date;//начало данных
+        $Group;//массив с данными.
+        $Shirina_na_gruppu;//Число ячеек, отведённых на одну группу.
+        $gani; //массив хранит границы дней недели
+        $date_massiv; // сохраняет названия месяцев и соответсвующие им дни
+        $Type_stady; //форма обучения. 0 - дневная, 1 - вечерняя, 2-заочная.
+      //-----------------------------------------------------------------------Перемнные заочного распсиания
+        $Section_width;// ширина одной секции
+        
+      //----------------------------------------------------------------------- функции общего назначения
+        function read_cell($Staret_Row,$Start_Coll,$Sheet)//Читает ячейку
       {
           global $objPHPExcel;
           $row=$Staret_Row;
@@ -172,7 +197,7 @@
           
       }
 
-      function Mesac_to_chislo( $str)
+      function Mesac_to_chislo( $str)// определяет, что за месяц передан в строке и возвращает его номер
       {  
          str_replace("a", "а", $str); 
          str_replace("A", "А", $str);
@@ -226,161 +251,9 @@
                                   
                                      return $messs;
       }
-      function get_par_number($rows,$Coll_Start,$Sheat)
-      {
-         global $objPHPExcel;
-         $k=0;
-         do
-         {
-         $str=$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($Coll_Start-1, $rows+$k);
-         $str=trim($str);
-         str_replace(" ", "", $str);
-         $k++;
-         }
-         while($str=="");
-         switch ($str)
-         {
-             case "1-2": {$rez=1;break;}
-             case "3-4": {$rez=2;break;}
-             case "5-6": {$rez=3;break;}
-             case "7-8": {$rez=4;break;}
-             case "9-10": {$rez=5;break;}
-             case "11-12": {$rez=6;break;}
-             default : {$rez=0;break;}
-         }
-         //print("<BR>Было: ".$str.". Номер пары:".$rez."<BR>");
-         return $rez;
-      }
-      //---------------------------------------------------------------------
-        $objPHPExcel->getSheetCount();
-        $Sheat;//Текущий лист
-        $Coll_Start;//начало таблицы (непосредственно данных)
-        $Coll_End;//за концом таблицы
-        $Row_Start;//начало таблицы
-        $Row_End;//за концом таблицы
-        $Row_Start_Date;//начало данных
-        $Group;//массив с данными.
-        $Shirina_na_gruppu;//Число ячеек, отведённых на одну группу.
-        $gani; //массив хранит границы дней недели
-        $date_massiv; // сохраняет названия месяцев и соответсвующие им дни
-      //---------------------------------------------------------------------
-      function get_orientirs_d($Sheat)//определяет границы таблицы, а так же ширину колонки для группы.Устанавливает глобальные переменные. 
-      {
-        global $objPHPExcel;
-        global $Coll_Start;//начало таблицы (непосредственно данных)//инициализирует
-        global $Coll_End;//за концом таблицы//инициализирует
-        global $Row_Start;//начало таблицы//инициализирует
-        global $Row_End;//за концом таблицы//инициализирует
-        global $Row_Start_Date;//начало данных//инициализирует
-        global $Shirina_na_gruppu;//инициализирует
-        While($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $Row_Start)->getStyle()->getBorders()->getBottom()->getBorderStyle()==="none"&&$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $Row_Start+1)->getStyle()->getBorders()->getTop()->getBorderStyle()==="none")
-        {
-          $Row_Start++; 
-        }
-        $Row_Start++;
-        $Row_Start_Date =  $Row_Start+1;
-        While($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $Row_Start_Date)->getStyle()->getFill()->getStartColor()->getRGB()!=="FFFFFF")
-        {
-          $Row_Start_Date++;
-        }
-        $Row_End=$Row_Start_Date;
-         While(!($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $Row_End)->getStyle()->getBorders()->getTop()->getBorderStyle()==="none"&&$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $Row_End-1)->getStyle()->getBorders()->getBottom()->getBorderStyle()==="none"))
-         {
-             if($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $Row_End)->getStyle()->getFill()->getStartColor()->getRGB()!=="FFFFFF")
-             {
-                 $Row_End++;
-             }
-            else 
-                {
-                 $Row_End+=2;
-                }
-           }
-         $Row_End-=2;
-          while (!preg_match("/[А-Яа-я]+( )*-( )*\d\d\d/",trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($Coll_Start, $Row_Start))))
-         {
-             $Coll_Start++;
-         }
-        $count_z=0;
-        $coll=$Coll_Start;
-        while($count_z<1)
-        {
-            $coll++;
-            $Shirina_na_gruppu++;
-            if(trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($coll+1, $Row_Start))!="")
-            {
-                $count_z++;
-            }
-        }
-        //print($Shirina_na_gruppu);
-          $Coll_End=$Coll_Start;
-          While(($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($Coll_End, $Row_Start)->getStyle()->getBorders()->getLeft()->getBorderStyle()!=="none"||$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($Coll_End-1, $Row_Start)->getStyle()->getBorders()->getRight()->getBorderStyle()!=="none"))
-          {
-             $Coll_End+=$Shirina_na_gruppu; 
-          }
-         $Coll_End-=$Shirina_na_gruppu; 
-      }
-      function group_init_d($Coll_Start,$Coll_End,$Row_Start,$Sheat,$Shirina_na_gruppu)//распознавание групп. Объявляет глобальные переменные
-      {
-          global $Group;//инициализирует
-          global $objPHPExcel;
-          $gr_cl=0;
-          for($i=$Coll_Start;$i<$Coll_End;$i+=$Shirina_na_gruppu)
-          {
-           $Group[$gr_cl]["NameGroup"]=trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($i, $Row_Start));  
-           $Group[$gr_cl]["Para"]= array();
-           $gr_cl++;
-          } 
-      }
-      function dey_gran_d($Row_Start_Date,$Row_End,$Sheat)//устанавливает грани между днями недели.
-      {
-          global $objPHPExcel;
-          global $gani;//инициализирует
-          $k=0;
-           for($i=$Row_Start_Date;$i<$Row_End;$i++)
-          {
-              if($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $i)->getStyle()->getBorders()->getBottom()->getBorderStyle()!=="none"||$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $i+1)->getStyle()->getBorders()->getTop()->getBorderStyle()!=="none")
-              {
-                  if($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $i)->getStyle()->getFill()->getStartColor()->getRGB()==="FFFFFF")
-                {
-                  $gani[$k]=$i+1;
-                  $k++;
-                }
-              }
-          }
-      }
-      function get_mounday_d($Coll_Start,$Row_Start,$Sheat,$Row_Start_Date)
-      {
-          global $gani;
-          global $objPHPExcel;
-          global $date_massiv; //инициализирует
-          for($k=1;$k<$Coll_Start-1;$k++)
-          {
-              $date_massiv[$k-1]["month"]=trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $Row_Start));
-              $date_massiv[$k-1]["date"]=array();
-              for($p=0;$p<count($gani);$p++)
-              {
-                  $date_massiv[$k-1]["date"][$p]="";
-                  //$date_massiv[$k]["gran"]=$gani[$p];
-                  if($p==0)
-                  {
-                    $i=$Row_Start_Date;  
-                  }
-                  else
-                  {
-                     $i=$gani[$p-1];
-                  }
-                  for($i;$i<$gani[$p];$i++)
-                  {
-                   if(trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i))!="")
-                   {
-                     $date_massiv[$k-1]["date"][$p].=trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i))."|";
-                   }
-                  }
-              }
-          } 
-      }
       function writ_to_bd_d()//Запись в базу данных массива GROUP
-      {
+      {  
+         global $Type_stady;
          global $Group; 
         $link = mysql_connect('localhost', 'root', '') or die('Не удалось соединиться: ' . mysql_error());
         mysql_select_db('raspisanie') or die('Не удалось выбрать базу данных');
@@ -400,7 +273,7 @@
             }
             else
             {
-               $query="INSERT INTO groups (Number_Group,Form_of_study) VALUES ('".$Group[$i]["NameGroup"]."',0)"; 
+               $query="INSERT INTO groups (Number_Group,Form_of_study) VALUES ('".$Group[$i]["NameGroup"]."',".$Type_stady.")"; 
                 mysql_query($query) or die('Не удалось добавить группу ' . mysql_error());
                $query = "SELECT * FROM groups Where Number_Group='".$Group[$i]["NameGroup"]."'";
                $res_SQL = mysql_query($query);
@@ -475,7 +348,7 @@
                }
                 else
                 {
-                    $query="INSERT INTO classroom (Number_classroom,ID_Department,Building) VALUES ('".$Group[$i]["Para"][$k]->Auditoria[0]."',1,'0')"; 
+                    $query="INSERT INTO classroom (Number_classroom,Building) VALUES ('".$Group[$i]["Para"][$k]->Auditoria[0]."',0)"; 
                     mysql_query($query) or die('Не удалось добавить аудиторию ' . mysql_error());
                     $query = "SELECT * FROM classroom Where Number_classroom='".$Group[$i]["Para"][$k]->Auditoria[0]."'";
                     $res_SQL = mysql_query($query);
@@ -489,6 +362,38 @@
                   die('Не удалось найти добавленную аудиторию');
                }   
             }
+            
+            
+            //!!!!!!!!
+             
+               //проверяем, есть ли такой предмет
+               $query = "SELECT * FROM subject Where Subject_Name='".$Group[$i]["Para"][$k]->Predmet."'";
+               $res_SQL = mysql_query($query);
+               $temp=mysql_fetch_array($res_SQL);
+               $Subject_id=false;
+               if($temp)
+               {                   
+                $Subject_id= $temp['ID_Subject'];  
+               }
+                else
+                {
+                    $query="INSERT INTO subject (Subject_Name) VALUES ('".$Group[$i]["Para"][$k]->Predmet."')"; 
+                    mysql_query($query) or die('Не удалось добавить предмет ' . mysql_error());
+                    $query = "SELECT * FROM subject Where Subject_Name='".$Group[$i]["Para"][$k]->Predmet."'";
+                    $res_SQL = mysql_query($query);
+                    $temp=mysql_fetch_array($res_SQL);
+               if($temp)
+               { 
+                   $Subject_id= $temp['ID_Subject']; 
+               }
+               else
+               {
+                  die('Не удалось найти добавленный предмет');
+               }   
+            }
+            //!!!!!!!!
+            
+            
             $type=0;
             
             if(preg_match("/лаб(( )*\.)?/", $Group[$i]["Para"][$k]->Type,$maches))
@@ -512,13 +417,151 @@
              for($in=0;$in<count($date_m)-$correct;$in++)
              {
                $d_a_m = explode(".",$date_m[$in]);
-              $query="INSERT INTO timetable (ID_Grup,ID_Lecturer,ID_classroom,Time,Date,Type,Subject,Comment) VALUES (".$group_id.",".$prepod_id.",".$Auditoria_id.",".$Group[$i]["Para"][$k]->ParNumber.",'".$nau_ear."-".$d_a_m[1]."-".$d_a_m[0]."',".$type.",'".$Group[$i]["Para"][$k]->Predmet."','".$Group[$i]["Para"][$k]->Comment."')";  
-              // mysql_query($query) or die('Не удалось добавить пару ' . mysql_error());
+              $query="INSERT INTO timetable (ID_Grup,ID_Lecturer,ID_classroom,Time,Date,Type,ID_Subject,Comment) VALUES (".$group_id.",".$prepod_id.",".$Auditoria_id.",".$Group[$i]["Para"][$k]->ParNumber.",'".$nau_ear."-".$d_a_m[1]."-".$d_a_m[0]."',".$type.",". $Subject_id.",'".$Group[$i]["Para"][$k]->Comment."')";  
+              mysql_query($query) or die('Не удалось добавить пару ' . mysql_error());
              }
              print("<BR>");
            }
         }
+      }  
+      //--------------------------------------------------------------------- функции для дневного и вечернего отделения.
+      function get_par_number($rows,$Coll_Start,$Sheat, &$NewPar)//получить номер пары
+      {
+         global $objPHPExcel;
+         $k=0;
+         do
+         {
+         $str=$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($Coll_Start-1, $rows+$k);
+         $str=trim($str);
+         str_replace(" ", "", $str);
+         $k++;
+         }
+         while($str=="");
+         switch ($str)
+         {
+             case "1-2": {$NewPar->ParNumber=1;break;}
+             case "3-4": {$NewPar->ParNumber=2;break;}
+             case "5-6": {$NewPar->ParNumber=3;break;}
+             case "7-8": {$NewPar->ParNumber=4;break;}
+             case "9-10": {$NewPar->ParNumber=5;break;}
+             case "11-12": {$NewPar->ParNumber=6;break;}
+             case "8-00": {$NewPar->ParNumber=1;$NewPar->Comment.=$str;break;}
+             case "9-40": {$NewPar->ParNumber=1;$NewPar->Comment.=$str;break;}
+             case "11-20": {$NewPar->ParNumber=1;$NewPar->Comment.=$str;break;}
+             case "13-00": {$NewPar->ParNumber=1;$NewPar->Comment.=$str;break;}
+             default : {$NewPar->ParNumber=0;break;}
+         }
+         //print("<BR>Было: ".$str.". Номер пары:".$rez."<BR>");
+        }
+      function get_orientirs_d($Sheat)//определяет границы таблицы, а так же ширину колонки для группы.Устанавливает глобальные переменные. 
+      {
+        global $objPHPExcel;
+        global $Coll_Start;//начало таблицы (непосредственно данных)//инициализирует
+        global $Coll_End;//за концом таблицы//инициализирует
+        global $Row_Start;//начало таблицы//инициализирует
+        global $Row_End;//за концом таблицы//инициализирует
+        global $Row_Start_Date;//начало данных//инициализирует
+        global $Shirina_na_gruppu;//инициализирует
+        While($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $Row_Start)->getStyle()->getBorders()->getBottom()->getBorderStyle()==="none"&&$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $Row_Start+1)->getStyle()->getBorders()->getTop()->getBorderStyle()==="none")
+        {
+          $Row_Start++; 
+        }
+        $Row_Start++;
+        //Print $Row_Start;
+        $Row_Start_Date =  $Row_Start+1;
+        While($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $Row_Start_Date)->getStyle()->getFill()->getStartColor()->getRGB()!=="FFFFFF"&&$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $Row_Start_Date)->getStyle()->getFill()->getStartColor()->getRGB()!=="000000")
+        {
+          $Row_Start_Date++;
+        }
+        $Row_End=$Row_Start_Date;
+         While($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $Row_End)->getStyle()->getFill()->getStartColor()->getRGB()!=="FFFFFF"&&$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $Row_Start_Date)->getStyle()->getFill()->getStartColor()->getRGB()!=="000000")
+         {
+                 $Row_End++;
+         }
+         while (!preg_match("/[А-Яа-я]+( )*-( )*\d\d\d/",trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($Coll_Start, $Row_Start))))
+         {
+             $Coll_Start++;
+         }
+        $count_z=0;
+        $coll=$Coll_Start;
+        while($count_z<1)//рассчитываем ширину на группу по первой ячейке для группы.
+        {
+            $coll++;
+            $Shirina_na_gruppu++;
+            if(trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($coll+1, $Row_Start))!="")
+            {
+                $count_z++;
+            }
+        }
+        //print($Shirina_na_gruppu);
+          $Coll_End=$Coll_Start;
+          While(($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($Coll_End, $Row_Start)->getStyle()->getBorders()->getLeft()->getBorderStyle()!=="none"||$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($Coll_End-1, $Row_Start)->getStyle()->getBorders()->getRight()->getBorderStyle()!=="none"))
+          {
+             $Coll_End+=$Shirina_na_gruppu; 
+          }
+         $Coll_End-=$Shirina_na_gruppu; 
       }
+      function group_init_d($Coll_Start,$Coll_End,$Row_Start,$Sheat,$Shirina_na_gruppu)//распознавание групп. Объявляет глобальные переменные
+      {
+          global $Group;//инициализирует
+          global $objPHPExcel;
+          $gr_cl=0;
+          for($i=$Coll_Start;$i<$Coll_End;$i+=$Shirina_na_gruppu)
+          {
+           $Group[$gr_cl]["NameGroup"]=trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($i, $Row_Start));  
+           $Group[$gr_cl]["Para"]= array();
+           $gr_cl++;
+          } 
+      }
+      function dey_gran_d($Row_Start_Date,$Row_End,$Sheat)//устанавливает грани между днями недели.
+      {
+          global $objPHPExcel;
+          global $gani;//инициализирует
+          $k=0;
+           for($i=$Row_Start_Date;$i<$Row_End;$i++)
+          {
+              if($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $i)->getStyle()->getBorders()->getBottom()->getBorderStyle()!=="none"||$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $i+1)->getStyle()->getBorders()->getTop()->getBorderStyle()!=="none")
+              {
+                  if($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $i)->getStyle()->getFill()->getStartColor()->getRGB()==="FFFFFF"||$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $i)->getStyle()->getFill()->getStartColor()->getRGB()==="000000")
+                {
+                  $gani[$k]=$i+1;
+                  $k++;
+                }
+              }
+          }
+      }
+      function get_mounday_d($Coll_Start,$Row_Start,$Sheat,$Row_Start_Date)
+      {
+          global $gani;
+          global $objPHPExcel;
+          global $date_massiv; //инициализирует
+          for($k=1;$k<$Coll_Start-1;$k++)
+          {
+              $date_massiv[$k-1]["month"]=trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $Row_Start));
+              $date_massiv[$k-1]["date"]=array();
+              for($p=0;$p<count($gani);$p++)
+              {
+                  $date_massiv[$k-1]["date"][$p]="";
+                  //$date_massiv[$k]["gran"]=$gani[$p];
+                  if($p==0)
+                  {
+                    $i=$Row_Start_Date;  
+                  }
+                  else
+                  {
+                     $i=$gani[$p-1];
+                  }
+                  for($i;$i<$gani[$p];$i++)
+                  {
+                   if(trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i))!="")
+                   {
+                     $date_massiv[$k-1]["date"][$p].=trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i))."|";
+                   }
+                  }
+              }
+          } 
+      }
+      
       
       function get_day_raspisanie ()// анализирует дневное распсиание.
       {
@@ -532,6 +575,7 @@
             global $Shirina_na_gruppu;//Число ячеек, отведённых на одну группу.
             global $gani; //массив хранит границы дней недели
             global $date_massiv;
+            global $Type_stady;
           for($Sheat=0;$Sheat<$objPHPExcel->getSheetCount();$Sheat++)
         { 
             $Coll_Start=1;//начало таблицы (непосредственно данных)
@@ -556,15 +600,10 @@
                 {  
                    
                    $res= read_cell($i,$k,$Sheat);
-                   //var_dump($res);
-                   //print("<BR><BR><BR>");
-                 //  print($i.":".$k.":".$res[0].":".$res[1].":".$res[2]."<BR>");
                    $nau= floor(($k-$Coll_Start)/$Shirina_na_gruppu);
                    if($res[0]!="")//Если есть название предмета
                    {                       //var_dump($Group[$nau]);
-                       //$Prev_par= $Group[$nau][count($Group[$nau])-1];
                        $nau_par_count =count($Group[$nau]["Para"]); 
-                       //print("<BR><BR>".$nau_par_count."<BR><BR>");
                        if($nau_par_count>0)//Проверяем, если у нас пара не первая
                        {   //["Para"]
                            
@@ -586,31 +625,21 @@
                                
                                  if($res[3]=="")//если у нас нет дат в ячейке
                                      {  
-                                     //var_dump($date_massiv);
-                                        for($d=0;$d<count($date_massiv);$d++)
+                                    for($d=0;$d<count($date_massiv);$d++)
                                          {
                                            $moun=Mesac_to_chislo ($date_massiv[$d]["month"]);
-                                          //print($date_massiv[$d]["month"]."=".$moun."<BR>");
                                              $f=0;
                                              while($i>$gani[$f])
                                              {
                                                  $f++;
                                              }
                                              $dart=$date_massiv[$d]["date"][$f];
-                                             //var_dump($date_massiv[$d]["date"][$f]);
-                                             //print("<BR><BR>");
-                                             $dart= explode("|",$dart);
-                                             //var_dump($dart[0]);
-                                             //print("<BR>");
-                                             for($l=0;$l<count($dart)-1;$l++)
+                                            $dart= explode("|",$dart);
+                                            for($l=0;$l<count($dart)-1;$l++)
                                              {
                                                $NewPar->Date.=$dart[$l].".".$moun.",";
-                                               //print($dart[$l]." ");
                                              }
-                                             //print("<BR>");
-                                             //print($NewPar->Date);
-                                            
-                                         }
+                                            }
                                      }
                                      else// если даты в ячейке есть
                                     {
@@ -622,8 +651,8 @@
                            $NewPar->Prepod=$res[4];
                            $NewPar->Comment.=trim($res[5]);
                            $group_count= floor($res[7]/$Shirina_na_gruppu);
-                           //$Coll_Start-1;
-                           $NewPar->ParNumber=get_par_number($i,$Coll_Start,$Sheat);
+                           get_par_number($i,$Coll_Start,$Sheat,&$NewPar);
+                           
                            if($group_count==0&& !is_int(($k-$Coll_Start+$Shirina_na_gruppu)/$Shirina_na_gruppu))
                            { 
                                //print($NewPar->Predmet." ".$NewPar->Type." ".$NewPar->Auditoria." ".$NewPar->Prepod."<BR>");
@@ -660,7 +689,6 @@
                              {
                                $Group[$nau]["Para"][count($Group[$nau]["Para"])-1]->Type;  
                              }
-                            // print($NewPar->Predmet." ".$NewPar->Type." ".$NewPar->Auditoria." ".$NewPar->Prepod."<BR>");
                              //_______________________________________
                              $par_count=floor($res[6]/2);//ЗАМЕТКА!!!!!_______ потом рассчитать длинну в стоках для пары. На основе размера ячейки с указанием номера пары.
                              for($d=0;$d<$par_count;$d++)
@@ -699,11 +727,7 @@
                                     }  
                                }
                            }
-                           //print($NewPar->Predmet." ".$NewPar->Prepod." ".$NewPar->Auditoria." !".$NewPar->ParNumber."!".$group_count."  ".$Group[$nau]["NameGroup"]."<BR>");
-                           //var_dump($Group[$nau]);
-                          
-                       
-                    }
+                     }
                 else // названия предммета нет.
                     {
                      if(trim($res[5])!="")
@@ -718,22 +742,88 @@
              
             }
         }
-        /** /
-        $stroka=135;
-        $stolbec=7;
-        print($objPHPExcel->getSheet(0)->getCellByColumnAndRow($stolbec,$stroka-1)->getStyle()->getBorders()->getBottom()->getBorderStyle().":".$objPHPExcel->getSheet(0)->getCellByColumnAndRow($stolbec,$stroka)->getStyle()->getBorders()->getTop()->getBorderStyle()."!!!");  
-        print($objPHPExcel->getSheet(0)->getCellByColumnAndRow($stolbec,$stroka)->getStyle()->getBorders()->getLeft()->getBorderStyle().":".$objPHPExcel->getSheet(0)->getCellByColumnAndRow($stolbec-1,$stroka)->getStyle()->getBorders()->getRight()->getBorderStyle()."<BR>");  
-         /**/
-         //    var_dump($res);
-       //  echo  preg_match("/[с]( )+\d{1,2}[-:\.]\d\d/iu", $res[0], $matches) ;
-       //  var_dump($matches);
-        /**/
       writ_to_bd_d();  
         }
       }
-       //----------------------------------------------------------------------//конец дневных функций 
-        
-      get_day_raspisanie ();
+       //----------------------------------------------------------------------//Функции для заочного распсиания
+       function get_orientirs_z($Sheat)//определяет границы таблицы, а так же ширину колонки для группы.Устанавливает глобальные переменные. 
+      {
+        global $objPHPExcel;
+        global $Coll_Start;//начало таблицы (непосредственно данных)//инициализирует
+        global $Coll_End;//за концом таблицы//инициализирует
+        global $Row_Start;//начало таблицы//инициализирует
+        global $Row_End;//за концом таблицы//инициализирует
+        global $Row_Start_Date;//начало данных//инициализирует
+        global $Shirina_na_gruppu;//инициализирует
+        global $Section_width;//инициализирует
+        While($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $Row_Start)->getStyle()->getBorders()->getBottom()->getBorderStyle()==="none"&&$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $Row_Start+1)->getStyle()->getBorders()->getTop()->getBorderStyle()==="none")
+        {
+          $Row_Start++; 
+        }
+        $Row_Start++;
+        //Print $Row_Start;
+        $Row_Start_Date =  $Row_Start+1;
+        While($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $Row_Start_Date)->getStyle()->getFill()->getStartColor()->getRGB()!=="FFFFFF"&&$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $Row_Start_Date)->getStyle()->getFill()->getStartColor()->getRGB()!=="000000")
+        {
+          $Row_Start_Date++;
+        }
+        $Row_End=$Row_Start_Date;
+         While($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $Row_End)->getStyle()->getFill()->getStartColor()->getRGB()!=="FFFFFF"&&$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $Row_Start_Date)->getStyle()->getFill()->getStartColor()->getRGB()!=="000000")
+         {
+          $Row_End++;
+         }
+         while (!preg_match("/[А-Яа-я]+( )*-( )*\d\d\d/",trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($Coll_Start, $Row_Start))))
+         {
+             $Coll_Start++;
+         }
+        $count_z=0;
+        $coll=$Coll_Start;
+        while($count_z<1)//рассчитываем ширину на группу по первой ячейке для группы.
+        {
+            $coll++;
+            $Shirina_na_gruppu++;
+            if(trim($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($coll+1, $Row_Start))!="")
+            {
+                $count_z++;
+            }
+        }
+        //print($Shirina_na_gruppu);
+          $Coll_End=$Coll_Start;
+          While($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($Coll_End, $Row_Start+1)->getStyle()->getFill()->getStartColor()->getRGB()!=="FFFFFF"&&$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($Coll_End, $Row_Start+1)->getStyle()->getFill()->getStartColor()->getRGB()!=="000000")
+          {
+             $Coll_End++; 
+          }
+          $coll =$Coll_Start;
+          while($objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($coll, $Row_Start_Date)->getStyle()->getFill()->getStartColor()->getRGB()==="FFFFFF"||$objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($coll, $Row_Start_Date)->getStyle()->getFill()->getStartColor()->getRGB()==="000000")
+          {
+              $Section_width++;
+              $coll++;
+          }
+                  
+          } 
+       //----------------------------------------------------------------------
+      $Type_stady=1;// Тип распознаваемого расписания
+     
+      switch ($Type_stady)
+      {
+      case 0:{ get_day_raspisanie();break;}//расписание дневное - фас!
+      case 1:{ get_day_raspisanie();break;}//распсиание вечернее - фас!
+      }
+      
+      if($Type_stady==2){//будущая функция
+          $Coll_Start=1;//начало таблицы (непосредственно данных)
+          $Coll_End=1;//за концом таблицы
+          $Row_Start=0;//начало таблицы
+          $Row_End=0;//за концом таблицы
+          $Row_Start_Date=0;//начало данных
+          $Group=array();//массив с данными.
+          $Shirina_na_gruppu=1;//Число ячеек, отведённых на одну группу.
+          $gani=false; //массив хранит границы дней недели
+          $date_massiv=false;
+          $Section_width=0;
+      get_orientirs_z(0);
+      print ($Row_Start."|".$Row_Start_Date."|".$Row_End."<Br>".$Coll_Start."|".$Coll_End."|".$Section_width);
+      }
       ?>
     </body>
 </html>

@@ -1,0 +1,26 @@
+
+@charset "UTF-8";
+
+
+#upload-button {
+    width: 350px;
+    margin-top: 50px;
+    padding: 25px 0;
+}
+
+#upload-button span {
+    font-size: 30px;
+    text-shadow: 1px 1px 0 #333;
+}
+
+#upload-button p {
+    text-align: left;
+    padding-left: 85px;
+    margin: 0;
+    font-size: 12px;
+}
+
+#log {
+    padding: 25px;
+    text-align: left;
+}

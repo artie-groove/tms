@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Загрузка XLSX-файлов расписания</title>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
+
+    <!-- JQuery Fileupload plugin CSS -->
+    <link rel="stylesheet" href="/css/jquery.fileupload.css">
+
+    <!-- Custom page styles -->
+    <link rel="stylesheet" href="/css/upload.css">
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+
+
+</head>
+<body>
+<script>
+    $(function() {
+
+    });
+</script>
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 col-md-offset-2 text-center">
+            <div id="upload-button" class="btn btn-success fileinput-button">
+                <span class="glyphicon glyphicon-upload"></span>&nbsp;
+                <span>Выберите файл</span>
+                <p>Максимальный размер: 1&nbsp;МБ</p>
+                <p>Принимаются только XLSX-файлы</p>
+                <input id="fileupload" type="file" name="data_xlsx">
+            </div>
+            <br/><br/>
+
+            <div id="progress" class="progress progress-striped active">
+                <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+            </div>
+            <div id="log"></div>
+            <!--
+            <div class="jumbotron">
+                <form role="form">
+                    <h1>Публикация расписания</h1>
+                    <div class="row">
+                        <div class="col-md-2"><img src="/img/xlsx.png" alt="XLSX" class="img-rounded img-responsive" /></div>
+                        <div class="col-md-10">
+                            <div class="panel panel-default">
+                                <div class="panel-heading">XLSX-файл расписания</div>
+                                <div class="panel-body"><input type="file" id="data_xlsx"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="help-block">Допускается загрузка файлов в&nbsp;формате XLSX размером не&nbsp;более 1&nbsp;МБ</p>
+                    <button type="submit" class="btn btn-primary btn-lg">Опубликовать</button>
+                </form>
+            </div>
+            -->
+        </div>
+    </div>
+</div>
+
+<script src="/js/jquery.ui.widget.js"></script>
+<script src="/js/jquery.iframe-transport.js"></script>
+<script src="/js/jquery.fileupload.js"></script>
+<script>
+    $(function () {
+        $('#progress').hide();
+        $('#fileupload').fileupload({
+            dataType: 'json',
+            url: '/upload/upload_handler.php',
+            maxNumberOfFiles: 1,
+            maxFileSize: 1024 * 1024, // 1 MB
+            minFileSize: 1024, // 1 kB
+            forceIframeTransport: true,
+            add: function( e, data ) {
+                // checking if the input file name ends with .xlsx
+                var ext = data.files[0].name.toLowerCase().split('.').pop();
+                if ( ext !== 'xlsx' ) {
+                    $('#log').addClass('bg-warning');
+                    $('#log').text('constraint: only xlsx extensions are supported');
+                    return false;
+                }
+                $('#log').removeClass();
+                data.submit();
+            },
+            send: function (e, data) {
+                $('#progress').css('width', '0');
+                $('#progress').show();
+                return true;
+            },
+            progress: function (e, data) {
+                var progress = parseInt(data.loaded / data.total * 100, 10);
+                $('#progress .progress-bar').css('width', progress + '%').attr('aria-valuenow', progress);
+            },
+            done: function (e, data) {
+                $('#log').addClass('bg-success');
+                $('#log').text('ok: ' + data.result.status);
+                /*
+                $.each(data.result.files, function (index, file) {
+                    $('<p/>').text(file.name).appendTo(document.body);
+                });
+                */
+            },
+            fail: function ( e, data ) {
+                $('#log').addClass('bg-danger');
+                $('#log').text('error: ' + data.errorThrown + ': ' + data.textStatus);
+            },
+            always: function (e, data) {
+                $('#progress').hide();
+                // data.result
+                // data.textStatus;
+                // data.jqXHR;
+                //console.log(data.result + ': ' + data.textStatus);
+                //console.log(data);
+            }
+
+        });
+    });
+</script>
+
+
+</body>
+</html>

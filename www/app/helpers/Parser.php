@@ -1,82 +1,57 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title></title>
-</head>
-<body>
-<?php
+<?
+/*
+ * Немного о коде - функцции с постфиксом _d подходят для работы с дневным и вечерним расписанием.
+ * Многие функции используют глобальные переменные. Есл ифункция инициализирует глобальную переменную - 
+ * то ряддом с её объявлением стоит соответсвующий коментарий.
+ * 
+ */
         
-        class Pair  //Pair
-        {
-            public $Predmet;
-            public $Prepod;
-            public $Type;
-            public $Auditoria;
-            public $ParNumber;
-            public $Date;
-            public $Comment;
-            public $Group;
-            
-            public function copy($old)
-            {
-                $this->Predmet = $old->Predmet;
-                $this->Prepod = $old->Prepod;
-                $this->Type= $old->Type;
-                $this->Auditoria= $old->Auditoria;
-                $this->ParNumber= $old->ParNumber;
-                $this->Date= $old->Date;
-                $this->Comment= $old->Comment;
-                $this->Group= $old->Group;
-            }
-        }
-        
-        class Parser
-        {
-             //---------------------------------------------------------------------переменные общего назначения
-        private $objPHPExcel;
-        private $Sheat;//Текущий лист
-        private $Coll_Start;//начало таблицы (непосредственно данных)
-        private $Coll_End;//за концом таблицы
-        private $Row_Start;//начало таблицы
-        private $Row_End;//за концом таблицы
-        private $Row_Start_Date;//начало данных
-        private $Group;//массив с данными.
-        private $Shirina_na_gruppu;//Число ячеек, отведённых на одну группу.
-        private $gani; //массив хранит границы дней недели
-        private $date_massiv; // сохраняет названия месяцев и соответсвующие им дни
-        private $Type_stady; //форма обучения. 0 - дневная, 1 - вечерняя, 2-заочная.
-      //-----------------------------------------------------------------------Перемнные заочного распсиания
-        private $Section_Start;// ширина текущей секции
-        private $Section_end;// конец текущей секции
-        private $Section_date_start;//начало данных для текущей секции
+class Parser
+{
+	//---------------------------------------------------------------------переменные общего назначения
+	private $objPHPExcel;
+	private $Sheat;//Текущий лист
+	private $Coll_Start;//начало таблицы (непосредственно данных)
+	private $Coll_End;//за концом таблицы
+	private $Row_Start;//начало таблицы
+	private $Row_End;//за концом таблицы
+	private $Row_Start_Date;//начало данных
+	private $Group;//массив с данными.
+	private $Shirina_na_gruppu;//Число ячеек, отведённых на одну группу.
+	private $gani; //массив хранит границы дней недели
+	private $date_massiv; // сохраняет названия месяцев и соответсвующие им дни
+	private $Type_stady; //форма обучения. 0 - дневная, 1 - вечерняя, 2-заочная.
+    //-----------------------------------------------------------------------Перемнные заочного распсиания
+	private $Section_Start;// ширина текущей секции
+	private $Section_end;// конец текущей секции
+	private $Section_date_start;//начало данных для текущей секции
         
     private function Order_66($Sheat)// сносит все невидемые 
-       {
-        $this->objPHPExcel;
-        $name_max_col = $this->objPHPExcel->getSheet($Sheat)->getHighestColumn();
-        $coll_max=0;//максимальный заюзанный столбец.
-        do
-        {
-            $coll_max++;
-        }
-        while($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($coll_max, 1)->getColumn()!=$name_max_col);
-         $coll_max++;
-         $killed=0;
-         $i=0;
-         while($i<$coll_max-$killed)
-         {
-             if($this->objPHPExcel->getSheet()->getColumnDimensionByColumn($i)->getVisible()!="")
-             {
-                 $i++;
-             }
-             else
-             {
-                $this->objPHPExcel->getSheet()->removeColumnByIndex($i);   
-                $killed++;  
-             }
-         }
-       }
+    {
+		$this->objPHPExcel;
+		$name_max_col = $this->objPHPExcel->getSheet($Sheat)->getHighestColumn();
+		$coll_max=0;//максимальный заюзанный столбец.
+		do
+		{
+			$coll_max++;
+		}
+		while($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($coll_max, 1)->getColumn()!=$name_max_col);
+		 $coll_max++;
+		 $killed=0;
+		 $i=0;
+		 while($i<$coll_max-$killed)
+		 {
+			 if($this->objPHPExcel->getSheet()->getColumnDimensionByColumn($i)->getVisible()!="")
+			 {
+				 $i++;
+			 }
+			 else
+			 {
+				$this->objPHPExcel->getSheet()->removeColumnByIndex($i);   
+				$killed++;  
+			 }
+		 }
+    }
        
     private function get_typ_raspisania($Sheat)
       {// Здесь начинается лютый, беспросветный полярный лис. Функция перевода имени столбца в индекс не найдена, получить индекс максимального столбца тоже невозможно. Я не виноват!!!!
@@ -361,6 +336,7 @@
          {
                  $this->Row_End++;
          }
+		 
          while (!preg_match("/[А-Яа-я]+( )*-( )*\d\d\d/",trim($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($this->Coll_Start, $this->Row_Start))))
          {
              $this->Coll_Start++;
@@ -565,6 +541,7 @@
                              }
                              if($this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Prepod=="")
                              {
+
                               $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Prepod= $NewPar->Prepod;     
                              }
                              if($this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Comment=="")
@@ -610,7 +587,7 @@
                                        $par_temp= new Pair();
                                        $par_temp->copy($NewPar);
                                        $par_temp->ParNumber+=$z;
-                                       $par_temp->Group=$this->Group[$nau+$l]["NameGroup"];
+                                       $par_temp->Group=$this->Group[$nau]["NameGroup"];
                                        array_push( $this->Group[$nau+$l]["Para"],$par_temp);
                                     }  
                                }
@@ -707,6 +684,7 @@
     private   function get_mounday_z($Row_Start_Date,$Section_Start,$Row_End,$Sheet)
        {
            $this->date_massiv;//инициализируется, предварительно обнуляется.
+
            $this->gani;
            $this->objPHPExcel;
            $this->date_massiv=false;
@@ -740,7 +718,6 @@
        /////////////////////////////////////////// 
     public function parsing($file_name) 
         {
-        try {
             $this->objPHPExcel = PHPExcel_IOFactory::load($file_name);
             $this->Type_stady;// Тип распознаваемого расписания
       // Type_stady =$this->get_typ_raspisania(0);
@@ -749,11 +726,9 @@
       {
       case 0:{$this->get_day_raspisanie();break;}//расписание дневное - фас!
       case 1:{$this->get_day_raspisanie();break;}//распсиание вечернее - фас!
-      default :{return false;}
       }
       //var_dump($this->Group);
-      /** /
-      if($this->Type_stady==-1)// этод код никогда не отработает. Не паниковать!
+      if($this->Type_stady==2)
        {//будущая функция
           $Coll_Start=1;//начало таблицы (непосредственно данных)
           $Coll_End=1;//за концом таблицы
@@ -776,301 +751,10 @@
           
           var_dump($date_massiv);
       print ("<BR>".$Row_Start."|".$Row_Start_Date."|".$Row_End."<Br>".$Coll_Start."|".$Coll_End."|".$Section_Start."|".$Section_end);
-      }/**/
-      return true;
+      }
+      return $this->Group;
         }
-        catch(Exception $e)
-                {
-               // print($e);
-                return false;
-                }
-     
-        }
-       public function getParseData()
-      {    $par_date=array();
-           $this->Group;
-          
-           //print("<br><br><br>");
-           for($i=0;$i<count($this->Group);$i++)
-           {
-               $par_date = array_merge($par_date,$this->Group[$i]["Para"]);
-           }
-           
-           return $par_date;
-      }  
         
-}
-       
-/*
- *          public $Predmet;
-            public $Prepod;
-            public $Type;
-            public $Auditoria;
-            public $ParNumber;
-            public $Date;
-            public $Comment;
-            public $Group;
- */       
-class BD_Pusher
-       {
-           public function push($par_mass)//Запись в базу данных массива GROUP
-              {
-                $link = mysql_connect('localhost', 'root', '') or die('Не удалось соединиться: ' .mysql_error());
-                mysql_select_db('raspisanie') or die('Не удалось выбрать базу данных');
-                for($i=0;$i<count($par_mass);$i++)
-                {
-                  $group_id=0;  
-                  if(trim($par_mass[$i]->Group)!="")
-                  {
-                     $query = "SELECT id,name FROM groups Where name='".$par_mass[$i]->Group."'";
-                     $res_SQL = mysql_query($query)or die('Провал запроса на гркппу');
-                     $row = mysql_fetch_assoc($res_SQL);
-                     if($row)
-                    {
-                      $group_id= $row['id']; 
-                    }
-                  }
-                  
-                  $prepod_id=0;
-                  if(trim($par_mass[$i]->Prepod)!="")
-                  {
-                       $inicial=array();  
-                       if(preg_match_all("/[А-Я]\./ui", $Group[$i]["Para"][$k]->Prepod, $matches,PREG_PATTERN_ORDER)>0)
-                       {
-                          for($l=0;$l<count($matches[0]);$l++)
-                            {
-                               $par_mass[$i]->Prepod=trim(str_replace($matches[0][$l],"", $par_mass[$i]->Prepod));
-                               $inicial[$l]=trim(rtrim($matches[0][$l],'.'));
-                            }
-                            $query = "SELECT surname,name,patronymic FROM lecturers Where surname='".$Group[$i]["Para"][$k]->Prepod."',name LIKE '".$matches[0][0]."%',patronymic LIKE '".$matches[0][1]."'";
-                           //echo $query;
-                           $res_SQL = mysql_query($query)or die('Не нашли препода: ' . mysql_error());;
-                           while ($row = mysql_fetch_assoc($res_SQL))
-                            {
-                                var_dump($row); print($row['name'][0]." ".$row['patronymic'][0]."!=".$inicial[0]." ".$inicial[1]);
-                                print("<BR>");
-                               if($row['name'][0]==$inicial[0]&&$row['patronymic'][0]==$inicial[1])
-                               {
-                                 print($row['name']." ".$row['patronymic']);
-                               }
-                            }
-                       }
-                       else
-                       {
-                           
-                       }
-                  }
-                  
-                }
-               
-               
-               /*
-                            
-                            }/** /
-                          
-                          }
-                         
-                         
-                        }
-                        
-                        
-                       
-                       // print("<br>");
-                      /** / 
-                       
-                       $res_SQL = mysql_query($query);
-                       $temp=mysql_fetch_array($res_SQL);
-                       
-                       if($temp)
-                       {                   
-                        $prepod_id= $temp['ID_Lecturer'];  
-                       }
-                     /** /   else
-                        {
-                            $query="INSERT INTO lecturer (Family,Department_ID) VALUES ('".$Group[$i]["Para"][$k]->Prepod."',1)"; 
-                            mysql_query($query) or die('Не удалось добавить преподавателя ' .mysql_error());
-                            $query = "SELECT * FROM lecturer Where Family='".$Group[$i]["Para"][$k]->Prepod."'";
-                            $res_SQL = mysql_query($query);
-                            $temp=mysql_fetch_array($res_SQL);
-                       if($temp)
-                       { 
-                           $prepod_id=$temp['ID_Lecturer'];
-                       }
-                       else
-                       {
-                          die('Не удалось найти добавленную преподавателя');
-                       }   
-                    }/** /
-                       //проверяем, есть ли такой кабинет
-                        if($Group[$i]["Para"][$k]->Auditoria=="")
-                        {
-                           $Group[$i]["Para"][$k]->Auditoria[0]=-1; 
-                           //print("!!!НЕТ АУДИТОРИИ!!!");
-                        }
-                        else
-                        {
-                            for($ts=1;$ts<count($Group[$i]["Para"][$k]->Auditoria);$ts++)
-                            {
-                               $Group[$i]["Para"][$k]->Comment.=" ".$Group[$i]["Para"][$k]->Auditoria[$ts]; 
-                            }
-
-                        }
-                         $query = "SELECT * FROM classroom Where Number_classroom='".$Group[$i]["Para"][$k]->Auditoria[0]."'";
-                         $res_SQL = mysql_query($query);
-                         $temp=mysql_fetch_array($res_SQL);
-                         $Auditoria_id=false;
-                        if($temp)
-                        {                   
-                        $Auditoria_id= $temp['ID_Classroom'];  
-                        }
-                        else
-                        {
-                            $query="INSERT INTO classroom (Number_classroom,Building) VALUES ('".$Group[$i]["Para"][$k]->Auditoria[0]."',0)"; 
-                            mysql_query($query) or die('Не удалось добавить аудиторию ' .mysql_error());
-                            $query = "SELECT * FROM classroom Where Number_classroom='".$Group[$i]["Para"][$k]->Auditoria[0]."'";
-                            $res_SQL = mysql_query($query);
-                            $temp=mysql_fetch_array($res_SQL);
-                       if($temp)
-                       { 
-                           $Auditoria_id=$temp['ID_Classroom'];
-                       }
-                       else
-                       {
-                          die('Не удалось найти добавленную аудиторию');
-                       }   
-                    }
-
-
-                    //!!!!!!!!
-
-                       //проверяем, есть ли такой предмет
-                       $query = "SELECT * FROM subject Where Subject_Name='".$Group[$i]["Para"][$k]->Predmet."'";
-                       $res_SQL = mysql_query($query);
-                       $temp=mysql_fetch_array($res_SQL);
-                       $Subject_id=false;
-                       if($temp)
-                       {                   
-                        $Subject_id= $temp['ID_Subject'];  
-                       }
-                        else
-                        {
-                            $query="INSERT INTO subject (Subject_Name) VALUES ('".$Group[$i]["Para"][$k]->Predmet."')"; 
-                            mysql_query($query) or die('Не удалось добавить предмет ' .mysql_error());
-                            $query = "SELECT * FROM subject Where Subject_Name='".$Group[$i]["Para"][$k]->Predmet."'";
-                            $res_SQL = mysql_query($query);
-                            $temp=mysql_fetch_array($res_SQL);
-                       if($temp)
-                       { 
-                           $Subject_id= $temp['ID_Subject']; 
-                       }
-                       else
-                       {
-                          die('Не удалось найти добавленный предмет');
-                       }   
-                    }
-                    //!!!!!!!!
-
-
-                    $type=0;
-                    //Тип занятия : 1 - лаба, 2 - лекция, 4 - практика.
-                    if(preg_match("/лаб(( )*\.)?/", $Group[$i]["Para"][$k]->Type,$maches))
-                    {
-                     $type=1;   
-                    }elseif(preg_match("/лек(( )*\.)?/", $Group[$i]["Para"][$k]->Type,$maches))
-                    {
-                      $type=2;   
-                    }elseif(preg_match("/пр(( )*\.)?/", $Group[$i]["Para"][$k]->Type,$maches))
-                    {
-                      $type=3;  
-                    }
-                    //заносим в расписание.
-                     $date_m = explode(",",$Group[$i]["Para"][$k]->Date);
-                     $nau_ear = date("Y");
-                     $correct=0;
-                     if(trim($date_m[count($date_m)-1])=="")
-                     {
-                         $correct=1;
-                     }
-                     for($in=0;$in<count($date_m)-$correct;$in++)
-                     {
-                       $d_a_m = explode(".",$date_m[$in]);
-                      $query="INSERT INTO timetable 
-(ID_Grup,ID_Lecturer,ID_classroom,Time,Date,Type,ID_Subject,Comment) VALUES (".$group_id.",".$prepod_id.",".$Auditoria_id.",".$Group[$i]["Para"][$k]->ParNumber.",'".$nau_ear."-".$d_a_m[1]."-".$d_a_m[0]."',".$type.",". $Subject_id.",'".$Group[$i]["Para"][$k]->Comment."')"; 
-                      mysql_query($query) or die('Не удалось добавить пару ' . mysql_error());
-                     }
-                     print("<BR>");
-                   /** /
-                       
-                   }
-                   
-                }
-               * /**/
-              }
         
        }
-       
-       
-       
-       
-        error_reporting(E_ALL);
-        ini_set('display_errors', 'on');
-       // include '/lib/excel_reader2.php';
-        require_once dirname(__FILE__) . '/lib/Classes/PHPExcel.php';
-        $test = new Parser();
-        $test2= new BD_Pusher();
-        if($test->parsing("//examples/fei5.xlsx"))
-        {
-           $test->getParseData(); 
-        }
-        
-        
-        
-       //getParseData;
-        //$test2->push();
-        //$s= new Pair();
-        
-       // error_reporting(E_ALL);
-       // ini_set('display_errors', 'on');
-       // include '/lib/excel_reader2.php';
-      //  require_once dirname(__FILE__) . '/lib/Classes/PHPExcel.php';
-      //  $test = new Parser();
-      //  var_dump($test->parsing("fei5.xlsx"));
-        
-       // objPHPExcel = PHPExcel_IOFactory::load("fei5.xlsx");
-       //fei4_140213
-       //vf5_140213.xlsx
-       //objPHPExcel = PHPExcel_IOFactory::load("vf5_140213.xlsx");//postal_3course_140506.xlsx
-       //objPHPExcel = PHPExcel_IOFactory::load("postal_3course_140506.xlsx");
-      //-----------------------------------------------------------------------  
-      // Функциональная зона. Возвращает: 0)Предмет. 1) Тип занятия. 2)Аудитории (массив) 3) даты 4) преподаватель 5) комментарий. 6)Число строк 7) число столбцов
-      
-      
-      
-      //----------------------------------------------------------------------- функции общего назначения
-       
-      
-        
-      //--------------------------------------------------------------------- функции для дневного и вечернего отделения.
-      
-        
-      
-       //----------------------------------------------------------------------
-       
-
-
-       
-     //echo $objPHPExcel->getSheet(0)->getColumnDimensionByColumn(0)->getWidth();
-     //$objPHPExcel->getSheet()->removeRow($Section_width)
-      /*
-     echo  $objPHPExcel->getSheet()->getColumnDimensionByColumn(15)->getWidth()." ! ";
-      echo $objPHPExcel->getSheet()->getCellByColumnAndRow(15, 11);
-     $objPHPExcel->getSheet()->removeColumnByIndex(15);     
-     echo  $objPHPExcel->getSheet()->getColumnDimensionByColumn(15)->getWidth()." ! ";
-     echo $objPHPExcel->getSheet()->getCellByColumnAndRow(15, 11);
-       */
-      //echo $this->get_typ_raspisania(0);
-       //echo  $objPHPExcel->getSheet()->getColumnDimensionByColumn(15)->getWidth()." ! ".$objPHPExcel->getSheet(0)->getColumnDimensionByColumn(15)->getVisible();
-      // $objPHPExcel->getSheet(0)->getColumnDimensionByColumn(15)->getVisible();
-      ?>
-</body>
-</html>
+?>

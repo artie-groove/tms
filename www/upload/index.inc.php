@@ -7,7 +7,7 @@
 <body>
 
 <form action="" method="post" enctype="multipart/form-data">
-<input type="file" name="data_xls" />
+<input type="file" name="data_xlsx" />
 <input type="submit" />
 </form>
 

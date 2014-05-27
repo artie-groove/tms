@@ -1,6 +1,5 @@
 <?
 	include "class.Upload.php";
-	//include "index.inc.php";
 
 	if ( isset($_FILES['data_xlsx']) )
 	{
@@ -17,6 +16,18 @@
 		{
 			$message = $loader->getRezult();
 			echo $message;
+			
+			include $_SERVER['DOCUMENT_ROOT'].'/lib/Classes/PHPExcel.php';
+			include $_SERVER['DOCUMENT_ROOT']."/app/helpers/Pair.php";
+			include $_SERVER['DOCUMENT_ROOT']."/app/helpers/Parser.php";
+			$parser = new Parser();
+			
+			$fileToParse = $loader->getFullFileName();
+			//Добавить проверку работы парсинга и обработку ситуаций 
+			//когда парсинг завершился с ошибкой и когда без ошибки
+			$parseData=$parser->parsing($fileToParse);
+			var_dump($parseData[0]);
+			
 		}
 	}
 ?>

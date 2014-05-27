@@ -18,6 +18,11 @@ class Upload
 		return json_encode($this->rezult);
 	}
 	
+	public function getFullFileName()
+	{
+		return $this->uploadFileName;
+	}
+	
 	public function uploadFile($File)
 	{
 		if ( !is_uploaded_file($File['tmp_name']) )
@@ -27,10 +32,11 @@ class Upload
 			return false;
 		}
 
+		// Закомментировано by Mednopers 27.05.14
         // Функции серии finfo_* требуют особой настройки php:
         // во-первых, в php.ini нужно раскоментировать строку php_fileinfo.dll
         // во-вторых, позаботиться о том, чтобы эта библиотека была в наличии в папке php/ext на сервере
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        /*$finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime = finfo_file($finfo, $File['tmp_name']);
         finfo_close($finfo);
 
@@ -40,7 +46,7 @@ class Upload
 			//$this->setRezult('details', 'Загруженный файл не соответствует формату xlsx. File type: ' . $File['type']);
             $this->setRezult('details', 'Принимаются только файлы Microsoft Office Excel (xlsx). Загруженный файл имеет тип: ' . $mime);
             return false;
-		}
+		}*/
 
 		
 		if ( $File['size']>=($this->maxUploadFileSize*1024*1024) ) // размер файла >= 1 MB

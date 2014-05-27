@@ -20,6 +20,7 @@
 			include $_SERVER['DOCUMENT_ROOT'].'/lib/Classes/PHPExcel.php';
 			include $_SERVER['DOCUMENT_ROOT']."/app/helpers/Pair.php";
 			include $_SERVER['DOCUMENT_ROOT']."/app/helpers/Parser.php";
+            include $_SERVER['DOCUMENT_ROOT']."/app/helpers/BD_Pusher.php";
 			$parser = new Parser();
 			
 			$fileToParse = $loader->getFullFileName();
@@ -29,6 +30,12 @@
             {
                 $parseData = $parser->getParseData();
                 $status = array('status' => 'ok', 'details' => 'Распознавание прошло успешно');
+                $pusher = new BD_Pusher();
+                if ( $pusher->push($parseData) )
+                {
+                    $status = array('status' => 'ok', 'details' => 'Запись в базу произведена успешно');
+                }
+                else $status = array('status' => 'error', 'details' => 'Ошибка записи в базу данных');
             }
             else
             {

@@ -65,7 +65,9 @@ class PHPExcel_Autoloader
      * @param    string    $pClassName        Name of the object to load
      */
     public static function Load($pClassName){
+		//echo "<br>Load $pClassName";
         if ((class_exists($pClassName,FALSE)) || (strpos($pClassName, 'PHPExcel') !== 0)) {
+			//echo "<br>If already loaded, or not a PHPExcel class request.";
             //    Either already loaded, or not a PHPExcel class request
             return FALSE;
         }
@@ -73,9 +75,10 @@ class PHPExcel_Autoloader
         $pClassFilePath = PHPEXCEL_ROOT .
                           str_replace('_',DIRECTORY_SEPARATOR,$pClassName) .
                           '.php';
-
+		//echo "<br>Class file path $pClassFilePath";
         if ((file_exists($pClassFilePath) === FALSE) || (is_readable($pClassFilePath) === FALSE)) {
             //    Can't load
+			//echo "<br>Can`t load $pClassFilePath";
             return FALSE;
         }
 

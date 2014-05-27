@@ -625,7 +625,7 @@
                                        $par_temp= new Pair();
                                        $par_temp->copy($NewPar);
                                        $par_temp->ParNumber+=$z;
-                                       $par_temp->Group=$this->Group[$nau]["NameGroup"];
+                                       $par_temp->Group=$this->Group[$nau+$l]["NameGroup"];
                                        array_push( $this->Group[$nau+$l]["Para"],$par_temp);
                                     }  
                                }
@@ -755,6 +755,7 @@
        /////////////////////////////////////////// 
     public function parsing($file_name) 
         {
+        try {
             $this->objPHPExcel = PHPExcel_IOFactory::load($file_name);
             $this->Type_stady;// Тип распознаваемого расписания
       // Type_stady =$this->get_typ_raspisania(0);
@@ -763,9 +764,11 @@
       {
       case 0:{$this->get_day_raspisanie();break;}//расписание дневное - фас!
       case 1:{$this->get_day_raspisanie();break;}//распсиание вечернее - фас!
+      default :{return false;}
       }
       //var_dump($this->Group);
-      if($this->Type_stady==2)
+      /** /
+      if($this->Type_stady==-1)// этод код никогда не отработает. Не паниковать!
        {//будущая функция
           $Coll_Start=1;//начало таблицы (непосредственно данных)
           $Coll_End=1;//за концом таблицы
@@ -788,12 +791,59 @@
           
           var_dump($date_massiv);
       print ("<BR>".$Row_Start."|".$Row_Start_Date."|".$Row_End."<Br>".$Coll_Start."|".$Coll_End."|".$Section_Start."|".$Section_end);
-      }
-      return $this->Group;
+      }/**/
+      return true;
+        }
+        catch(Exception $e)
+                {
+                print($e);
+                return false;
+                }
+     
+        }
+       public function getParseData()
+      {    $par_date=array();
+           $this->Group;
+          
+           //print("<br><br><br>");
+           for($i=0;$i<count($this->Group);$i++)
+           {
+               $par_date = array_merge($par_date,$this->Group[$i]["Para"]);
+           }
+           
+           return $par_date;
+      }  
+        
+}
+       
+/*
+ *          public $Predmet;
+            public $Prepod;
+            public $Type;
+            public $Auditoria;
+            public $ParNumber;
+            public $Date;
+            public $Comment;
+            public $Group;
+ */       
+
+       
+       
+       
+       
+        error_reporting(E_ALL);
+        ini_set('display_errors', 'on');
+       // include '/lib/excel_reader2.php';
+        require_once dirname(__FILE__) . '/lib/Classes/PHPExcel.php';
+        $test = new Parser();
+        $test2= new BD_Pusher();
+        if($test->parsing("//examples/fei5.xlsx"))
+        {
+           $test->getParseData(); 
         }
         
-        
-       }
+       //getParseData;
+        //$test2->push();
         //$s= new Pair();
         
        // error_reporting(E_ALL);

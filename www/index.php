@@ -823,7 +823,7 @@ class BD_Pusher
                   if(trim($par_mass[$i]->Group)!="")
                   {
                      $query = "SELECT id,name FROM groups Where name='".$par_mass[$i]->Group."'";
-                     $res_SQL = mysql_query($query)or die('Провал запроса на гркппу');
+                     $res_SQL = mysql_query($query)or die('Провал запроса на группу');
                      $row = mysql_fetch_assoc($res_SQL);
                      if($row)
                     {
@@ -832,34 +832,38 @@ class BD_Pusher
                   }
                   
                   $prepod_id=0;
-                  if(trim($par_mass[$i]->Prepod)!="")
+                  $par_mass[$i]->Prepod=trim($par_mass[$i]->Prepod);
+                  if($par_mass[$i]->Prepod!="")
                   {
                        $inicial=array();  
-                       if(preg_match_all("/[А-Я]\./ui", $Group[$i]["Para"][$k]->Prepod, $matches,PREG_PATTERN_ORDER)>0)
+                       if(preg_match_all("/[А-Я]\./ui", $par_mass[$i]->Prepod, $matches,PREG_PATTERN_ORDER)>0)
                        {
                           for($l=0;$l<count($matches[0]);$l++)
                             {
                                $par_mass[$i]->Prepod=trim(str_replace($matches[0][$l],"", $par_mass[$i]->Prepod));
                                $inicial[$l]=trim(rtrim($matches[0][$l],'.'));
                             }
-                            $query = "SELECT surname,name,patronymic FROM lecturers Where surname='".$Group[$i]["Para"][$k]->Prepod."',name LIKE '".$matches[0][0]."%',patronymic LIKE '".$matches[0][1]."'";
+                            $query = "SELECT id,surname,name,patronymic FROM lecturers Where surname='".$par_mass[$i]->Prepod."' AND name LIKE '".$inicial[0]."%' AND patronymic LIKE '".$inicial[1]."%'";
                            //echo $query;
-                           $res_SQL = mysql_query($query)or die('Не нашли препода: ' . mysql_error());;
-                           while ($row = mysql_fetch_assoc($res_SQL))
+                           $res_SQL = mysql_query($query)or die('Поиск преподавателя не получился: ' . mysql_error());;
+                            if(mysql_affected_rows()==1)
                             {
-                                var_dump($row); print($row['name'][0]." ".$row['patronymic'][0]."!=".$inicial[0]." ".$inicial[1]);
-                                print("<BR>");
-                               if($row['name'][0]==$inicial[0]&&$row['patronymic'][0]==$inicial[1])
-                               {
-                                 print($row['name']." ".$row['patronymic']);
-                               }
+                                 $row = mysql_fetch_assoc($res_SQL);
+                                 $prepod_id=$row['id'];
                             }
                        }
                        else
                        {
-                           
+                           $query = "SELECT id,surname,name,patronymic FROM lecturers Where surname='".$par_mass[$i]->Prepod."'";
+                           $res_SQL = mysql_query($query)or die('Поиск преподавателя не получился: ' . mysql_error());
+                           if(mysql_affected_rows()==1)
+                            {
+                                 $row = mysql_fetch_assoc($res_SQL);
+                                 $prepod_id=$row['id'];
+                            }
                        }
                   }
+                  
                   
                 }
                
@@ -1018,9 +1022,11 @@ class BD_Pusher
         require_once dirname(__FILE__) . '/lib/Classes/PHPExcel.php';
         $test = new Parser();
         $test2= new BD_Pusher();
-        if($test->parsing("//examples/fei5.xlsx"))
+        if($test->parsing("fei5.xlsx"))
         {
-           $test->getParseData(); 
+            //var_dump($test->getParseData()); 
+            $push= new BD_Pusher();
+            $push->push($test->getParseData());
         }
         
         

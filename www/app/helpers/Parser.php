@@ -718,6 +718,7 @@ class Parser
        /////////////////////////////////////////// 
     public function parsing($file_name) 
         {
+        try {
             $this->objPHPExcel = PHPExcel_IOFactory::load($file_name);
             $this->Type_stady;// Тип распознаваемого расписания
       // Type_stady =$this->get_typ_raspisania(0);
@@ -726,9 +727,11 @@ class Parser
       {
       case 0:{$this->get_day_raspisanie();break;}//расписание дневное - фас!
       case 1:{$this->get_day_raspisanie();break;}//распсиание вечернее - фас!
+      default :{return false;}
       }
       //var_dump($this->Group);
-      if($this->Type_stady==2)
+      /** /
+      if($this->Type_stady==-1)// этод код никогда не отработает. Не паниковать!
        {//будущая функция
           $Coll_Start=1;//начало таблицы (непосредственно данных)
           $Coll_End=1;//за концом таблицы
@@ -751,10 +754,28 @@ class Parser
           
           var_dump($date_massiv);
       print ("<BR>".$Row_Start."|".$Row_Start_Date."|".$Row_End."<Br>".$Coll_Start."|".$Coll_End."|".$Section_Start."|".$Section_end);
-      }
-      return $this->Group;
+      }/**/
+      return true;
+        }
+        catch(Exception $e)
+                {
+               // print($e);
+                return false;
+                }
+     
         }
         
-        
-       }
+       public function getParseData()
+      {    $par_date=array();
+           $this->Group;
+          
+           //print("<br><br><br>");
+           for($i=0;$i<count($this->Group);$i++)
+           {
+               $par_date = array_merge($par_date,$this->Group[$i]["Para"]);
+           }
+           
+           return $par_date;
+      }
+}
 ?>

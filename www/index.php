@@ -6,7 +6,7 @@
 </head>
 <body>
 <?php
-        
+       /* 
         class Pair  //Pair
         {
             public $Predmet;
@@ -152,7 +152,7 @@
             if(trim($this->objPHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll, $row))!="")
             { 
                 $str=trim($this->objPHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll, $row));
-               /**/
+               /** /
                 if($this->objPHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll, $row)->getStyle()->getFont()->getBold()==1)
                 {                     
                    if(preg_match("/[с]( )+\d{1,2}[-:\.]\d\d/iu", $str, $matches)!=0)
@@ -776,7 +776,7 @@
           
           var_dump($date_massiv);
       print ("<BR>".$Row_Start."|".$Row_Start_Date."|".$Row_End."<Br>".$Coll_Start."|".$Coll_End."|".$Section_Start."|".$Section_end);
-      }/**/
+      }/** /
       return true;
         }
         catch(Exception $e)
@@ -810,7 +810,7 @@
             public $Date;
             public $Comment;
             public $Group;
- */       
+ */ /*      
 class BD_Pusher
        {
            public function push($par_mass)//Запись в базу данных массива GROUP
@@ -1008,18 +1008,21 @@ class BD_Pusher
                    }
                    
                 }
-               * /**/
+               * /** /
               }
         
        }
        
        
-       
+      */ 
        
         error_reporting(E_ALL);
         ini_set('display_errors', 'on');
        // include '/lib/excel_reader2.php';
-        require_once dirname(__FILE__) . '/lib/Classes/PHPExcel.php';
+        include $_SERVER['DOCUMENT_ROOT'].'/lib/Classes/PHPExcel.php';
+        include $_SERVER['DOCUMENT_ROOT']."/app/helpers/Pair.php";
+        include $_SERVER['DOCUMENT_ROOT']."/app/helpers/Parser.php";
+        include $_SERVER['DOCUMENT_ROOT']."/app/helpers/Parser.php";
         $test = new Parser();
         $test2= new BD_Pusher();
         if($test->parsing("fei5.xlsx"))
@@ -1077,6 +1080,8 @@ class BD_Pusher
       //echo $this->get_typ_raspisania(0);
        //echo  $objPHPExcel->getSheet()->getColumnDimensionByColumn(15)->getWidth()." ! ".$objPHPExcel->getSheet(0)->getColumnDimensionByColumn(15)->getVisible();
       // $objPHPExcel->getSheet(0)->getColumnDimensionByColumn(15)->getVisible();
-      ?>
+              
+        
+        ?>
 </body>
 </html>

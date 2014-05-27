@@ -1,6 +1,6 @@
 <?
 	include "class.Upload.php";
-
+        
 	if ( isset($_FILES['data_xlsx']) )
 	{
         //echo json_encode(array('status' => 'got file'));
@@ -14,7 +14,7 @@
 		}
 		else
 		{
-			$message = $loader->getRezult();
+                       $message = $loader->getRezult();
 			echo $message;
 			
 			include $_SERVER['DOCUMENT_ROOT'].'/lib/Classes/PHPExcel.php';

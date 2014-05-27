@@ -25,9 +25,17 @@
 			$fileToParse = $loader->getFullFileName();
 			//Добавить проверку работы парсинга и обработку ситуаций 
 			//когда парсинг завершился с ошибкой и когда без ошибки
-			$parseData=$parser->parsing($fileToParse);
-			var_dump($parseData[0]);
-			
+            if ( $parser->parsing($fileToParse) )
+            {
+                $parseData = $parser->getParseData();
+                $status = array('status' => 'ok', 'details' => 'Распознавание прошло успешно');
+            }
+            else
+            {
+                $status = array('status' => 'error', 'details' => 'Ошибка распознавания данных');
+            }
+            unlink($fileToParse);
+            echo json_encode($status);
 		}
 	}
 ?>

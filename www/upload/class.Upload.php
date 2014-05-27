@@ -56,12 +56,12 @@ class Upload
 			return false;
 		}
 		
-		$this->uploadFileName = $_SERVER['DOCUMENT_ROOT'].$this->uploadPath.date("ymdHi").".xlsx";
+		$this->uploadFileName = $_SERVER['DOCUMENT_ROOT'] . $this->uploadPath . date("ymdHis") . ".xlsx";
 		
 		if ( !rename($File['tmp_name'], $this->uploadFileName) )
 		{
 			$this->setRezult('status', 'Error');
-			$this->setRezult('details', 'Ошибка при загрузке файла '.$File['name'].' в директорию '.$this->uploadPath.'.');
+			$this->setRezult('details', 'Ошибка при загрузке файла ' . $File['name'] . ' в директорию ' . $this->uploadPath);
 			return false;
 		}
 		

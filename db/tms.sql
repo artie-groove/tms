@@ -3,9 +3,9 @@
 -- http://www.phpmyadmin.net
 --
 -- Хост: 127.0.0.1
--- Время создания: Май 27 2014 г., 09:14
+-- Время создания: Май 27 2014 г., 11:58
 -- Версия сервера: 5.5.25
--- Версия PHP: 5.3.13
+-- Версия PHP: 5.2.12
 
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
@@ -817,7 +817,7 @@ CREATE TABLE IF NOT EXISTS `lecturers` (
 CREATE TABLE IF NOT EXISTS `rooms` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(50) NOT NULL COMMENT 'номер аудитории',
-  `building` enum('A','B','B2','D','V','S') NOT NULL COMMENT 'корпус (А, Б, БЛК, Д, В, Спорткомплекс',
+  `building` enum('A','B','D','V','S') NOT NULL COMMENT 'корпус (А, Б, Д, В, Спорткомплекс',
   `floor` tinyint(3) unsigned NOT NULL COMMENT 'этаж',
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 AVG_ROW_LENGTH=585 AUTO_INCREMENT=1 ;

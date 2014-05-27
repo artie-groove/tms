@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Хост: 127.0.0.1
--- Время создания: Май 26 2014 г., 02:22
+-- Время создания: Май 27 2014 г., 01:50
 -- Версия сервера: 5.5.25
 -- Версия PHP: 5.3.13
 
@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS `timetable` (
   `id_room` tinyint(4) DEFAULT NULL COMMENT 'id аудитории',
   `offset` tinyint(4) DEFAULT NULL COMMENT 'номер пары: 0 = 8:00, 1 = 9:00, ..., 7 = 19:30',
   `date` date DEFAULT NULL COMMENT 'дата занятия',
-  `type` enum('LECTURE','WORKSHOP','LAB') DEFAULT NULL COMMENT 'тип занятия (лекция, практика, лаба)',
+  `type` enum('LECTURE','WORKSHOP','LAB','TUTORIAL','QUIZ','EXAMINATION') DEFAULT NULL COMMENT 'тип занятия (лекция, практика, лаба, консультация, зачёт, экзамен)',
   `comment` varchar(255) DEFAULT NULL COMMENT 'примечание',
   PRIMARY KEY (`id`),
   KEY `FK_Timetable_classroom_ID_Classroom` (`id_lecturer`),

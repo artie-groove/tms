@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Хост: 127.0.0.1
--- Время создания: Май 28 2014 г., 11:54
+-- Время создания: Май 28 2014 г., 12:01
 -- Версия сервера: 5.5.25
 -- Версия PHP: 5.2.12
 
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS `rooms` (
   `floor` tinyint(3) unsigned NOT NULL COMMENT 'этаж',
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AVG_ROW_LENGTH=585 AUTO_INCREMENT=94 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AVG_ROW_LENGTH=585 AUTO_INCREMENT=95 ;
 
 --
 -- Дамп данных таблицы `rooms`
@@ -119,7 +119,8 @@ INSERT INTO `rooms` (`id`, `name`, `building`, `floor`) VALUES
 (76, 'Д-221', 'D', 2),
 (77, 'Д-222', 'D', 2),
 (78, 'Спорткомплекс', 'S', 1),
-(79, 'БЛК-17', 'B', 1);
+(79, 'БЛК-17', 'B', 1),
+(94, 'Б-009', 'B', 0);
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

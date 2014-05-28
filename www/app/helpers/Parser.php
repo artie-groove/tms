@@ -776,9 +776,9 @@ class Parser
 
     }
     public function getParseData()
-    {    $par_date=array();
+    { try {
+        $par_date=array();
         $this->Group;
-
         //print("<br><br><br>");
         for($i=0;$i<count($this->Group);$i++)
         {
@@ -786,6 +786,12 @@ class Parser
         }
 
         return $par_date;
+        }
+        catch(Exception $e)
+        {
+            // print($e);
+            return false;
+        }
     }
 
 

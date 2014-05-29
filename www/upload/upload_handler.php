@@ -1,6 +1,6 @@
 <?
 	include "class.Upload.php";
-
+        
 	if ( isset($_FILES['data_xlsx']) )
 	{
         //echo json_encode(array('status' => 'got file'));
@@ -14,20 +14,35 @@
 		}
 		else
 		{
-			$message = $loader->getRezult();
+                       $message = $loader->getRezult();
 			echo $message;
 			
 			include $_SERVER['DOCUMENT_ROOT'].'/lib/Classes/PHPExcel.php';
 			include $_SERVER['DOCUMENT_ROOT']."/app/helpers/Pair.php";
 			include $_SERVER['DOCUMENT_ROOT']."/app/helpers/Parser.php";
+            include $_SERVER['DOCUMENT_ROOT']."/app/helpers/BD_Pusher.php";
 			$parser = new Parser();
 			
 			$fileToParse = $loader->getFullFileName();
 			//Добавить проверку работы парсинга и обработку ситуаций 
 			//когда парсинг завершился с ошибкой и когда без ошибки
-			$parseData=$parser->parsing($fileToParse);
-			var_dump($parseData[0]);
-			
+            if ( $parser->parsing($fileToParse) )
+            {
+                $parseData = $parser->getParseData();
+                $status = array('status' => 'ok', 'details' => 'Распознавание прошло успешно');
+                $pusher = new BD_Pusher();
+                if ( $pusher->push($parseData) )
+                {
+                    $status = array('status' => 'ok', 'details' => 'Запись в базу произведена успешно');
+                }
+                else $status = array('status' => 'error', 'details' => 'Ошибка записи в базу данных');
+            }
+            else
+            {
+                $status = array('status' => 'error', 'details' => 'Ошибка распознавания данных');
+            }
+            unlink($fileToParse);
+            echo json_encode($status);
 		}
 	}
 ?>

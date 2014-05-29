@@ -1025,10 +1025,10 @@ class BD_Pusher
         include $_SERVER['DOCUMENT_ROOT']."/app/helpers/BD_Pusher.php";
         //$test = new Parser();
         //$test2= new BD_Pusher();//fei4_140213.xlsx  fei5.xlsx vf5_140213.xlsx
-       // if($test->parsing("fei5.xlsx"))
-        //{
+        //if($test->parsing("fei5.xlsx"))
+       // {
             //var_dump($test->getParseData()); 
-          //  $push= new BD_Pusher();
+         //   $push= new BD_Pusher();
          //   $push->push($test->getParseData(),0);
         //}
         

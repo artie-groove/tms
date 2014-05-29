@@ -1,21 +1,25 @@
 <?
-class Upload
+class Upload extends Handler implements IStatus
 {
 	private $uploadPath = '/files/';
 	private $mimeFileType = array('xls' => 'application/vnd.ms-excel', 'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     //private $mimeFileType = array('xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 	private $maxUploadFileSize = 1; // MB
 	private $uploadFileName;
-	protected $rezult;
-	
-	private function setRezult($name, $message)
+		
+	public function getStatusCode()
 	{
-		$this->rezult[$name] = $message;
+		return json_encode($this->status['Code']);
 	}
 	
-	public function getRezult()
+	public function getStatusDescription()
 	{
-		return json_encode($this->rezult);
+		return json_encode($this->status['Description']);
+	}
+	
+	public function getStatusDetails()
+	{
+		return json_encode($this->status['Details']);
 	}
 	
 	public function getFullFileName()
@@ -27,8 +31,7 @@ class Upload
 	{
 		if ( !is_uploaded_file($File['tmp_name']) )
 		{
-			$this->setRezult('status', 'Error');
-			$this->setRezult('details', 'Файл не загружен на сервер.');
+			$this->setStatus('Error', 'Файл не загружен на сервер.');
 			return false;
 		}
 
@@ -42,17 +45,16 @@ class Upload
 
 		if ( !in_array( $mime, $this->mimeFileType ) )
 		{
-			$this->setRezult('status', 'Error');
-			//$this->setRezult('details', 'Загруженный файл не соответствует формату xlsx. File type: ' . $File['type']);
-            $this->setRezult('details', 'Принимаются только файлы Microsoft Office Excel (xlsx). Загруженный файл имеет тип: ' . $mime);
+			$this->setStatus('status', 'Error');
+			//$this->setStatus('details', 'Загруженный файл не соответствует формату xlsx. File type: ' . $File['type']);
+            $this->setStatus('details', 'Принимаются только файлы Microsoft Office Excel (xlsx). Загруженный файл имеет тип: ' . $mime);
             return false;
 		}*/
 
 		
 		if ( $File['size']>=($this->maxUploadFileSize*1024*1024) ) // размер файла >= 1 MB
 		{
-			$this->setRezult('status', 'Error');
-			$this->setRezult('details', 'Максимально допустимый размер загружаемого файла 1 мегабайт.');
+			$this->setStatus('Error', 'Максимально допустимый размер загружаемого файла 1 мегабайт.');
 			return false;
 		}
 		
@@ -60,12 +62,11 @@ class Upload
 		
 		if ( !rename($File['tmp_name'], $this->uploadFileName) )
 		{
-			$this->setRezult('status', 'Error');
-			$this->setRezult('details', 'Ошибка при загрузке файла ' . $File['name'] . ' в директорию ' . $this->uploadPath);
+			$this->setStatus('Error', 'Ошибка при загрузке файла ' . $File['name'] . ' в директорию ' . $this->uploadPath);
 			return false;
 		}
-		
-		$this->setRezult('status', 'Файл успешно загружен на сервер');
+
+		$this->setStatus('Ok', 'Файл успешно загружен на сервер');
 		return true;
 	}
 }

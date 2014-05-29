@@ -6,8 +6,9 @@
  * 
  */
 
-class Parser
-{
+class Parser extends Handler implements IStatus
+       {
+            
     //---------------------------------------------------------------------переменные общего назначения
     private $objPHPExcel;
     private $Sheat;//Текущий лист
@@ -784,16 +785,30 @@ class Parser
         {
             $par_date = array_merge($par_date,$this->Group[$i]["Para"]);
         }
-
+        $this->setStatus("OK", "Парсинг прошёл успешно.");
         return $par_date;
         }
         catch(Exception $e)
         {
             // print($e);
+            $this->setStatus("Error", "Парсинг провалился: что-то пошло не так.");
             return false;
         }
     }
 
-
+public function getStatusCode()
+            {
+            	return json_encode($this->status['Code']);
+            }
+	
+            public function getStatusDescription()
+            {
+		return json_encode($this->status['Description']);
+            }
+	
+            public function getStatusDetails()
+            {
+		return json_encode($this->status['Details']);
+            }
 }
 ?>

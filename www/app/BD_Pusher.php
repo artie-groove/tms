@@ -16,26 +16,44 @@
             public $Comment;
             public $Group;!
  */
-class BD_Pusher
+class BD_Pusher extends Handler implements IStatus
        {
+            public function getStatusCode()
+            {
+            	return json_encode($this->status['Code']);
+            }
+	
+            public function getStatusDescription()
+            {
+		return json_encode($this->status['Description']);
+            }
+	
+            public function getStatusDetails()
+            {
+		return json_encode($this->status['Details']);
+            }
            public function push($par_mass,$Type_stady)//Запись в базу данных массива
               {
                
                 $link = mysql_connect('localhost', 'root', '');
 				if($link==false)
                 {
+                    $this->setStatus("Error", "Ошибка при подключении к БД");
                     return false;
                 }
 				
 				mysql_set_charset('utf8');
-				
+				//mb_internal_encoding("UTF-8");
+                                //mb_regex_encoding('UTF-8');
                 $statusDB = mysql_select_db('tms');
                 if($statusDB==false)
                 {
+                    $this->setStatus("Error", "Ошибка при подключении к таблице tms");
                     return false;
                 }
                 $positive = 0;
                 $negative = 0;
+                $insert=0;
                 for($i=0;$i<count($par_mass);$i++)
                 {
                   $group_id=0;  
@@ -46,6 +64,7 @@ class BD_Pusher
                      if($res_SQL==false)
                      {
                          //print("Провал запроса на группу");
+                         $this->setStatus("Error", "Ошибка заброса SQL при попытки найти группу","Падение на запросе: $query");
                          return false;
                      }
                      $row = mysql_fetch_assoc($res_SQL);
@@ -70,6 +89,7 @@ class BD_Pusher
                         if($resuktInserGroup==false)
                         {
                             //print("Провал вставки группы");
+                            $this->setStatus("Error", "Ошибка заброса SQL при попытки добавить новую группу","Падение на запросе: $query");
                             return false;
                         }
                         $query = "SELECT id,name FROM groups Where name='".$par_mass[$i]->Group."'";
@@ -77,6 +97,7 @@ class BD_Pusher
                         if($res_SQL==false)
                         {
                            //print("Провал запроса на группу");
+                           $this->setStatus("Error", "Ошибка заброса SQL при попытки найти вновь добавленную группу","Падение на запросе: $query"); 
                            return false;
                         }
                         $row = mysql_fetch_assoc($res_SQL);
@@ -105,6 +126,7 @@ class BD_Pusher
                             if($res_SQL==false)
                             {
                                 //print("Провал поиска препода по инициалам и фамилии");
+                                $this->setStatus("Error", "Ошибка заброса SQL при попытки найти преподавателя по инициалам и фамилии","Падение на запросе: $query");
                                 return false;
                             }
                             if(mysql_affected_rows()==1)
@@ -120,6 +142,7 @@ class BD_Pusher
                            if ($res_SQL==false)
                            {
                               //print("Провал поиска препода по фамилии");
+                               $this->setStatus("Error", "Ошибка заброса SQL при попытки найти преподавателя по фамилии","Падение на запросе: $query");
                                 return false; 
                            }
                            if(mysql_affected_rows()==1)
@@ -127,6 +150,7 @@ class BD_Pusher
                                  $row = mysql_fetch_assoc($res_SQL);
                                  $prepod_id=$row['id'];
                             }
+                            
                        }
                   }
                   $predmet_id=0;
@@ -142,6 +166,7 @@ class BD_Pusher
                          if($res_SQL==false)
                          {
                            //print("Провал по предметам");
+                           $this->setStatus("Error", "Ошибка заброса SQL при попытки найти предмет","Падение на запросе: $query");
                            return false;
                          }
                          if(mysql_affected_rows()>0)
@@ -185,19 +210,25 @@ class BD_Pusher
                   }
                   $auditoria_id=0;
                   if($par_mass[$i]->Auditoria!="")
-                  {
+                  {                                                       //iconv('windows-1251', 'UTF-8', $par_mass[$i]->Auditoria);
                        $query = "SELECT id,name FROM rooms Where name='".$par_mass[$i]->Auditoria."'";
                        $res_SQL = mysql_query($query);
                        if($res_SQL==false)
                          {
                            //print("Поиск аудитори провалился");
+                           $this->setStatus("Error", "Ошибка заброса SQL при попытки найти аудиторию","Падение на запросе: $query");
                            return false;
                          }
                        $row = mysql_fetch_assoc($res_SQL);
                        if($row)
                        {
                            $auditoria_id=$row['id'];
+                           // print($row['1']."<br>");
                        }
+                      /* else
+                       {
+                           print($par_mass[$i]->Auditoria.":".$query."res_SQL: $res_SQL -".mysql_error()."<BR>");
+                       }*/
                   } 
                 
                 if($par_mass[$i]->Date!="")
@@ -229,11 +260,17 @@ class BD_Pusher
                      $query="INSERT INTO timetable (id_discipline,id_group,id_lecturer,id_room,offset,date,type,comment) VALUES (".$predmet_id.",".$group_id.",".$prepod_id.",".$auditoria_id.",".$par_mass[$i]->ParNumber.",'".$date_to_write."','".$type_sabjeckt."','".$par_mass[$i]->Comment."')"; 
                      //echo $query;
                      //echo "<br>";
+                     
                      $rez= mysql_query($query);
                      if($rez==false)
                          {
+                         $this->setStatus("Error", "Ошибка заброса SQL при попытки добавить запись о паре в БД","Падение на запросе: $query");
                            //print("Провал вставки расписания");
-                           return false;
+                          return false;
+                         }
+                         else
+                         {
+                          $insert++;   
                          }
                   }
                   /**/
@@ -241,14 +278,15 @@ class BD_Pusher
                 else 
                     {
                     //print("Нет дат");
-                    return false;
+                    //$this->setStatus("Error", "В одном из элементов массива нет даты. Невозможно добавление в БД","Номер элемента массива: $i");
+                    //return false;
                     }
                   //print(" Itteration: ".$i." ".$par_mass[$i]->Group."(".$group_id.") ".$par_mass[$i]->Predmet."(".$predmet_id.") ".$par_mass[$i]->Prepod."(".$prepod_id.") ".$par_mass[$i]->Auditoria."(".$auditoria_id.") ".$par_mass[$i]->Type."<BR>"); 
              }
                 //$percent = round(100*$positive/($positive+$negative));
                 //echo "positive: $positive; negative: $negative; percent: $percent<BR>";
-  
-      return true;
+  $this->setStatus("OK", "Массив данных успешно загружен в базу данных","Добавлено $insert записей");
+  return true;
 }
            private function GetMatch($_subjects, $_short)
    {

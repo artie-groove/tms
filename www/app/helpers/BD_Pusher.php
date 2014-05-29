@@ -20,8 +20,17 @@ class BD_Pusher
        {
            public function push($par_mass,$Type_stady)//Запись в базу данных массива
               {
-                $link = mysql_connect('localhost', 'root', '') or die('Не удалось соединиться: ' .mysql_error());
-                mysql_select_db('raspisanie') or die('Не удалось выбрать базу данных');
+               
+                $link = mysql_connect('localhost', 'root', '');
+                if($link==false)
+                {
+                    return false;
+                }
+                $statusDB = mysql_select_db('tms');
+                if($statusDB==false)
+                {
+                    return false;
+                }
                 $positive = 0;
                 $negative = 0;
                 for($i=0;$i<count($par_mass);$i++)
@@ -30,7 +39,12 @@ class BD_Pusher
                   if(trim($par_mass[$i]->Group)!="")
                   {
                      $query = "SELECT id,name FROM groups Where name='".$par_mass[$i]->Group."'";
-                     $res_SQL = mysql_query($query)or die('Провал запроса на группу');
+                     $res_SQL = mysql_query($query);
+                     if($res_SQL==false)
+                     {
+                         //print("Провал запроса на группу");
+                         return false;
+                     }
                      $row = mysql_fetch_assoc($res_SQL);
                      if($row)
                     {
@@ -49,10 +63,19 @@ class BD_Pusher
                         }
                         //print($mach[0]." ");
                         $query="INSERT INTO groups (name,year,form)VALUES ('".$par_mass[$i]->Group."',".$mach[0].",'".$form_stady."')";
-                        mysql_query($query)or die('Провал запроса на добавления группы');
-                        
+                        $resuktInserGroup= mysql_query($query);
+                        if($resuktInserGroup==false)
+                        {
+                            //print("Провал вставки группы");
+                            return false;
+                        }
                         $query = "SELECT id,name FROM groups Where name='".$par_mass[$i]->Group."'";
-                        $res_SQL = mysql_query($query)or die('Провал запроса на группу');
+                        $res_SQL = mysql_query($query);
+                        if($res_SQL==false)
+                        {
+                           //print("Провал запроса на группу");
+                           return false;
+                        }
                         $row = mysql_fetch_assoc($res_SQL);
                         if($row)
                         {
@@ -75,7 +98,12 @@ class BD_Pusher
                             }
                             $query = "SELECT id,surname,name,patronymic FROM lecturers Where surname='".$par_mass[$i]->Prepod."' AND name LIKE '".$inicial[0]."%' AND patronymic LIKE '".$inicial[1]."%'";
                            //echo $query;
-                            $res_SQL = mysql_query($query)or die('Поиск преподавателя не получился: ' . mysql_error());;
+                            $res_SQL = mysql_query($query);
+                            if($res_SQL==false)
+                            {
+                                //print("Провал поиска препода по инициалам и фамилии");
+                                return false;
+                            }
                             if(mysql_affected_rows()==1)
                             {
                                  $row = mysql_fetch_assoc($res_SQL);
@@ -85,7 +113,12 @@ class BD_Pusher
                        else
                        {
                            $query = "SELECT id,surname,name,patronymic FROM lecturers Where surname='".$par_mass[$i]->Prepod."'";
-                           $res_SQL = mysql_query($query)or die('Поиск преподавателя провалился: ' . mysql_error());
+                           $res_SQL = mysql_query($query);
+                           if ($res_SQL==false)
+                           {
+                              //print("Провал поиска препода по фамилии");
+                                return false; 
+                           }
                            if(mysql_affected_rows()==1)
                             {
                                  $row = mysql_fetch_assoc($res_SQL);
@@ -102,7 +135,12 @@ class BD_Pusher
                       {
                           //Print(" ".$mc[0]." !");
                          $query = "SELECT id,name FROM disciplines Where name LIKE '".$mc[0]."%'";
-                         $res_SQL = mysql_query($query)or die('Поиск предмета провалился: ' . mysql_error());
+                         $res_SQL = mysql_query($query);
+                         if($res_SQL==false)
+                         {
+                           //print("Провал по предметам");
+                           return false;
+                         }
                          if(mysql_affected_rows()>0)
                          {
                              $base_dump = array();
@@ -146,7 +184,12 @@ class BD_Pusher
                   if($par_mass[$i]->Auditoria!="")
                   {
                        $query = "SELECT id,name FROM rooms Where name='".$par_mass[$i]->Auditoria."'";
-                       $res_SQL = mysql_query($query)or die('Поиск аудитории провалился: ' . mysql_error());
+                       $res_SQL = mysql_query($query);
+                       if($res_SQL==false)
+                         {
+                           //print("Поиск аудитори провалился");
+                           return false;
+                         }
                        $row = mysql_fetch_assoc($res_SQL);
                        if($row)
                        {
@@ -156,7 +199,6 @@ class BD_Pusher
                 
                 if($par_mass[$i]->Date!="")
                 {
-                  
                   $date_m=  explode(",", $par_mass[$i]->Date);
                   $correct=0;
                   if(trim($date_m[count($date_m)-1])=="")
@@ -184,16 +226,27 @@ class BD_Pusher
                      $query="INSERT INTO timetable (id_discipline,id_group,id_lecturer,id_room,offset,date,type,comment) VALUES (".$predmet_id.",".$group_id.",".$prepod_id.",".$auditoria_id.",".$par_mass[$i]->ParNumber.",'".$date_to_write."','".$type_sabjeckt."','".$par_mass[$i]->Comment."')"; 
                      //echo $query;
                      //echo "<br>";
-                     mysql_query($query) or die('Не удалось добавить пару ' . mysql_error()); 
+                     $rez= mysql_query($query);
+                     if($rez==false)
+                         {
+                           //print("Провал вставки расписания");
+                           return false;
+                         }
                   }
                   /**/
                 }
+                else 
+                    {
+                    //print("Нет дат");
+                    return false;
+                    }
                   //print(" Itteration: ".$i." ".$par_mass[$i]->Group."(".$group_id.") ".$par_mass[$i]->Predmet."(".$predmet_id.") ".$par_mass[$i]->Prepod."(".$prepod_id.") ".$par_mass[$i]->Auditoria."(".$auditoria_id.") ".$par_mass[$i]->Type."<BR>"); 
-                }
-                $percent = round(100*$positive/($positive+$negative));
+             }
+                //$percent = round(100*$positive/($positive+$negative));
                 //echo "positive: $positive; negative: $negative; percent: $percent<BR>";
-    
-    }
+  
+      return true;
+}
            private function GetMatch($_subjects, $_short)
    {
        /**

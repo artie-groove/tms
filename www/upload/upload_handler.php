@@ -31,15 +31,15 @@
                 $parseData = $parser->getParseData();
                 $status = array('status' => 'ok', 'details' => 'Распознавание прошло успешно');
                 $pusher = new BD_Pusher();
-                if ( $pusher->push($parseData) )
+                if ( $pusher->push($parseData,$parser->Type_stady) )
                 {
                     $status = array('status' => 'ok', 'details' => 'Запись в базу произведена успешно');
                 }
-                else $status = array('status' => 'error', 'details' => 'Ошибка записи в базу данных');
+                else $status = array('status' => 'error', 'details' => 'Ошибка записи в базу данных 1');
             }
             else
             {
-                $status = array('status' => 'error', 'details' => 'Ошибка распознавания данных');
+                $status = array('status' => 'error', 'details' => 'Ошибка распознавания данных 2');
             }
             unlink($fileToParse);
             echo json_encode($status);

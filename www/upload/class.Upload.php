@@ -5,6 +5,7 @@ class Upload
 	private $mimeFileType = array('xls' => 'application/vnd.ms-excel', 'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     //private $mimeFileType = array('xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 	private $maxUploadFileSize = 1; // MB
+	private $newFileName;
 	private $uploadFileName;
 	protected $rezult;
 	
@@ -56,7 +57,8 @@ class Upload
 			return false;
 		}
 		
-		$this->uploadFileName = $_SERVER['DOCUMENT_ROOT'].$this->uploadPath.date("ymdHi").".xlsx";
+		$this->newFileName = date("ymdHis").".xlsx";
+		$this->uploadFileName = $_SERVER['DOCUMENT_ROOT'].$this->uploadPath.$this->newFileName;
 		
 		if ( !rename($File['tmp_name'], $this->uploadFileName) )
 		{
@@ -66,6 +68,19 @@ class Upload
 		}
 		
 		$this->setRezult('status', 'Файл успешно загружен на сервер');
+		return true;
+	}
+	
+	public function deleteFile($path)
+	{
+		if ( !unlink($path) )
+		{
+			$this->setRezult('status', 'Error');
+			$this->setRezult('details', 'Ошибка при удалении файла '.$this->newFileName.' из директории '.$this->uploadPath.'.');
+			return false;
+		}
+		
+		$this->setRezult('status', 'Временный файл удалён из директории'.$this->uploadPath.'.');
 		return true;
 	}
 }

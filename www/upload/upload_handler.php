@@ -14,7 +14,7 @@
 		}
 		else
 		{
-                       $message = $loader->getRezult();
+            $message = $loader->getRezult();
 			echo $message;
 			
 			include $_SERVER['DOCUMENT_ROOT'].'/lib/Classes/PHPExcel.php';
@@ -31,7 +31,7 @@
                 $parseData = $parser->getParseData();
                 $status = array('status' => 'ok', 'details' => 'Распознавание прошло успешно');
                 $pusher = new BD_Pusher();
-                if ( $pusher->push($parseData) )
+                if ( $pusher->push($parseData, $parser->Type_stady) )
                 {
                     $status = array('status' => 'ok', 'details' => 'Запись в базу произведена успешно');
                 }

@@ -6,4 +6,5 @@ Automated information system for timetable monitoring for VPI (branch) VSTU
 
 Developed by VC://VPI
 Инициатор разработки: Вычислительный центр ВПИ (филиал) ВолгГТУ
-Проверка!
+
+Авторы: Илья Утицких, Николай Гордеев, Александр Крамарев, Артём Тыртышный.

@@ -1,47 +1,47 @@
 <?
-	include $_SERVER['DOCUMENT_ROOT']."/app/core.php";
+	include $_SERVER['DOCUMENT_ROOT']."/app/bootstrap.php";
         
-	if ( isset($_FILES['data_xlsx']) )
-	{
-		$loader = new Upload;
-		if ( !$loader->uploadFile($_FILES['data_xlsx']) )
-		{
-			//Вывод сообщения об ошибке
-			$errorCode = $loader->getStatusCode();
-			$errorDescription = $loader->getStatusDescription();
-			echo $errorCode.": ".$errorDescription;
-		}
-		else
-		{
-            $errorCode = $loader->getStatusCode();
-			$errorDescription = $loader->getStatusDescription();
-			echo $errorCode.": ".$errorDescription;
-			
-			include $_SERVER['DOCUMENT_ROOT'].'/lib/Classes/PHPExcel.php';
+	if ( !isset($_FILES['data_xlsx']) )
+    {
+        respond('error', 'Ошибка приёма файла');
+        exit();
+    }
 
-			$parser = new Parser();
-			
-			$fileToParse = $loader->getFullFileName();
-			//Добавить проверку работы парсинга и обработку ситуаций 
-			//когда парсинг завершился с ошибкой и когда без ошибки
-            if ( $parser->parsing($fileToParse) )
-            {
-                $parseData = $parser->getParseData();
-                $status = array('status' => 'ok', 'details' => 'Распознавание прошло успешно');
-                $pusher = new BD_Pusher();
+    $uploader = new XlsxFileUploader();
 
-                if ( $pusher->push($parseData, $parser->Type_stady) )
-                {
-                    $status = array('status' => 'ok', 'details' => 'Запись в базу произведена успешно');
-                }
-                else $status = array('status' => 'error', 'details' => 'Ошибка записи в базу данных 1');
-            }
-            else
-            {
-                $status = array('status' => 'error', 'details' => 'Ошибка распознавания данных 2');
-            }
-            unlink($fileToParse);
-            echo json_encode($status);
-		}
-	}
+    if ( !$uploader->uploadFile($_FILES['data_xlsx']) )
+    {
+        respond_from_object($uploader);
+        exit();
+    }
+
+require_once dirname(__FILE__) . '/../app/lib/PHPExcel.php';
+
+    $parser = new Parser();
+
+    $fileToParse = $uploader->getFullFileName();
+
+    if ( !$parser->parsing($fileToParse) )
+    {
+        respond_from_object($parser);
+        exit();
+    }
+
+    $parseData = $parser->getParseData();
+    $status = array('status' => 'ok', 'details' => 'Распознавание прошло успешно');
+
+    $importer = new DataImporter();
+
+    if ( !$importer->import($parseData, $parser->Type_stady) )
+    {
+        respond_from_object($importer);
+        exit();
+    }
+
+    $checker = new ImportChecker($dbh);
+    $checker->check();
+
+    unlink($fileToParse);
+
+    respond_from_object($checker);
 ?>

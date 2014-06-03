@@ -1022,7 +1022,7 @@ class BD_Pusher
         include $_SERVER['DOCUMENT_ROOT'].'/lib/Classes/PHPExcel.php';
         include $_SERVER['DOCUMENT_ROOT']."/app/Pair.php";
         include $_SERVER['DOCUMENT_ROOT']."/app/Parser.php";
-        include $_SERVER['DOCUMENT_ROOT']."/app/BD_Pusher.php";
+        include $_SERVER['DOCUMENT_ROOT']."/app/DataImporter.php";
         /** /
         $test = new Parser();
         $test2= new BD_Pusher();//fei4_140213.xlsx  fei5.xlsx vf5_140213.xlsx

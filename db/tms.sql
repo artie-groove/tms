@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Хост: 127.0.0.1
--- Время создания: Май 29 2014 г., 00:24
+-- Время создания: Июн 03 2014 г., 12:09
 -- Версия сервера: 5.5.25
 -- Версия PHP: 5.3.13
 
@@ -800,7 +800,31 @@ CREATE TABLE IF NOT EXISTS `groups` (
   `year` tinyint(4) unsigned NOT NULL COMMENT 'курс',
   `form` enum('FULLTIME','EVENING','EXTRAMURAL','SECOND') NOT NULL COMMENT 'форма обучения: полная (дневная), вечерняя (очно-заочная), заочная, второе высшее',
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AVG_ROW_LENGTH=2340 AUTO_INCREMENT=13 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AVG_ROW_LENGTH=2340 AUTO_INCREMENT=31 ;
+
+--
+-- Дамп данных таблицы `groups`
+--
+
+INSERT INTO `groups` (`id`, `name`, `year`, `form`) VALUES
+(13, 'ВТМЗ-367', 3, 'FULLTIME'),
+(14, 'ВCЗ-376', 3, 'FULLTIME'),
+(15, 'ВИЗ-371', 3, 'FULLTIME'),
+(16, 'ВЭЗ-381', 3, 'FULLTIME'),
+(17, 'ВМЗ-383', 3, 'FULLTIME'),
+(18, 'ВАЗ-396', 3, 'FULLTIME'),
+(19, 'ВХТ-401', 4, 'FULLTIME'),
+(20, 'ВВТ-406', 4, 'FULLTIME'),
+(21, 'ВЭ-411', 4, 'FULLTIME'),
+(22, 'ВЭМ-413', 4, 'FULLTIME'),
+(23, 'ВЭМ-5', 5, 'FULLTIME'),
+(24, 'ВТПЭ-5', 5, 'FULLTIME'),
+(25, 'ВХТ-501', 5, 'FULLTIME'),
+(26, 'ВВТ-506', 5, 'FULLTIME'),
+(27, 'ВЭ-511', 5, 'FULLTIME'),
+(28, 'ВЭ-513', 5, 'FULLTIME'),
+(29, 'ВЭМ-6', 6, 'FULLTIME'),
+(30, 'ВТПЭ-6', 6, 'FULLTIME');
 
 -- --------------------------------------------------------
 
@@ -1086,6 +1110,42 @@ CREATE TABLE IF NOT EXISTS `timetable` (
   KEY `FK_Timetable_lecturer_ID_Lecturer` (`id_group`),
   KEY `FK_timetable_subject_ID_Subject` (`type`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 AVG_ROW_LENGTH=91 AUTO_INCREMENT=1 ;
+
+--
+-- Триггеры `timetable`
+--
+DROP TRIGGER IF EXISTS `null_fields`;
+DELIMITER //
+CREATE TRIGGER `null_fields` BEFORE INSERT ON `timetable`
+ FOR EACH ROW BEGIN
+
+IF NEW.id_group = 0 THEN
+	SET NEW.id_group = NULL;
+END IF;
+
+IF NEW.id_discipline = 0 THEN
+	SET NEW.id_discipline = NULL;
+END IF;
+
+IF NEW.id_room = 0 THEN
+	SET NEW.id_room = NULL;
+END IF;
+
+IF NEW.id_lecturer = 0 THEN
+	SET NEW.id_lecturer = NULL;
+END IF;
+
+IF NEW.`date` = 0 THEN
+        SET NEW.`date` = NULL;
+END IF;
+
+IF NEW.`type` = 0 THEN
+        SET NEW.`type` = NULL;
+END IF;
+
+END
+//
+DELIMITER ;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

@@ -25,9 +25,9 @@ class ImportChecker extends Handler implements IStatus {
         $data = array();
         $query = "
         SELECT
-            t.id, t.date, g.name AS `group`, d.name AS discipline, r.name AS room,
+            DATE_FORMAT(t.date,'%d.%m') AS date, g.name AS `group`, d.name AS discipline, r.name AS room,
             CONCAT(l.surname, ' ', SUBSTR(l.name, 1, 1), '. ', SUBSTR(l.patronymic, 1, 1), '.') AS lecturer,
-            t.offset, t.type
+            t.offset, t.type, t.comment
         FROM timetable AS t
         LEFT JOIN groups AS g ON t.id_group = g.id
         LEFT JOIN disciplines AS d ON t.id_discipline = d.id
@@ -37,7 +37,8 @@ class ImportChecker extends Handler implements IStatus {
             OR t.id_group IS NULL
             OR t.id_discipline IS NULL
             OR t.id_room IS NULL
-            OR t.id_lecturer IS NULL";
+            OR t.id_lecturer IS NULL
+        ORDER BY t.date";
 
         $stmt = $this->pdo->query($query);
 
@@ -49,7 +50,12 @@ class ImportChecker extends Handler implements IStatus {
         }
 
         $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $this->setStatus('ok', 'Сверка произведена успешно', $data);
+        if ( count($data) )
+            $description = 'Расписание успешно загружено, однако некоторые элементы распознать не удалось. Пожалуйста, исправьте исходный документ и загрузите файл заново';
+        else
+            $description = 'Расписание успешно загружено';
+
+        $this->setStatus('ok', $description, $data);
 
         return true;
     }

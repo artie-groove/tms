@@ -1,6 +1,6 @@
 <?
 	include $_SERVER['DOCUMENT_ROOT']."/app/bootstrap.php";
-        
+
 	if ( !isset($_FILES['data_xlsx']) )
     {
         respond('error', 'Ошибка приёма файла');
@@ -15,11 +15,11 @@
         exit();
     }
 
-require_once dirname(__FILE__) . '/../app/lib/PHPExcel.php';
+    $fileToParse = $uploader->getFullFileName();
+
+    require_once dirname(__FILE__) . '/../app/lib/PHPExcel.php';
 
     $parser = new Parser();
-
-    $fileToParse = $uploader->getFullFileName();
 
     if ( !$parser->parsing($fileToParse) )
     {

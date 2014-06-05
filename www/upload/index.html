@@ -25,12 +25,63 @@
     <!-- Latest compiled and minified JavaScript -->
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
 
+    <!-- JavaScript Templates script -->
+    <script src="/js/tmpl.min.js"></script>
+
+    <script>
+        elt = function(v){
+            if (v === null) return '<span class="glyphicon glyphicon-exclamation-sign text-danger"></span>';
+            else return v;
+        }
+        dtype = function(v){
+            var t = {
+                LECTURE: "лек.",
+                PRACTICE: "пр.",
+                LAB: "лаб.",
+                QUIZ: "зачёт",
+                TUTORIAL: "конс.",
+                EXAMINATION: "экзамен"
+            };
+            return elt( t[v] );
+        }
+        comment = function(v){
+            if (v !== null) return '<li class="comment"><span class="glyphicon glyphicon-comment" data-toggle="tooltip" title="' + v + '"></span></li>';
+            else return "";
+        }
+    </script>
+
+    <script type="text/x-tmpl" id="tmpl-corrupted-list">
+        {% for ( var i = 0; i < o.length; i++) { %}
+            {% include('tmpl-corrupted-item', o[i]); %}
+        {% } %}
+    </script>
+
+    <script type="text/x-tmpl" id="tmpl-corrupted-item">
+        <div class="item">
+            <table>
+                <tr>
+                    <td>
+                        <ol class="breadcrumb">
+                            <li class="group">{%#o.group%}</li>
+                            <li class="room">{%#elt(o.room)%}</li>
+                            <li class="type">{%#dtype(o.type)%}</li>
+                            {%#comment(o.comment)%}
+                            <br />
+                            <li class="date">{%#elt(o.date)%} <span class="glyphicon glyphicon-time"></span> {%#elt(o.offset)%}</li>
+                            <li class="lecturer">{%#elt(o.lecturer)%}</li>
+                        </ol>
+                    </td>
+                    <td class="discipline">{%#elt(o.discipline)%}</td>
+                </tr>
+            </table>
+        </div>
+    </script>
 
 </head>
 <body>
 <script>
     $(function() {
-
+        // after page is loaded
     });
 </script>
 <div class="container">
@@ -46,28 +97,89 @@
             <br/><br/>
 
             <div id="progress" class="progress progress-striped active">
-                <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+                <div class="progress-bar" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
             </div>
-            <div id="log"></div>
-            <!--
-            <div class="jumbotron">
-                <form role="form">
-                    <h1>Публикация расписания</h1>
-                    <div class="row">
-                        <div class="col-md-2"><img src="/img/xlsx.png" alt="XLSX" class="img-rounded img-responsive" /></div>
-                        <div class="col-md-10">
-                            <div class="panel panel-default">
-                                <div class="panel-heading">XLSX-файл расписания</div>
-                                <div class="panel-body"><input type="file" id="data_xlsx"></div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <p class="help-block">Допускается загрузка файлов в&nbsp;формате XLSX размером не&nbsp;более 1&nbsp;МБ</p>
-                    <button type="submit" class="btn btn-primary btn-lg">Опубликовать</button>
-                </form>
+            <div id="log"></div>
+
+            <div id="corrupted-list">
+                <!--
+                <div class="item">
+                    <table>
+                        <tr>
+                            <td>
+                                <ol class="breadcrumb">
+                                    <li class="group">ВХАЗ-475</li>
+                                    <li class="room">А-29</li>
+                                    <li class="type"><span class="glyphicon glyphicon-exclamation-sign text-danger"></span></li>
+                                    <br />
+                                    <li class="date">25.05 <span class="glyphicon glyphicon-time"></span> <span class="glyphicon glyphicon-exclamation-sign text-danger"></span></li>
+                                    <li class="lecturer">Александрина А. Ю.</li>
+                                </ol>
+                            </td>
+                            <td class="discipline">Автоматизация технологических процессов и производств в химической промышленности</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="item">
+                    <table>
+                        <tr>
+                            <td>
+                                <ol class="breadcrumb">
+                                    <li class="group">ВЭ-511</li>
+                                    <li class="room">БЛК-30</li>
+                                    <li class="type">лек.</li>
+                                    <br />
+                                    <li class="date">20.03 <span class="glyphicon glyphicon-time"></span> 5</span></li>
+                                    <li class="lecturer">Капля В. И.</li>
+                                </ol>
+                            </td>
+                            <td class="discipline">Системы искусственного интеллекта</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="item">
+                    <table>
+                        <tr>
+                            <td>
+                                <ol class="breadcrumb">
+                                    <li class="group">ВИЗ-571</li>
+                                    <li class="room">гараж № 9</li>
+                                    <li class="type">лаб.</li>
+                                    <li class="comment"><span class="glyphicon glyphicon-comment" data-toggle="tooltip" title="Комментарий из файла, который частично распознался"></span></li>
+                                    <br />
+                                    <li class="date">14.05 <span class="glyphicon glyphicon-time"></span> 5</span></li>
+                                    <li class="lecturer">Рыбанов А. А.</li>
+                                </ol>
+                            </td>
+                            <td class="discipline"><span class="glyphicon glyphicon-exclamation-sign text-danger"></span></td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="item">
+                    <table>
+                        <tr>
+                            <td>
+                                <ol class="breadcrumb">
+                                    <li class="group">ВХТ-512</li>
+                                    <li class="room"><span class="glyphicon glyphicon-exclamation-sign text-danger"></span></li>
+                                    <li class="type"><span class="glyphicon glyphicon-exclamation-sign text-danger"></span></li>
+                                    <br />
+                                    <li class="date"><span class="glyphicon glyphicon-exclamation-sign text-danger"></span> <span class="glyphicon glyphicon-time"></span> 5</span></li>
+                                    <li class="lecturer"><span class="glyphicon glyphicon-exclamation-sign text-danger"></span></li>
+                                </ol>
+                            </td>
+                            <td class="discipline">Технология синтеза высокомолекулярных соединений</td>
+                        </tr>
+                    </table>
+                </div>
+                -->
+
             </div>
-            -->
+
         </div>
     </div>
 </div>
@@ -84,33 +196,56 @@
             maxNumberOfFiles: 1,
             maxFileSize: 1024 * 1024, // 1 MB
             minFileSize: 1024, // 1 kB
+            progressInterval: 100, // for debugging purposes
             forceIframeTransport: true,
             add: function( e, data ) {
-                // checking if the input file name ends with .xlsx
+                // check if the input file name ends with .xlsx
                 var ext = data.files[0].name.toLowerCase().split('.').pop();
                 if ( ext !== 'xlsx' ) {
                     $('#log').addClass('bg-warning');
-                    $('#log').text('constraint: only xlsx extensions are supported');
+                    $('#log').text('Стоп. Принимаются только файлы расписания в формате xlsx');
                     return false;
                 }
+                $('#log').hide();
+                $('#corrupted-list').hide();
                 $('#log').removeClass();
                 data.submit();
             },
             send: function (e, data) {
-                $('#progress').css('width', '0');
+                //$('#progress .progress-bar').css('width', '0');
                 $('#progress').show();
                 return true;
             },
+            /*
             progress: function (e, data) {
                 var progress = parseInt(data.loaded / data.total * 100, 10);
                 $('#progress .progress-bar').css('width', progress + '%').attr('aria-valuenow', progress);
+                console.log(progress);
             },
+            */
             done: function (e, data) {
-                $('#log').addClass('bg-success');
-                //$('#log').text('ok: ' + data.result);
 
-                $('#log').html('<p>' + data.result.status + '</p><p>' + data.result.description + '</p><p>' + data.result.details + '</p>');
+                status = data.result.status;
+                description = data.result.description;
 
+                if ( status === "ok" && data.result.details instanceof Array && data.result.details.length )
+                {
+                    $('#log').addClass('bg-warning');
+                    $('#log').html(description);
+                    document.getElementById("corrupted-list").innerHTML = tmpl("tmpl-corrupted-list", data.result.details);
+                    $('.comment span').tooltip();
+                    $('#corrupted-list').show();
+                }
+                else if ( status === "ok" )
+                {
+                    $('#log').addClass('bg-success');
+                    $('#log').html(description);
+                }
+                else
+                {
+                    $('#log').addClass('bg-danger');
+                    $('#log').html('Ошибка загрузки расписания: ' + description + '<br />' + data.result.details);
+                }
 
                 /*
                 $.each(data.result.files, function (index, file) {
@@ -123,6 +258,7 @@
                 $('#log').text('error: ' + data.errorThrown + ': ' + data.textStatus);
             },
             always: function (e, data) {
+                $('#log').show();
                 $('#progress').hide();
                 // data.result
                 // data.textStatus;

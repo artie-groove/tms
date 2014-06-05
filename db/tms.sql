@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Хост: 127.0.0.1
--- Время создания: Июн 03 2014 г., 12:09
+-- Время создания: Июн 05 2014 г., 14:01
 -- Версия сервера: 5.5.25
 -- Версия PHP: 5.3.13
 
@@ -1141,6 +1141,10 @@ END IF;
 
 IF NEW.`type` = 0 THEN
         SET NEW.`type` = NULL;
+END IF;
+
+IF NEW.`comment` = '' THEN
+	SET NEW.`comment` = NULL;
 END IF;
 
 END

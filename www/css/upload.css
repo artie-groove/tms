@@ -24,3 +24,43 @@
     padding: 25px;
     text-align: left;
 }
+
+#corrupted-list {
+    text-align: left;
+}
+
+#corrupted-list .group {
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+#corrupted-list .glyphicon {
+    color: #999;
+}
+
+#corrupted-list .text-danger {
+    color: #d00 !important;
+}
+
+#corrupted-list .discipline {
+
+}
+
+#corrupted-list .item {
+    background-color: #f5f5f5;
+    border-radius: 5px;
+    margin: 25px 0;
+}
+
+#corrupted-list .item td {
+    vertical-align: top;
+}
+
+#corrupted-list .item .breadcrumb {
+    width: 280px;
+    margin: 0;
+}
+
+#corrupted-list .item .discipline {
+    padding: 12px 15px 0 8px;
+}

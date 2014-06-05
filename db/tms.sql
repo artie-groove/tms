@@ -3,9 +3,9 @@
 -- http://www.phpmyadmin.net
 --
 -- Хост: 127.0.0.1
--- Время создания: Июн 05 2014 г., 14:01
+-- Время создания: Июн 05 2014 г., 20:40
 -- Версия сервера: 5.5.25
--- Версия PHP: 5.3.13
+-- Версия PHP: 5.2.12
 
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
@@ -778,14 +778,16 @@ CREATE TABLE IF NOT EXISTS `disciplines_shortenings` (
   `shortening` varchar(255) NOT NULL COMMENT 'сокращение',
   `id_discipline` int(11) NOT NULL COMMENT 'id дисциплины',
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=2 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=4 ;
 
 --
 -- Дамп данных таблицы `disciplines_shortenings`
 --
 
 INSERT INTO `disciplines_shortenings` (`id`, `shortening`, `id_discipline`) VALUES
-(1, 'Физ-ра', 631);
+(1, 'БЖД', 40),
+(2, 'МДКП', 228),
+(3, 'АТПП', 5);
 
 -- --------------------------------------------------------
 

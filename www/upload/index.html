@@ -107,7 +107,11 @@
             },
             done: function (e, data) {
                 $('#log').addClass('bg-success');
-                $('#log').text('ok: ' + data.result.status);
+                //$('#log').text('ok: ' + data.result);
+
+                $('#log').html('<p>' + data.result.status + '</p><p>' + data.result.description + '</p><p>' + data.result.details + '</p>');
+
+
                 /*
                 $.each(data.result.files, function (index, file) {
                     $('<p/>').text(file.name).appendTo(document.body);

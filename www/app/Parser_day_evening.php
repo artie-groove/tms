@@ -37,7 +37,7 @@ class Parser_day_evening extends Parser_base {
         {
             $this->Row_End++;
         }
-        while (!preg_match("/[А-Яа-я]+( )*-+( )*\d\d\d/",trim($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($this->Coll_Start, $this->Row_Start))))
+        while (!preg_match("/[А-Яа-я]+( )*-+( )*\d+/",trim($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($this->Coll_Start, $this->Row_Start))))
         {
             $this->Coll_Start++;
         }

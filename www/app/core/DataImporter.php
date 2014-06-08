@@ -276,11 +276,14 @@ class DataImporter extends Handler implements IStatus
 }
            private function GetMatch($_subjects, $_short)
    {
-       /**
+	   
+ mb_internal_encoding('UTF-8');
+	mb_regex_encoding('UTF-8');	   
+      /**
         * Выделение слов в сокрщанеии $_short в масив $shortWords
         * Удаляем последнюю точку, так как из-за неё неправильно составляется массив слов
         */
-        $short = mb_convert_case(rtrim($_short), MB_CASE_LOWER);
+        $short = mb_convert_case(rtrim($_short), MB_CASE_LOWER, 'UTF-8');
         //var_dump($short);
         //$short = rtrim($short, '.');
         //var_dump($short);
@@ -290,14 +293,12 @@ class DataImporter extends Handler implements IStatus
 
        foreach ($_subjects as $_key=>$_subject)
        {
-           mb_internal_encoding("UTF-8");
-           mb_regex_encoding('UTF-8');
            /**
             * Выделение слов в названии текущего предмета в массив $subjectWords
             */
             //echo "<BR><BR>\n";
             //var_dump($_subject);
-            $subject = mb_convert_case($_subject, MB_CASE_LOWER);
+            $subject = mb_convert_case($_subject, MB_CASE_LOWER, 'UTF-8');
             //var_dump($subject);
             $subjectWords = mb_split("[,.\\- ]+", $subject);
             //var_dump($subjectWords);
@@ -305,8 +306,9 @@ class DataImporter extends Handler implements IStatus
 
            /**
             * Создание аббревиатур
+            * Закомментировано за ненадобностью - теперь абревиатуры ищутся в следующем пункте
             */
-            {
+            /*{
                 $abbreviation = "";
                 foreach ($subjectWords as $subjectWord)
                 {
@@ -316,12 +318,12 @@ class DataImporter extends Handler implements IStatus
                     }
                 }
 
-		//echo $abbreviation, " ", $short, "<BR>\n";
+                //echo $abbreviation, " ", $short, "<BR>\n";
                 if ($abbreviation === $short)
                 {
                     return $_key;
                 }
-            }
+            }*/
 
            /**
             * Поиск сокращений. Сравнение идет попарно между словами в $short и $subject.
@@ -329,25 +331,69 @@ class DataImporter extends Handler implements IStatus
             */
             {
                 $subjectWordsCount = count($subjectWords);
-                $keepTry = true;
-                for ($i=0; $i<$subjectWordsCount && $keepTry; $i++)
+                $subjectAbbreviations = array();
+                $subjectAbbreviations[] = $subjectWords;
+                /*
+                 * Данный кусок кода выполняет составление всевозможных абревиатур, например
+                 * из 'Моделирование технологии процесса синтеза ВМС' составляется массив
+                 * array('мт процесса синтеза ВМС'], 'мтп синтеза ВМС', 'мтпс ВМС' ...) и т.д.
+                 */
+                for ($w=0; $w<$subjectWordsCount; $w++)
                 {
-                    if (!empty($shortWords[$i]))
+                    $currentAbbreviation = array();
+                    for ($i=0; $i<$w; $i++)
                     {
-                        $position = mb_strpos($subjectWords[$i], $shortWords[$i]);
-                        if ( ($position === false) || !($position === 0) )
+                        $currentAbbreviation[] = $subjectWords[$i];
+                    }
+                    $currentAbbreviationBackup = $currentAbbreviation;
+                    for ($abbrLettersCount=1; $abbrLettersCount<$subjectWordsCount-$w; $abbrLettersCount++)
+                    {
+                        $currentAbbreviation = $currentAbbreviationBackup;
+                        $abbrWord = "";
+                        for ($w2=$w; $w2<$w+$abbrLettersCount+1; $w2++)
+                        {
+                            $abbrWord .= mb_substr($subjectWords[$w2], 0, 1, 'UTF-8');
+                        }
+                        if (!empty($abbrWord))
+                        {
+                            $currentAbbreviation[] = $abbrWord;
+                        }
+                        for ($i2=$w+$abbrLettersCount+1; $i2<$subjectWordsCount; $i2++)
+                        {
+                            $currentAbbreviation[] = $subjectWords[$i2];
+                        }
+                        $subjectAbbreviations[] = $currentAbbreviation;
+                    }
+                }
+                //var_dump($subjectAbbreviations);
+                /*
+                 * Здесь выполняется сравнение всех аббревиатур с текущим сокращением, поиск
+                 * которого производится
+                 */
+                $abbreviationsCount = count($subjectAbbreviations);
+                for($q=0; $q<$abbreviationsCount; $q++)
+                {
+                    $subjectWordsInner = $subjectAbbreviations[$q];
+                    $keepTry = true;
+                    for ($i=0; $i<$subjectWordsCount && $keepTry; $i++)
+                    {
+                        if (!empty($shortWords[$i]))
+                        {
+                            $position = mb_strpos($subjectWordsInner[$i], $shortWords[$i], 0, 'UTF-8');
+                            if ( ($position === false) || !($position === 0) )
+                            {
+                                $keepTry = false;
+                            }
+                        }
+                        else
                         {
                             $keepTry = false;
                         }
+                        if ($keepTry === true)
+                        {
+                            return $_key;
+                        }
                     }
-                    else
-                    {
-                        $keepTry = false;
-                    }
-                }
-                if ($keepTry === true)
-                {
-                    return $_key;
                 }
             }
 
@@ -365,7 +411,7 @@ class DataImporter extends Handler implements IStatus
                 //var_dump($wordShort);
                 if (!empty($wordShort))
                 {
-                    $position = mb_strpos($wordSubject, $wordShort);
+                    $position = mb_strpos($wordSubject, $wordShort, 0, 'UTF-8');
                     if ($position === 0)
                     {
                         return $_key;

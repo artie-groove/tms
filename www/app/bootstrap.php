@@ -43,5 +43,9 @@
     }
 
     $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+	//$dbh->setAttribute(PDO::MYSQL_ATTR_INIT_COMMAND, 'SET NAMES utf8');
+	
+	$dbh->exec('SET NAMES utf8');
+	//$dbh->exec('SET NAMES utf8 COLLATE');
 
 ?>

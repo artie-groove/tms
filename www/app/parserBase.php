@@ -6,7 +6,7 @@
  * 
  */
 
-class Parser_base extends Handler implements IStatus
+class parserBase extends Handler implements IStatus
        {
             
     //---------------------------------------------------------------------переменные общего назначения // В общий
@@ -23,13 +23,19 @@ class Parser_base extends Handler implements IStatus
     protected $date_massiv; // сохраняет названия месяцев и соответсвующие им дни
     public $Type_stady; //форма обучения. 0 - дневная, 1 - вечерняя, 2-заочная.
     //-----------------------------------------------------------------------Перемнные заочного распсиания
-    private $Section_Start;// ширина текущей секции
-    private $Section_end;// конец текущей секции
-    private $Section_date_start;//начало данных для текущей секции
-
-    public function Parser_base($fileName)
+    public function load($fileName)
     {
-       $this->objPHPExcel = PHPExcel_IOFactory::load($fileName);
+        try {
+             $this->objPHPExcel = PHPExcel_IOFactory::load($fileName);
+             $this->setStatus("OK", "Успешно открыли файл $fileName");
+             return true;
+            } catch (Exception $exc) 
+            {
+                $this->setStatus("ERROR", "Не удалось открыть файл $fileName");
+                return false;
+            }
+
+       
     }
     protected function Order_66($Sheat)// сносит все невидемые  // В общий
     {
@@ -105,12 +111,12 @@ class Parser_base extends Handler implements IStatus
         $this->objPHPExcel;
         $row=$Staret_Row;
         $result = array();
-        $result[0]="";
+        $result[0]="";//предмет
         $result[1]="";
         $result[2]="";
         $result[3]="";
-        $result[4]="";
-        $result[5]="";
+        $result[4]="";// препод
+        $result[5]="";//комент
         $result[6]=0;
         $result[7]=0;
         $coll=$Start_Coll;
@@ -133,7 +139,7 @@ class Parser_base extends Handler implements IStatus
                 {
                     $str=trim($this->objPHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll, $row));
                     /**/
-                    if($this->objPHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll, $row)->getStyle()->getFont()->getBold()==1)
+                    if($this->objPHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll, $row)->getStyle()->getFont()->getBold()==1 &&($this->objPHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll, $row)->getStyle()->getFont()->getColor()->getRGB()==="FFFFFF"||$this->objPHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll, $row)->getStyle()->getFont()->getColor()->getRGB()==="000000"))
                     {
                         if(preg_match("/[с]( )+\d{1,2}[-:\.]\d\d/iu", $str, $matches)!=0)
                         {
@@ -143,11 +149,12 @@ class Parser_base extends Handler implements IStatus
                         }
                         $result[0].=$str;
                         //print("Предмет:".$str."<BR>");
+                        ;
 
                     }
                     else
                     {
-                        if(preg_match("/(^| )(лаб(( )*\.)?|лек(( )*\.)?|пр(( )*\.)?)( |$)/ui", $str,$maches))
+                        if(preg_match("/(^| )(лаб(( )*\.)?|лек(( )*\.)?|пр(( )*\.)?|[З|з]ач[ё|е]т)|[Э|э]кзамен( |$)/ui", $str,$maches))
                         {
                             $result[1] =  $maches[0];
                             // print("Тип занятия:".$result[1]."<BR>");
@@ -228,7 +235,7 @@ class Parser_base extends Handler implements IStatus
     }
 
     protected function Mesac_to_chislo( $str)// определяет, что за месяц передан в строке и возвращает его номер   // В общий
-    {
+    {   //Да, это костыль.
         str_replace("a", "а", $str);
         str_replace("A", "А", $str);
         str_replace("c", "с", $str);
@@ -324,7 +331,7 @@ class Parser_base extends Handler implements IStatus
         //print("<BR>Было: ".$str.". Номер пары:".$rez."<BR>");
     }
 
-    protected function group_init_d($Coll_Start,$Coll_End,$Row_Start,$Sheat,$Shirina_na_gruppu)//распознавание групп. Объявляет глобальные переменные  // В общий
+    protected function group_init($Coll_Start,$Coll_End,$Row_Start,$Sheat,$Shirina_na_gruppu)//распознавание групп. Объявляет глобальные переменные  // В общий
     {
         $this->Group;//инициализирует
         $this->objPHPExcel;
@@ -343,7 +350,7 @@ class Parser_base extends Handler implements IStatus
         }
     }
 
-    protected  function dey_gran_d($Row_Start_Date,$Row_End,$Sheat)//устанавливает грани между днями недели.   // В общий
+    protected  function dey_gran($Row_Start_Date,$Row_End,$Sheat)//устанавливает грани между днями недели.   // В общий
     {
         $this->objPHPExcel;
         $this->gani;//инициализирует
@@ -361,7 +368,7 @@ class Parser_base extends Handler implements IStatus
         }
     }
 
-    protected  function get_mounday_d($Coll_Start,$Row_Start,$Sheat,$Row_Start_Date)// заполняет массив с датами. // В общий
+    protected  function get_mounday($Coll_Start,$Row_Start,$Sheat,$Row_Start_Date)// заполняет массив с датами. // В общий
     {
         $this->gani;
         $this->objPHPExcel;
@@ -393,110 +400,52 @@ class Parser_base extends Handler implements IStatus
         }
     }
 
+    protected function exchangePrev($nau,&$NewPar) // Копирует недостающие данные в альтернативную пару.
+    {
+        //print($NewPar->Predmet." ".$NewPar->Type." ".$NewPar->Auditoria." ".$NewPar->Prepod."<BR>");
+       for($i=count($this->Group[$nau]["Para"])-1;$this->Group[$nau]["Para"][$i]->Predmet==$NewPar->Predmet&&$this->Group[$nau]["Para"][$i]->Date==$NewPar->Date&&$i>-1;$i--)
+       {
+           
+                                if($NewPar->Auditoria=="")
+                                {
+                                    $NewPar->Auditoria= $this->Group[$nau]["Para"][$i]->Auditoria;
+                                }
+                                if($NewPar->Prepod=="")
+                                {
+                                    $NewPar->Prepod= $this->Group[$nau]["Para"][$i]->Prepod;
+                                }
+                                if($NewPar->Comment=="")
+                                {//print("Много мыши!!".$this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Predmet."!");
+                                    $NewPar->Comment= $this->Group[$nau]["Para"][$i]->Comment;
+                                }
+                                if($NewPar->Type=="")
+                                {
+                                    $NewPar->Type= $this->Group[$nau]["Para"][$i]->Type;
+                                }
+                                //_____________________________________________
+                                if($this->Group[$nau]["Para"][$i]->Auditoria=="")
+                                {
+                                    $this->Group[$nau]["Para"][$i]->Auditoria= $NewPar->Auditoria;
+                                }
+                                if($this->Group[$nau]["Para"][$i]->Prepod=="")
+                                {
+                                    $this->Group[$nau]["Para"][$i]->Prepod= $NewPar->Prepod;
+                                }
+                                if($this->Group[$nau]["Para"][$i]->Comment=="")
+                                {//print("Много мыши!!".$this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Predmet."!");
+                                    $this->Group[$nau]["Para"][$i]->Comment= $NewPar->Comment;
+                                }
+                                if($this->Group[$nau]["Para"][$i]->Type=="")
+                                {
+                                    $this->Group[$nau]["Para"][$i]->Type;
+                                }
+                                //_______________________________________
+       }
+                                 
+    }
     //----------------------------------------------------------------------//Функции для заочного распсиания
-    protected   function get_orientirs_z($Sheat)//определяет границы таблицы, а так же ширину колонки для группы.Устанавливает глобальные переменные.  // В длинное заочное
-    {
-        $this->objPHPExcel;
-        $this->Coll_Start;//начало таблицы (непосредственно данных)//инициализирует
-        $this->Coll_End;//за концом таблицы//инициализирует
-        $this->Row_Start;//начало таблицы//инициализирует
-        $this->Row_End;//за концом таблицы//инициализирует
-        $this->Row_Start_Date;//начало данных//инициализирует
-        $this->Shirina_na_gruppu;//инициализирует
-
-        While($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $this->Row_Start)->getStyle()->getBorders()->getBottom()->getBorderStyle()==="none"&&$this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $this->Row_Start+1)->getStyle()->getBorders()->getTop()->getBorderStyle()==="none")
-        {
-            $this->Row_Start++;
-        }
-        $this->Row_Start++;
-        //Print $this->Row_Start;
-        $this->Row_Start_Date =  $this->Row_Start+1;
-        While($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $this->Row_Start_Date)->getStyle()->getFill()->getStartColor()->getRGB()!=="FFFFFF"&&$this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $this->Row_Start_Date)->getStyle()->getFill()->getStartColor()->getRGB()!=="000000")
-        {
-            $this->Row_Start_Date++;
-        }
-        $this->Row_End=$this->Row_Start_Date;
-        While($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $this->Row_End)->getStyle()->getFill()->getStartColor()->getRGB()!=="FFFFFF"&&$this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $this->Row_End)->getStyle()->getFill()->getStartColor()->getRGB()!=="000000")
-        {
-            $this->Row_End++;
-        }
-        while (!preg_match("/[А-Яа-я]+( )*-( )*\d\d\d/",trim($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($this->Coll_Start, $this->Row_Start))))
-        {
-            $this->Coll_Start++;
-        }
-        $count_z=0;
-        $coll=$this->Coll_Start;
-        while($count_z<1)//рассчитываем ширину на группу по первой ячейке для группы.
-        {
-            $coll++;
-            $this->Shirina_na_gruppu++;
-            if(trim($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($coll+1, $this->Row_Start))!="")
-            {
-                $count_z++;
-            }
-        }
-        //print($this->Shirina_na_gruppu);
-        $this->Coll_End=$this->Coll_Start;
-        While($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($this->Coll_End, $this->Row_Start+1)->getStyle()->getFill()->getStartColor()->getRGB()!=="FFFFFF"&&$this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($this->Coll_End, $this->Row_Start+1)->getStyle()->getFill()->getStartColor()->getRGB()!=="000000")
-        {
-            $this->Coll_End++;
-        }
-    }
-
-    protected  function get_section_end($Sheat,$old_end)// находит границу секции. Принимает последнюю обнаруженную границу  // В длинное заочное
-    {
-        $this->objPHPExcel;
-        $this->Row_Start;
-        $this->Coll_End;
-        $this->Section_Start;//Утсанавливает значение
-        $this->Section_end;//устанавливает значение
-        $this->Section_date_start;//устанавливается значение
-        $this->Section_Start=$old_end;
-        $this->Section_end=$old_end+1;
-        while(preg_match("/дни/iu", $this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($this->Section_end, $this->Row_Start))==0&&($this->Section_end<$this->Coll_End))
-        {
-            $this->Section_end++;
-        }
-        $this->Section_date_start=$this->Section_Start;
-        while (!preg_match("/[А-Яа-я]+( )*-( )*\d\d\d/",trim($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($this->Section_date_start, $this->Row_Start))))
-        {
-            $this->Section_date_start++;
-        }
-    }
-    protected   function get_mounday_z($Row_Start_Date,$Section_Start,$Row_End,$Sheet) // запалняет месяцы для длинного распсиания //В заочное длинное
-    {
-        $this->date_massiv;//инициализируется, предварительно обнуляется.
-        $this->gani;
-        $this->objPHPExcel;
-        $this->date_massiv=false;
-        $this->date_massiv[0]["month"]=false;
-        for($i=$Row_Start_Date;$i<$Row_End;$i++)
-        {
-            if(trim($this->objPHPExcel->getSheet($Sheet)->getCellByColumnAndRow($Section_Start+1, $i))!="")
-            {
-                $k=-1;
-                for($k=0;$k<count($this->gani);$k++)
-                {
-                    if($this->gani[$k]>$i)
-                    {
-                        break;
-                    }
-                }
-                //print($k."<BR>");
-                if(isset($this->date_massiv[0]["month"][$k]))
-                {
-                    $this->date_massiv[0]["month"][$k].=trim($this->objPHPExcel->getSheet($Sheet)->getCellByColumnAndRow($Section_Start+1, $i));
-                }
-                else
-                {
-                    $this->date_massiv[0]["date"][$k]=trim($this->objPHPExcel->getSheet($Sheet)->getCellByColumnAndRow($Section_Start+1, $i));
-                    //print($i."<BR>");
-                }
-            }
-        }
-        // var_dump($this->date_massiv);
-    }
-    ///////////////////////////////////////////
+  
+  ///////////////////////////////////////////
    
     public function getParseData()      // В общее
     { 
@@ -519,7 +468,7 @@ class Parser_base extends Handler implements IStatus
         }
     }
 
-    public function getStatusCode() // В общий
+    /*public function getStatusCode() // В общий
             {
             	return json_encode($this->status['Code']);
             }
@@ -533,8 +482,7 @@ class Parser_base extends Handler implements IStatus
             {
 		return json_encode($this->status['Details']);
             }
-            
-            
+       */      
             
              //var_dump($this->Group);
             /** /

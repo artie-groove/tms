@@ -10,9 +10,24 @@
  *
  * @author Киба
  */
-class Parser_day_evening extends Parser_base {
+class parserDayEvening extends parserBase {
    
-    private    function get_orientirs_d($Sheat)//определяет границы таблицы, а так же ширину колонки для группы.Устанавливает глобальные переменные. // В дневной и вечерний
+    public function load($fileName)
+    {
+        if(parent::load($fileName))
+        {
+           $this->setStatus("OK", "Успешно открыли файл $fileName");
+           return true;
+        } 
+        else{
+           $this->setStatus("ERROR", "Не удалось открыть файл $fileName");
+           return false;
+        }
+        
+    }
+    
+
+    private    function get_orientirs($Sheat)//определяет границы таблицы, а так же ширину колонки для группы.Устанавливает глобальные переменные. // В дневной и вечерний
     {
         $this->objPHPExcel;
         $this->Coll_Start;//начало таблицы (непосредственно данных)//инициализирует
@@ -62,7 +77,7 @@ class Parser_day_evening extends Parser_base {
     }
     private  function get_day_raspisanie ()// анализирует дневное и вечернее распсиание.  // В дневное и вечернее
     {
-        $this->objPHPExcel;
+       
         $this->Coll_Start;//начало таблицы (непосредственно данных)
         $this->Coll_End;//за концом таблицы
         $this->Row_Start;//начало таблицы
@@ -85,10 +100,10 @@ class Parser_day_evening extends Parser_base {
             $this->gani=false; //массив хранит границы дней недели
             $this->date_massiv=false;
             $this->Order_66($Sheat);
-            $this->get_orientirs_d($Sheat);
-            $this->group_init_d($this->Coll_Start,$this->Coll_End,$this->Row_Start,$Sheat,$this->Shirina_na_gruppu);
-            $this->dey_gran_d($this->Row_Start_Date,$this->Row_End,$Sheat);
-            $this->get_mounday_d($this->Coll_Start,$this->Row_Start,$Sheat,$this->Row_Start_Date);
+            $this->get_orientirs($Sheat);
+            $this->group_init($this->Coll_Start,$this->Coll_End,$this->Row_Start,$Sheat,$this->Shirina_na_gruppu);
+            $this->dey_gran($this->Row_Start_Date,$this->Row_End,$Sheat);
+            $this->get_mounday($this->Coll_Start,$this->Row_Start,$Sheat,$this->Row_Start_Date);
             for($i=$this->Row_Start_Date;$i<$this->Row_End;$i++)
             {
                 for($k=$this->Coll_Start;$k<$this->Coll_End;$k++)
@@ -142,6 +157,10 @@ class Parser_day_evening extends Parser_base {
                             {
                                 $NewPar->Date=$res[3];
                             }
+                            if(preg_match("/\.$/",$NewPar->Date,$m))
+                            {
+                                str_replace($m, "", $NewPar->Date);
+                            }
                             $NewPar->Predmet=$res[0];
                             $NewPar->Type=$res[1];
                             $NewPar->Auditoria=$res[2];
@@ -149,45 +168,10 @@ class Parser_day_evening extends Parser_base {
                             $NewPar->Comment.=trim($res[5]);
                             $group_count= floor($res[7]/$this->Shirina_na_gruppu);
                             $this->get_par_number($i,$this->Coll_Start,$Sheat,&$NewPar);
-
                             if($group_count==0&& !is_int(($k-$this->Coll_Start+$this->Shirina_na_gruppu)/$this->Shirina_na_gruppu))
                             {
-                                //print($NewPar->Predmet." ".$NewPar->Type." ".$NewPar->Auditoria." ".$NewPar->Prepod."<BR>");
-                                if($NewPar->Auditoria=="")
-                                {
-                                    $NewPar->Auditoria= $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Auditoria;
-                                }
-                                if($NewPar->Prepod=="")
-                                {
-                                    $NewPar->Prepod= $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Prepod;
-                                }
-                                if($NewPar->Comment=="")
-                                {//print("Много мыши!!".$this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Predmet."!");
-                                    $NewPar->Comment= $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Comment;
-                                }
-                                if($NewPar->Type=="")
-                                {
-                                    $NewPar->Type= $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Type;
-                                }
-                                //_____________________________________________
-                                if($this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Auditoria=="")
-                                {
-                                    $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Auditoria= $NewPar->Auditoria;
-                                }
-                                if($this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Prepod=="")
-                                {
-                                    $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Prepod= $NewPar->Prepod;
-                                }
-                                if($this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Comment=="")
-                                {//print("Много мыши!!".$this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Predmet."!");
-                                    $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Comment= $NewPar->Comment;
-                                }
-                                if($this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Type=="")
-                                {
-                                    $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Type;
-                                }
-                                //_______________________________________
-                                $par_count=floor($res[6]/2);//ЗАМЕТКА!!!!!_______ потом рассчитать длинну в стоках для пары. На основе размера ячейки с указанием номера пары.
+                                $this->exchangePrev($nau,&$NewPar);
+                             $par_count=floor($res[6]/2);//ЗАМЕТКА!!!!!_______ потом рассчитать длинну в стоках для пары. На основе размера ячейки с указанием номера пары.
                                 for($d=0;$d<$par_count;$d++)
                                 {
                                     $par_temp= new Pair();
@@ -195,7 +179,6 @@ class Parser_day_evening extends Parser_base {
                                     $par_temp->ParNumber+=$d;
                                     $par_temp->Group=$this->Group[$nau]["NameGroup"];
                                     array_push( $this->Group[$nau]["Para"],$par_temp);
-
                                 }
                             }
                             else
@@ -248,12 +231,14 @@ class Parser_day_evening extends Parser_base {
     public function parsing()  // В общее
     {
         try {
-            $this->get_day_raspisanie();//расписание дневное - фас!
+            $this->get_day_raspisanie();//Запускаю парсинг.
+            $this->setStatus("OK", "Парсинг прошёл успешно.");
             return true;
             }
         catch(Exception $e)
         {
             // print($e);
+            $this->setStatus("Error", "Парсинг провалился: что-то пошло не так.");
             return false;
         }
     }

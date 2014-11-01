@@ -234,56 +234,34 @@ class parserBase extends Handler implements IStatus
         return $result;
     }
 
-    protected function Mesac_to_chislo( $str)// определяет, что за месяц передан в строке и возвращает его номер   // В общий
-    {   //Да, это костыль.
-        str_replace("a", "а", $str);
-        str_replace("A", "А", $str);
-        str_replace("c", "с", $str);
-        str_replace("C", "с", $str);
-        str_replace("e", "е", $str);
-        str_replace("E", "Е", $str);
-        str_replace("o", "о", $str);
-        str_replace("O", "О", $str);
-
+    protected function Mesac_to_chislo($str)// определяет, что за месяц передан в строке и возвращает его номер   // В общий
+    {   
+        $str = trim($str);
+		$str = strtolower($str);
+		
+		$smbls = array(
+		     'a' => 'а',
+			 'c' => 'с',
+			 'e' => 'е',
+			 'o' => 'о'
+		);
+		
+		$str = strtr($str, $smbls);
         $messs="00";
-        switch (trim($str))
+        switch ($str)
         {
-            case "Январь": {$messs=1; break;}
-            case "январь": {$messs=1; break;}
-            case "ЯНВАРЬ": {$messs=1; break;}
-            case "Февраль": {$messs=2; break;}
-            case "февраль": {$messs=2; break;}
-            case "ФЕВРАЛЬ": {$messs=2; break;}
-            case "Март": {$messs=3; break;}
-            case "март": {$messs=3; break;}
-            case "МАРТ": {$messs=3; break;}
-            case "Апрель": {$messs=4; break;}
-            case "апрель": {$messs=4; break;}
-            case "АПРЕЛЬ": {$messs=4; break;}
-            case "Май": {$messs=5; break;}
-            case "май": {$messs=5; break;}
-            case "МАЙ": {$messs=5; break;}
-            case "Июнь": {$messs=6; break;}
-            case "июнь": {$messs=6; break;}
-            case "ИЮНЬ": {$messs=6; break;}
-            case "Июль": {$messs=7; break;}
-            case "июль": {$messs=7; break;}
-            case "ИЮЛЬ": {$messs=7; break;}
-            case "Август": {$messs=8; break;}
-            case "август": {$messs=8; break;}
-            case "АВГУСТ": {$messs=8; break;}
-            case "Сентябрь": { $messs=9;break;}
-            case "сентябрь": {$messs=9; break;}
-            case "СЕНТЯБРЬ": {$messs=9; break;}
-            case "Октябрь": {$messs=10; break;}
-            case "октябрь": {$messs=10; break;}
-            case "ОКТЯБРЬ": {$messs=10; break;}
-            case "Ноябрь": {$messs=11; break;}
-            case "ноябрь": {$messs=11; break;}
-            case "НОЯБРЬ": {$messs=11; break;}
-            case "Декабрь": {$messs=12; break;}
-            case "декабрь": {$messs=12; break;}
-            case "ДЕКАБРЬ": {$messs=12; break;}
+            case "январь":   $messs=1;  break; 
+            case "февраль":  $messs=2;  break; 
+            case "март":     $messs=3;  break; 
+            case "апрель":   $messs=4;  break; 
+            case "май":      $messs=5;  break; 
+            case "июнь":     $messs=6;  break; 
+            case "июль":     $messs=7;  break; 
+            case "август":   $messs=8;  break; 
+            case "сентябрь": $messs=9;  break; 
+            case "октябрь":  $messs=10; break; 
+            case "ноябрь":   $messs=11; break; 
+            case "декабрь":  $messs=12; break; 
         }
 
         return $messs;

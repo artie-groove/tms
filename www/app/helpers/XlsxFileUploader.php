@@ -42,7 +42,7 @@ class XlsxFileUploader extends Handler implements IStatus
 			return false;
 		}
 		
-		$this->uploadFileName = $_SERVER['DOCUMENT_ROOT'] . $this->uploadPath . date("ymdHis") . ".xlsx";
+		$this->uploadFileName = $_SERVER['DOCUMENT_ROOT'] . realpath($this->uploadPath) . date("ymdHis") . ".xlsx";
 		
 		if ( !rename($File['tmp_name'], $this->uploadFileName) )
 		{

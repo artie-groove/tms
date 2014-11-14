@@ -31,8 +31,9 @@
     $status = array('status' => 'ok', 'details' => 'Распознавание прошло успешно');
 
     $importer = new DataImporter();
+    $DisciplineMatcher = new DisciplineMatcher();
 
-    if ( !$importer->import($parseData, $parser->Type_stady) )
+    if ( !$importer->import($parseData, $parser->Type_stady, $DisciplineMatcher) )
     {
         respond_from_object($importer);
         exit();

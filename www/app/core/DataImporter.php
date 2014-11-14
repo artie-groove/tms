@@ -18,7 +18,7 @@
  */
 class DataImporter extends Handler implements IStatus
        {
-           public function import($par_mass,$Type_stady)//Запись в базу данных массива
+           public function import($par_mass,$Type_stady, $DisciplineMatcher)//Запись в базу данных массива
               {
                
                 $link = mysql_connect('localhost', 'root', '');
@@ -176,7 +176,7 @@ class DataImporter extends Handler implements IStatus
                              //var_dump($par_mass[$i]->Predmet);
                              //print ("<BR>");;
                              
-                             $index=$this->GetMatch($base_dump['name'], $par_mass[$i]->Predmet);
+                             $index=$DisciplineMatcher->GetMatch($base_dump['name'], $par_mass[$i]->Predmet);
                              if(!is_null($index))
                              {
                                   

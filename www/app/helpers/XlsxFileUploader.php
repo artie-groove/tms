@@ -42,6 +42,7 @@ class XlsxFileUploader extends Handler implements IStatus
 			return false;
 		}
 		
+        date_default_timezone_set('UTC');
 		$this->uploadFileName = $_SERVER['DOCUMENT_ROOT'] . realpath($this->uploadPath) . date("ymdHis") . ".xlsx";
 		
 		if ( !rename($File['tmp_name'], $this->uploadFileName) )

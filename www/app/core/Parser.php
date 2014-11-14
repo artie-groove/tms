@@ -529,7 +529,7 @@ class Parser extends Handler implements IStatus
                             $NewPar->Prepod=$res[4];
                             $NewPar->Comment.=trim($res[5]);
                             $group_count= floor($res[7]/$this->Shirina_na_gruppu);
-                            $this->get_par_number($i,$this->Coll_Start,$Sheat,&$NewPar);
+                            $this->get_par_number($i,$this->Coll_Start,$Sheat,$NewPar);
 
                             if($group_count==0&& !is_int(($k-$this->Coll_Start+$this->Shirina_na_gruppu)/$this->Shirina_na_gruppu))
                             {

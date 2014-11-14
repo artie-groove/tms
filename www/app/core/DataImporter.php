@@ -30,13 +30,23 @@ class DataImporter extends Handler implements IStatus
 				
 				mysql_set_charset('utf8');
 				//mb_internal_encoding("UTF-8");
-                                //mb_regex_encoding('UTF-8');
+                //mb_regex_encoding('UTF-8');
                 $statusDB = mysql_select_db('tms');
                 if($statusDB==false)
                 {
                     $this->setStatus("Error", "Ошибка при подключении к таблице tms");
                     return false;
                 }
+               
+                // purge table `timetable`
+               $query = "TRUNCATE TABLE timetable";
+               $res_SQL = mysql_query($query);
+               if($res_SQL==false)
+               {                   
+                   $this->setStatus("Error", "Не удалось очистить таблицу расписания", "Запрос: $query");
+                   return false;
+               }
+               
                 $positive = 0;
                 $negative = 0;
                 $insert=0;
@@ -237,20 +247,25 @@ class DataImporter extends Handler implements IStatus
                     //case 4:{break;}
                     //case 5:{break;}
                     //case 6:{break;}
+                    default: $type_sabjeckt = 0;
                   }
                   $nay_year=date('Y');
+                                        
                   for($in=0;$in<count($date_m)-$correct;$in++)
                   {
-                     $d_m_c = explode(".",$date_m[$in]);
+                     $d_m_c = explode(".", trim($date_m[$in]));
+                     $d_m_c[0] = str_pad($d_m_c[0], 2, "0", STR_PAD_LEFT);
+                     $d_m_c[1] = str_pad($d_m_c[1], 2, "0", STR_PAD_LEFT);
+
                      $date_to_write=$nay_year."-".$d_m_c[1]."-".$d_m_c[0]; 
-                     $query="INSERT INTO timetable (id_discipline,id_group,id_lecturer,id_room,offset,date,type,comment) VALUES (".$predmet_id.",".$group_id.",".$prepod_id.",".$auditoria_id.",".$par_mass[$i]->ParNumber.",'".$date_to_write."','".$type_sabjeckt."','".$par_mass[$i]->Comment."')"; 
+                     $query="INSERT INTO timetable (id_discipline,id_group,id_lecturer,id_room,`offset`,`date`,`type`,`comment`) VALUES (".$predmet_id.",".$group_id.",".$prepod_id.",".$auditoria_id.",".$par_mass[$i]->ParNumber.",'".$date_to_write."','".$type_sabjeckt."','".$par_mass[$i]->Comment."')"; 
                      //echo $query;
                      //echo "<br>";
                      
                      $rez= mysql_query($query);
                      if($rez==false)
                          {
-                         $this->setStatus("Error", "Ошибка заброса SQL при попытки добавить запись о паре в БД","Падение на запросе: $query" . ': ' . mysql_error());
+                         $this->setStatus("Error", "Ошибка заброса SQL при попытки добавить запись о паре в БД","Падение на запросе: $query" . ': ' . mysql_error() . ': ' . implode('-', $d_m_c) . ', type: ' . $type_sabjeckt);
                            //print("Провал вставки расписания");
                           return false;
                          }

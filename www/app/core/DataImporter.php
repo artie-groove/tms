@@ -158,9 +158,9 @@ class DataImporter extends Handler implements IStatus
                       {
                          //Print(" ".$mc[0]." !");
                                                   
-                         $query = "SELECT id, name, id_discipline FROM disciplines_shortenings WHERE name = '" . $mc[0]."%'";
+                         $query = "SELECT id, shortening, id_discipline FROM disciplines_shortenings WHERE shortening = '" . $par_mass[$i]->Predmet . "'";
                          $res_SQL = mysql_query($query);
-                         if($res_SQL == false)
+                         if( $res_SQL == false )
                          {
                            //print("Провал по предметам");
                            $this->setStatus("Error", "Ошибка заброса SQL при попытки найти предмет","Падение на запросе: $query");
@@ -168,17 +168,17 @@ class DataImporter extends Handler implements IStatus
                          }
                          if( mysql_num_rows($res_SQL) == 1 )
                          {                             
-                             $row = mysql_fetch_assoc($res_SQL)
+                             $row = mysql_fetch_assoc($res_SQL);
+                             
+                             if ( $par_mass[$i]->Predmet == $row['shortening'] )
                              {
-                                 if ( $par_mass[$i]->Predmet == $row['name'] )
-                                 {
-                                    $positive++;
-                                    $predmet_id = $row['id_discipline'];                                    
-                                 }
+                                 $positive++;
+                                 $predmet_id = $row['id_discipline'];                                    
                              }
+                             
                          }
                          
-                         if ( $predmet_id != 0 )
+                         if ( $predmet_id == 0 )
                          {
                              $query = "SELECT id,name FROM disciplines Where name LIKE '".$mc[0]."%'";
                              $res_SQL = mysql_query($query);

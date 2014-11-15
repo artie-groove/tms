@@ -48,6 +48,7 @@
 	$dbh->exec('SET NAMES utf8');
 	//$dbh->exec('SET NAMES utf8 COLLATE');
 
-    error_reporting(E_ERROR);
+    //error_reporting(E_ERROR);
+    error_reporting(E_ALL);
 
 ?>

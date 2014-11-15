@@ -156,50 +156,73 @@ class DataImporter extends Handler implements IStatus
                       
                       if(count($mc)>0)
                       {
-                          //Print(" ".$mc[0]." !");
-                         $query = "SELECT id,name FROM disciplines Where name LIKE '".$mc[0]."%'";
+                         //Print(" ".$mc[0]." !");
+                                                  
+                         $query = "SELECT id, name, id_discipline FROM disciplines_shortenings WHERE name = '" . $mc[0]."%'";
                          $res_SQL = mysql_query($query);
-                         if($res_SQL==false)
+                         if($res_SQL == false)
                          {
                            //print("Провал по предметам");
                            $this->setStatus("Error", "Ошибка заброса SQL при попытки найти предмет","Падение на запросе: $query");
                            return false;
                          }
-                         if(mysql_affected_rows()>0)
+                         if( mysql_num_rows($res_SQL) == 1 )
+                         {                             
+                             $row = mysql_fetch_assoc($res_SQL)
+                             {
+                                 if ( $par_mass[$i]->Predmet == $row['name'] )
+                                 {
+                                    $positive++;
+                                    $predmet_id = $row['id_discipline'];                                    
+                                 }
+                             }
+                         }
+                         
+                         if ( $predmet_id != 0 )
                          {
-                             $base_dump = array();
-                             $p=0;
-                             while($row = mysql_fetch_assoc($res_SQL))
+                             $query = "SELECT id,name FROM disciplines Where name LIKE '".$mc[0]."%'";
+                             $res_SQL = mysql_query($query);
+                             if($res_SQL==false)
                              {
-                                 $base_dump['id'][$p]=$row['id'];
-                                 $base_dump['name'][$p]=$row['name'];
-                                 $p++;
+                               //print("Провал по предметам");
+                               $this->setStatus("Error", "Ошибка заброса SQL при попытки найти предмет","Падение на запросе: $query");
+                               return false;
                              }
-                             
-                             //print  ("<BR>__________________________________________________<BR>");
-                            // for($t=0;$t<count($base_dump['name']);$t++)
-                            // {
-                            //   print($base_dump['name'][$t]."<BR>");  
-                            // }
-                             //var_dump($base_dump['name']);
-                             //print ("<BR>");
-                             //var_dump($par_mass[$i]->Predmet);
-                             //print ("<BR>");;
-                             
-                             $index=$DisciplineMatcher->GetMatch($base_dump['name'], $par_mass[$i]->Predmet);
-                             if(!is_null($index))
+                             if(mysql_affected_rows()>0)
                              {
-                                  
-                                 //print ($par_mass[$i]->Predmet." ".$base_dump['name'][$index]." ");
-                                  $positive++;
-                                  $predmet_id=$base_dump['id'][$index];
-                             }
-                             else 
-                             {
-                                 //print ("!!!НЕ НАШЁЛ ПРЕДМЕТА!!! ");
-                                 $negative++;
-                             }
-                             
+                                 $base_dump = array();
+                                 $p=0;
+                                 while($row = mysql_fetch_assoc($res_SQL))
+                                 {
+                                     $base_dump['id'][$p]=$row['id'];
+                                     $base_dump['name'][$p]=$row['name'];
+                                     $p++;
+                                 }
+
+                                 //print  ("<BR>__________________________________________________<BR>");
+                                // for($t=0;$t<count($base_dump['name']);$t++)
+                                // {
+                                //   print($base_dump['name'][$t]."<BR>");  
+                                // }
+                                 //var_dump($base_dump['name']);
+                                 //print ("<BR>");
+                                 //var_dump($par_mass[$i]->Predmet);
+                                 //print ("<BR>");;
+
+                                 $index = $DisciplineMatcher->GetMatch($base_dump['name'], $par_mass[$i]->Predmet);
+                                 if(!is_null($index))
+                                 {
+
+                                     //print ($par_mass[$i]->Predmet." ".$base_dump['name'][$index]." ");
+                                      $positive++;
+                                      $predmet_id=$base_dump['id'][$index];
+                                 }
+                                 else 
+                                 {
+                                     //print ("!!!НЕ НАШЁЛ ПРЕДМЕТА!!! ");
+                                     $negative++;
+                                 }
+                            }
                          }
                       }
                             
@@ -227,7 +250,7 @@ class DataImporter extends Handler implements IStatus
                        }*/
                   } 
                 
-                if($par_mass[$i]->Date!="")
+                if($par_mass[$i]->Date!="")                
                 {
                   $date_m=  explode(",", $par_mass[$i]->Date);
                   $correct=0;

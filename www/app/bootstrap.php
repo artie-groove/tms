@@ -4,7 +4,7 @@
 
 	function __autoload($class_name)
 	{
-		$lookupPaths = array('/', '/core/', '/common/', '/helpers/', '/entities/');
+		$lookupPaths = array('/', '/core/', '/common/', '/helpers/', '/entities/', '/files');
 		foreach ( $lookupPaths as $subpath )
 		{
 			$classFileName = $_SERVER['DOCUMENT_ROOT'] . '/app' . $subpath . $class_name . '.php';
@@ -48,6 +48,7 @@
 	$dbh->exec('SET NAMES utf8');
 	//$dbh->exec('SET NAMES utf8 COLLATE');
 
-    error_reporting(E_ERROR);
+    error_reporting(E_ERROR | E_PARSE);
+    //error_reporting(E_ALL);
 
 ?>

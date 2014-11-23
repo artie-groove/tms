@@ -145,7 +145,8 @@ class Parser extends Handler implements IStatus
                     }
                     else
                     {
-                        if(preg_match("/(^| )(лаб(( )*\.)?|лек(( )*\.)?|пр(( )*\.)?)( |$)/ui", $str,$maches))
+						///(^| )(лаб(( )*\.)?|лек(( )*\.)?|пр(( )*\.)?)( |$)/ui
+                        if(preg_match("/(?:^|\s)(лаб|лек|пр)\s*\.?/ui", $str,$maches))
                         {
                             $result[1] =  $maches[0];
                             // print("Тип занятия:".$result[1]."<BR>");
@@ -157,8 +158,8 @@ class Parser extends Handler implements IStatus
                             $result[5].=" ".$maches[0];
                             $str=  str_replace($maches[0], "", $str);
                             $str=trim($str);
-                        }
-                        if(preg_match_all("/[А-я]+( )*-+( )*\d+/", $str,$maches,PREG_PATTERN_ORDER))
+                        }// /[А-я]+( )*-+( )*\d+/
+                        if(preg_match_all("/[А-я]+\s*-*\s*\d+/", $str,$maches,PREG_PATTERN_ORDER))
                         {
 
                             // print("Аудитории:");

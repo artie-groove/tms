@@ -25,7 +25,7 @@ class DataImporter extends Handler implements IStatus
         {
             $dbh = new PDO("mysql:host=localhost;dbname=tms", "root", "", array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION));
             $dbh->exec("set character set utf8");
-            $dbh->exec("truncate table timetable");
+            $dbh->exec("truncate table timetable_stage");
 
             $positive = 0;
             $negative = 0;
@@ -35,7 +35,7 @@ class DataImporter extends Handler implements IStatus
                 $group_id = 0;
                 if (trim($par_mass[$i]->Group) != "")
                 {
-                    $res = $dbh->query("SELECT id,name FROM groups Where name='" . $par_mass[$i]->Group . "'");
+                    $res = $dbh->query("SELECT id, name FROM groups WHERE name='" . $par_mass[$i]->Group . "'");
 
                     if ($row = $res->fetch(PDO::FETCH_ASSOC))
                         $group_id = $row['id'];
@@ -51,10 +51,10 @@ class DataImporter extends Handler implements IStatus
                             case 3: $form_stady = "SECOND";     break;
                         }
 
-                        $res = $dbh->prepare("INSERT INTO groups (name,year,form)VALUES (?, ?, ?)");
+                        $res = $dbh->prepare("INSERT INTO groups (name,year,form) VALUES (?, ?, ?)");
                         $res->execute(array($par_mass[$i]->Group, $mach[0], $form_stady));
 
-                        $res = $dbh->query("SELECT id,name FROM groups Where name='" . $par_mass[$i]->Group . "'");
+                        $res = $dbh->query("SELECT id, name FROM groups WHERE name='" . $par_mass[$i]->Group . "'");
 
                         if ($row = $res->fetch(PDO::FETCH_ASSOC))
                             $group_id = $row['id'];
@@ -74,7 +74,7 @@ class DataImporter extends Handler implements IStatus
                             $inicial[$l] = trim(rtrim($matches[0][$l], '.'));
                         }
 
-                        $res = $dbh->query("SELECT id,surname,name,patronymic FROM lecturers Where surname='" . $par_mass[$i]->Prepod . "' AND name LIKE '" . $inicial[0] . "%' AND patronymic LIKE '" . $inicial[1] . "%'");
+                        $res = $dbh->query("SELECT id, surname, name, patronymic FROM lecturers WHERE surname='" . $par_mass[$i]->Prepod . "' AND name LIKE '" . $inicial[0] . "%' AND patronymic LIKE '" . $inicial[1] . "%'");
 
                         if($row = $res->fetch(PDO::FETCH_ASSOC))
                             $prepod_id = $row['id'];
@@ -82,7 +82,7 @@ class DataImporter extends Handler implements IStatus
                     }
                     else
                     {
-                        $res = $dbh->query("SELECT id,surname,name,patronymic FROM lecturers Where surname='" . $par_mass[$i]->Prepod . "'");
+                        $res = $dbh->query("SELECT id, surname, name, patronymic FROM lecturers WHERE surname='" . $par_mass[$i]->Prepod . "'");
 
                         if($row = $res->fetch(PDO::FETCH_ASSOC))
                             $prepod_id = $row['id'];
@@ -112,7 +112,7 @@ class DataImporter extends Handler implements IStatus
 
                         if ($predmet_id == 0)
                         {
-                            $res = $dbh->query("SELECT id, REPLACE(name, 'ё', 'е') as name FROM disciplines Where REPLACE(name, 'ё', 'е') LIKE '" . $mc[0] . "%'");
+                            $res = $dbh->query("SELECT id, REPLACE(name, 'ё', 'е') AS name FROM disciplines WHERE REPLACE(name, 'ё', 'е') LIKE '" . $mc[0] . "%'");
 							$data = $res->fetchAll(PDO::FETCH_ASSOC);
 
                             if (count($data))
@@ -142,7 +142,7 @@ class DataImporter extends Handler implements IStatus
                 $auditoria_id=0;
                  if($par_mass[$i]->Auditoria!="")
                 {
-                    $res = $dbh->query("SELECT id,name FROM rooms Where name='" . $par_mass[$i]->Auditoria . "'");
+                    $res = $dbh->query("SELECT id, name FROM rooms WHERE name='" . $par_mass[$i]->Auditoria . "'");
 
                     if ($row = $res->fetch(PDO::FETCH_ASSOC))
                         $auditoria_id = $row['id'];
@@ -180,7 +180,7 @@ class DataImporter extends Handler implements IStatus
 						$comment = implode('- / -', (array)($par_mass[$i]));
 						//$comment = $par_mass[i]->Predmet . "  " . $par_mass[i]->Prepod . "  " . $par_mass[i]->Type . "  " . $par_mass[i]->Auditoria . "  " . $par_mass[i]->ParNumber . "  " . $par_mass[i]->Date . "  " . $par_mass[i]->Comment . "  " . $par_mass[i]->Group;
 
-                        $res = $dbh->prepare("INSERT INTO timetable (id_discipline,id_group,id_lecturer,id_room,`offset`,`date`,`type`,`comment`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        $res = $dbh->prepare("INSERT INTO timetable_stage (id_discipline,id_group,id_lecturer,id_room,`offset`,`date`,`type`,`comment`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                         $row = $res->execute(array($predmet_id, $group_id, $prepod_id, $auditoria_id, $par_mass[$i]->ParNumber, $date_to_write, $type_sabjeckt, $comment));
 
                         if ($row)
@@ -189,7 +189,7 @@ class DataImporter extends Handler implements IStatus
                 }
             }
             $dbh = null;
-            $this->setStatus("OK", "Массив данных успешно загружен в базу данных","Добавлено $insert записей");
+            $this->setStatus("OK", "Массив данных успешно загружен в базу данных", "Добавлено $insert записей");
             return true;
         }
         catch(PDOException $exc)

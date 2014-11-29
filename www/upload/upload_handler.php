@@ -39,8 +39,19 @@
         exit();
     }
 
-    $checker = new ImportChecker($dbh);
-    $checker->check();
+    $checker = new ImportChecker($dbh);    
+    if ( !$checker->check() )
+    {
+        respond_from_object($checker);
+        exit();
+    }
+
+    $merger = new TableMerger($dbh);
+    if ( !$merger->merge() )
+    {
+        respond_from_object($merger);
+        exit();
+    }
 
     unlink($fileToParse);
 

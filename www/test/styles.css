@@ -1,0 +1,15 @@
+
+#pass,
+#fail {
+    color: #fff;
+    font-weight: bold;
+    padding: 2px 10px;
+}
+    
+#pass {
+    background-color: #050;
+}
+    
+#fail {
+    background-color: #500;
+}

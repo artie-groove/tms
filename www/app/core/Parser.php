@@ -146,11 +146,11 @@ class Parser extends Handler implements IStatus
                     else
                     {
 						///(^| )(лаб(( )*\.)?|лек(( )*\.)?|пр(( )*\.)?)( |$)/ui
-                        if(preg_match("/(?:^|\s)(лаб|лек|пр)\s*\.?/ui", $str,$maches))
+                        if(preg_match("/(?:^|\s)(лаб|лек|пр)\s*\.?/u", $str, $maches))
                         {
                             $result[1] =  $maches[0];
                             // print("Тип занятия:".$result[1]."<BR>");
-                            $str=  str_replace($maches[0], "", $str);
+                            $str = str_replace($maches[0], "", $str);
                             $str=trim($str);
                         }
                         if(preg_match("/(с|c)?( )*\d{1,2}\.\d\d-\d{1,2}\.\d\d/", $str,$maches))
@@ -198,8 +198,8 @@ class Parser extends Handler implements IStatus
                             $result[3]=$maches[0];
                             $str=  str_replace($maches[0], "", $str);
                             $str=trim($str);
-                        }
-                        if(preg_match("/(([А-Я](\.)?( )*){0,2}[А-Я][а-я]+)( )*(([А-Я](\.)?( )*){0,2})/ui", $str,$maches))
+                        } // /(([А-Я](\.)?( )*){0,2}[А-Я][а-я]+)( )*(([А-Я](\.)?( )*){0,2})/ui
+                        if(preg_match("/[А-Я][а-я]+\s*([А-Я]\.\s*){0,2}/ui", $str,$maches))
                         {
                             //print("Препод:".$maches[0]."<BR>");
                             $result[4]=$maches[0];
@@ -770,11 +770,28 @@ class Parser extends Handler implements IStatus
             var_dump($date_massiv);
             print ("<BR>".$Row_Start."|".$Row_Start_Date."|".$Row_End."<Br>".$Coll_Start."|".$Coll_End."|".$Section_Start."|".$Section_end);
             }/**/
+            
+            /*
+            for($i=0;$i<count($this->Group);$i++)
+            {
+                $par_date = array_merge($par_date,$this->Group[$i]["Para"]);
+            }
+            $this->setStatus('error', implode(' ', $par_date));
+            return false;
+            
+            if ( count($this->Group) === 0 )
+            {
+                $this->setStatus('error', 'Пустой массив занятий');
+                return false;
+            }
+            */
+            
             return true;
         }
         catch(Exception $e)
         {
             // print($e);
+            $this->setStatus('error', $e->getLine(), $e->getMessage());
             return false;
         }
 

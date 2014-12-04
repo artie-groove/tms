@@ -1,59 +1,67 @@
 <?
-	include $_SERVER['DOCUMENT_ROOT']."/app/bootstrap.php";
-
-	if ( !isset($_FILES['data_xlsx']) )
+	try
     {
-        respond('error', 'Ошибка приёма файла');
-        exit();
-    }
+        include $_SERVER['DOCUMENT_ROOT']."/app/bootstrap.php";
 
-    $uploader = new XlsxFileUploader();
+        if ( !isset($_FILES['data_xlsx']) )
+        {
+            respond('error', 'Ошибка приёма файла');
+            exit(1);
+        }
 
-    if ( !$uploader->uploadFile($_FILES['data_xlsx']) )
-    {
-        respond_from_object($uploader);
-        exit();
-    }
+        $uploader = new XlsxFileUploader();
 
-    $fileToParse = $uploader->getFullFileName();
+        if ( !$uploader->uploadFile($_FILES['data_xlsx']) )
+        {
+            respond_from_object($uploader);
+            exit(2);
+        }
 
-    require_once dirname(__FILE__) . '/../app/lib/PHPExcel.php';
+        $fileToParse = $uploader->getFullFileName();
 
-    $parser = new Parser();
+        require_once dirname(__FILE__) . '/../app/lib/PHPExcel.php';
 
-    if ( !$parser->parsing($fileToParse) )
-    {
-        respond_from_object($parser);
-        exit();
-    }
+        $parser = new Parser();
 
-    $parseData = $parser->getParseData();
-    $status = array('status' => 'ok', 'details' => 'Распознавание прошло успешно');
+        if ( !$parser->parsing($fileToParse) )
+        {
+            respond_from_object($parser);
+            exit(3);
+        }
 
-    $importer = new DataImporter();
-    $DisciplineMatcher = new DisciplineMatcher();
+        $parseData = $parser->getParseData();
+        $status = array('status' => 'ok', 'details' => 'Распознавание прошло успешно');
 
-    if ( !$importer->import($parseData, $parser->Type_stady, $DisciplineMatcher) )
-    {
-        respond_from_object($importer);
-        exit();
-    }
+        $importer = new DataImporter();
+        $DisciplineMatcher = new DisciplineMatcher();
 
-    $checker = new ImportChecker($dbh);    
-    if ( !$checker->check() )
-    {
+        if ( !$importer->import($parseData, $parser->Type_stady, $DisciplineMatcher) )
+        {
+            respond_from_object($importer);
+            exit(4);
+        }
+
+        $checker = new ImportChecker($dbh);    
+        if ( !$checker->check() )
+        {
+            respond_from_object($checker);
+            exit(5);
+        }
+
+        $merger = new TableMerger($dbh);
+        if ( !$merger->merge() )
+        {
+            respond_from_object($merger);
+            exit(6);
+        }
+
+        unlink($fileToParse);
+
         respond_from_object($checker);
-        exit();
+        
     }
-
-    $merger = new TableMerger($dbh);
-    if ( !$merger->merge() )
+    catch(Exception $e)
     {
-        respond_from_object($merger);
-        exit();
+        respond_from_object('error', $e->getMessage());
     }
-
-    unlink($fileToParse);
-
-    respond_from_object($checker);
 ?>

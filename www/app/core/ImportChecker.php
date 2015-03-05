@@ -23,11 +23,10 @@ class ImportChecker extends Handler implements IStatus {
     public function check()
     {
         $data = array();
-        
-        /*
+               
         $query = "
             SELECT DISTINCT
-                COUNT(t.date) AS date, g.name AS `group`, d.name AS discipline, r.name AS room,
+                COUNT(*) AS n, g.name AS `group`, d.name AS discipline, r.name AS room,
                 CONCAT(l.surname, ' ', SUBSTR(l.name, 1, 1), '. ', SUBSTR(l.patronymic, 1, 1), '.') AS lecturer,
                 t.offset, t.type, t.comment
             FROM timetable_stage AS t
@@ -40,13 +39,11 @@ class ImportChecker extends Handler implements IStatus {
                 OR t.id_discipline IS NULL
                 OR t.id_room IS NULL
                 OR t.id_lecturer IS NULL
-            GROUP BY t.`date` 
-            ORDER BY t.date";
-			           
+            GROUP BY t.id_discipline, t.id_group, t.id_lecturer, t.id_room, t.offset, t.type 
+            ORDER BY t.`date`";
         
-         */ 
-         
         
+        /*
         $query = "
             SELECT
                 DATE_FORMAT(t.date,'%d.%m') AS date, g.name AS `group`, d.name AS discipline, r.name AS room,
@@ -63,7 +60,9 @@ class ImportChecker extends Handler implements IStatus {
                 OR t.id_room IS NULL
                 OR t.id_lecturer IS NULL
             ORDER BY t.date";
-
+        */
+        
+        
         $stmt = $this->pdo->query($query);
 
         $code = 'ok';

@@ -1,13 +1,9 @@
 <?
 	try
     {
-        include $_SERVER['DOCUMENT_ROOT']."/app/bootstrap.php";
+        include $_SERVER['DOCUMENT_ROOT'] . "/app/bootstrap.php";
 
-        if ( !isset($_FILES['data_xlsx']) )
-        {
-            respond('error', 'Ошибка приёма файла');
-            exit(1);
-        }
+        
 
         $uploader = new XlsxFileUploader();
 
@@ -26,6 +22,7 @@
         if ( !$parser->parsing($fileToParse) )
         {
             respond_from_object($parser);
+            unlink($fileToParse);
             exit(3);
         }
 
@@ -38,6 +35,7 @@
         if ( !$importer->import($parseData, $parser->Type_stady, $DisciplineMatcher) )
         {
             respond_from_object($importer);
+            unlink($fileToParse);
             exit(4);
         }
 
@@ -45,6 +43,7 @@
         if ( !$checker->check() )
         {
             respond_from_object($checker);
+            unlink($fileToParse);
             exit(5);
         }
 
@@ -52,6 +51,7 @@
         if ( !$merger->merge() )
         {
             respond_from_object($merger);
+            unlink($fileToParse);
             exit(6);
         }
 

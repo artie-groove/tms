@@ -48,6 +48,30 @@
             if (v !== null) return '<li class="comment"><span class="glyphicon glyphicon-comment" data-toggle="tooltip" title="' + v + '"></span></li>';
             else return "";
         }
+        wrap = function(v) {
+            return '<span class="badge">' + v + '</span>';
+        }
+        highlight = function(obj) {
+            var fields = obj.comment.split('/');
+            var dates = fields.shift();
+            var properties = ['offset', 'discipline', 'type', 'group', 'room', 'lecturer'];
+            var str = '';
+            var nf = false;
+            for ( var i = 0; i < properties.length; i++ ) {
+                var prop = properties[i];
+                var propIsNull = (obj[prop] == null);           
+                str += propIsNull ? wrap(fields[i]) : fields[i];               
+                nf |= propIsNull;
+            }
+            if ( !nf ) dates = wrap(dates);
+            str = dates + '<br />' + str;
+            str += fields.pop();
+            return str;
+        }
+        totime = function(v) {
+            var map = [ '8:00', '9:40', '11:20', '13:00', '14:40', '16:20', '18:00', '19:30' ];
+            return elt(map[v]);
+        }
     </script>
 
     <script type="text/x-tmpl" id="tmpl-corrupted-list">
@@ -60,18 +84,24 @@
         <div class="item">
             <table>
                 <tr>
-                    <td>
+                    <td rowspan="2" class="multiplier">{%#o.n%}</td>
+                    <td class="summary">
                         <ol class="breadcrumb">
                             <li class="group">{%#o.group%}</li>
                             <li class="room">{%#elt(o.room)%}</li>
                             <li class="type">{%#dtype(o.type)%}</li>
+                            <!--
                             {%#comment(o.comment)%}
+                            -->
                             <br />
-                            <li class="date">{%#elt(o.date)%} <span class="glyphicon glyphicon-time"></span> {%#elt(o.offset)%}</li>
+                            <li class="date"><span class="glyphicon glyphicon-time"></span> {%#totime(o.offset)%}</li>
                             <li class="lecturer">{%#elt(o.lecturer)%}</li>
                         </ol>
                     </td>
                     <td class="discipline">{%#elt(o.discipline)%}</td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="dump"><div>{%#highlight(o)%}</div></td>
                 </tr>
             </table>
         </div>

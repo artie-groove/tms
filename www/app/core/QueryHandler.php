@@ -1,17 +1,6 @@
-<?php
-/**
- * Created by PhpStorm.
- * User: root
- * Date: 03.06.14
- * Time: 2:32
- */
+<?
 
-/*
-require_once 'interfaces.php';
-require_once 'Handler.php';
-*/
-
-class ImportChecker extends Handler implements IStatus {
+class QueryHandler extends Handler implements IStatus {
 
     private $pdo;
 
@@ -20,53 +9,26 @@ class ImportChecker extends Handler implements IStatus {
         $this->pdo = $pdo;
     }
 
-    public function check()
+    public function getCurrentActivity()
     {
         $data = array();
-               
-        $query = "
-            SELECT DISTINCT
-                COUNT(*) AS n, g.name AS `group`, d.name AS discipline, r.name AS room,
-                CONCAT(l.surname, ' ', SUBSTR(l.name, 1, 1), '. ', SUBSTR(l.patronymic, 1, 1), '.') AS lecturer,
-                t.offset, t.type, t.comment
-            FROM timetable_stage AS t
-            LEFT JOIN groups AS g ON t.id_group = g.id
-            LEFT JOIN disciplines AS d ON t.id_discipline = d.id
-            LEFT JOIN rooms AS r ON t.id_room = r.id
-            LEFT JOIN lecturers AS l ON t.id_lecturer = l.id
-            WHERE t.date IS NULL
-                OR t.id_group IS NULL
-                OR t.id_discipline IS NULL
-                OR t.id_room IS NULL
-                OR t.id_lecturer IS NULL
-            GROUP BY t.id_discipline, t.id_group, t.id_lecturer, t.id_room, t.offset, t.type 
-            ORDER BY t.`date`";
-        
-        
-        /*
         $query = "
             SELECT
                 DATE_FORMAT(t.date,'%d.%m') AS date, g.name AS `group`, d.name AS discipline, r.name AS room,
                 CONCAT(l.surname, ' ', SUBSTR(l.name, 1, 1), '. ', SUBSTR(l.patronymic, 1, 1), '.') AS lecturer,
                 t.offset, t.type, t.comment
-            FROM timetable_stage AS t
+            FROM timetable AS t
             LEFT JOIN groups AS g ON t.id_group = g.id
             LEFT JOIN disciplines AS d ON t.id_discipline = d.id
             LEFT JOIN rooms AS r ON t.id_room = r.id
             LEFT JOIN lecturers AS l ON t.id_lecturer = l.id
-            WHERE t.date IS NULL
-                OR t.id_group IS NULL
-                OR t.id_discipline IS NULL
-                OR t.id_room IS NULL
-                OR t.id_lecturer IS NULL
+            WHERE t.date BETWEEN NOW() AND NOW() + INTERVAL 2 DAY
             ORDER BY t.date";
-        */
-        
-        
+
         $stmt = $this->pdo->query($query);
 
         $code = 'ok';
-        if ( $this->pdo->errorCode() != '00000' )
+        if ( $stmt === false )
         {
             $this->setStatus('error', implode(' ', $this->pdo->errorInfo()));
             return false;
@@ -86,3 +48,5 @@ class ImportChecker extends Handler implements IStatus {
         return true;
     }
 } 
+
+?>

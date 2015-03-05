@@ -2,6 +2,9 @@
     include "config.php";
     include "interfaces.php";
 
+    mb_internal_encoding("UTF-8");
+    mb_regex_encoding('UTF-8');
+
 	function __autoload($class_name)
 	{
 		$lookupPaths = array('/', '/core/', '/common/', '/helpers/', '/entities/', '/files');

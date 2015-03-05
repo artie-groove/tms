@@ -1,15 +1,28 @@
 <?
-    class Pair  //Pair
+    class Pair
     {
-        public $Predmet;
-        public $Prepod;
-        public $Type;
-        public $Auditoria;
-        public $ParNumber;
         public $Date;
-        public $Comment;
+        public $ParNumber;
+        public $Predmet;        
+        public $Type;
         public $Group;
-
+        public $Auditoria;        
+        public $Prepod;
+        public $Comment;
+        
+        public function __construct($date = '', $offset = '', $room = '',
+            $discipline = '', $type = '', $lecturer = '', $group = '', $comment = '') {
+            
+            $this->Date = $date;
+            $this->ParNumber = $offset;
+            $this->Auditoria = $room;
+            $this->Predmet = $discipline;
+            $this->Type = $type;
+            $this->Prepod = $lecturer;
+            $this->Group = $group;
+            $this->Comment = $comment;            
+        }
+        
         public function copy($old)
         {
             $this->Predmet = $old->Predmet;

@@ -219,9 +219,36 @@
 <script src="/js/jquery.fileupload.js"></script>
 <script>
     $(function () {
+        /*
+        // By default, the iFrame Transport handles all responses as success,
+        // so we override the iFrame to JSON converter to handle error responses:
+        $.ajaxSetup({
+            converters: {
+                'iframe json': function (iframe) {
+                    var result = iframe && $.parseJSON($(iframe[0].body).text());
+                    if (result.error) {
+                        // Handling JSON responses with error property:
+                        // {"error": "Upload failed"}
+                        throw result.error;
+                    }
+                    return result;
+                }
+            }
+        });
+        */
+        
+        $.ajaxSetup({
+            error: function(jqXHR, textStatus, errorThrown) { 
+                $('#log').addClass('bg-danger');
+                $('#log').text('Server has crashed totally: "' + jqXHR.responseText + '"');
+                //$('#log').text('error: ' + data.errorThrown + ': ' + data.textStatus);
+            }
+        });
+        
         $('#progress').hide();
+        
         $('#fileupload').fileupload({
-            dataType: 'json',
+            dataType: 'text',
             url: '/upload/upload_handler.php',
             maxNumberOfFiles: 1,
             maxFileSize: 1024 * 1024, // 1 MB
@@ -252,17 +279,25 @@
                 $('#progress .progress-bar').css('width', progress + '%').attr('aria-valuenow', progress);
                 console.log(progress);
             },
-            */
-            done: function (e, data) {
+            */            
+            done: function (e, response) {
+                var data;
+                try {
+                    data = JSON.parse(response.result);
+                } catch (e) {
+                    $('#log').addClass('bg-danger');
+                    $('#log').text('Server crash: "' + response.result + '"');
+                    return false;
+                }
+                
+                status = data.status;
+                description = data.description;
 
-                status = data.result.status;
-                description = data.result.description;
-
-                if ( status === "ok" && data.result.details instanceof Array && data.result.details.length )
+                if ( status === "ok" && data.details instanceof Array && data.details.length )
                 {
                     $('#log').addClass('bg-warning');
                     $('#log').html(description);
-                    document.getElementById("corrupted-list").innerHTML = tmpl("tmpl-corrupted-list", data.result.details);
+                    document.getElementById("corrupted-list").innerHTML = tmpl("tmpl-corrupted-list", data.details);
                     $('.comment span').tooltip();
                     $('#corrupted-list').show();
                 }
@@ -274,18 +309,15 @@
                 else
                 {
                     $('#log').addClass('bg-danger');
-                    $('#log').html('Ошибка загрузки расписания: ' + description + '<br />' + data.result.details);
+                    $('#log').html('Ошибка загрузки расписания: ' + description + '<br />' + data.details);
                 }
-
-                /*
-                $.each(data.result.files, function (index, file) {
-                    $('<p/>').text(file.name).appendTo(document.body);
-                });
-                */
+            
+                return true;
             },
             fail: function ( e, data ) {
-                $('#log').addClass('bg-danger');
-                $('#log').text('error: ' + data.errorThrown + ': ' + data.textStatus);
+                console.log('fail fired');
+                console.log(data.jqXHR);
+                return false;
             },
             always: function (e, data) {
                 $('#log').show();

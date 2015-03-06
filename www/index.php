@@ -19,12 +19,11 @@
     <!-- Latest compiled and minified JavaScript -->
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
     
-    <script>
-    
-    </script>
+    <!-- Angular.js -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.12/angular.min.js"></script>
 
 </head>
-<body>
+<body ng-app>
     <script>
         $(function() {
             // after page is loaded
@@ -50,7 +49,7 @@
         <div class="container-fluid" id="controls">
             <div class="row">
                 <!-- Group selection panel -->
-                <div class="col-xs-12 col-sm-6 tap-form hide" id="group-panel">
+                <div class="col-xs-12 col-sm-6 tap-form" id="group-panel">
                     <div class="row" id="group-division">
                         <div class="col-xs-12 col-sm-3">
                             <div class="visible-xs"><span>отделение</span></div>

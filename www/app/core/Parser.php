@@ -405,7 +405,7 @@ class Parser extends Handler implements IStatus
     // Анализирует дневное распсиание.
     private  function get_day_raspisanie()
     {
-        for($Sheat = 3; $Sheat < $this->objPHPExcel->getSheetCount(); $Sheat++)
+        for($Sheat = 0; $Sheat < $this->objPHPExcel->getSheetCount(); $Sheat++)
         {
             $this->Coll_Start = 1;//начало таблицы (непосредственно данных)
             $this->Coll_End = 1;//за концом таблицы

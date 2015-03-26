@@ -81,6 +81,7 @@ class TestParser {
             if ( !$isTestPassed ) {                
                 $delim = ' = ';
                 $strPairFromParser = implode($delim, get_object_vars($pairFromParser));
+                if ( empty($strPairFromParser) ) $strPairFromParser = '(пустая строка)';
                 $strPairFromTest = implode($delim, get_object_vars($pairFromTest));
                 $this->report($title, false, "<pre>${strPairFromTest} (original)\n${strPairFromParser} (parsed)</pre>");
             }
@@ -120,7 +121,7 @@ class TestParser {
     
     private function parallelDisciplinesRecognized() {
         $title = 'Распознавание дисциплин по подгруппам';
-        $items[] = array(13, new Pair('20.2,6.3,20.3,3.4,17.4,1.5,15.5,29.5,12.6,', '3', 'Б-306', 'Осн.терм.и кин.синтеза ВМС', 'лаб.', 'Пучков', 'ВХТ-401', '1/2 п/г'));
+        $items[] = array(13, new Pair('20.2,6.3,20.3,3.4,17.4,1.5,15.5,29.5,12.6,', '3', 'Б-306', 'Осн.терм.и кин. синтеза ВМС', 'лаб.', 'Пучков', 'ВХТ-401', '1/2 п/г'));
         $items[] = array(15, new Pair('20.2,6.3,20.3,3.4,17.4,1.5,15.5,29.5,12.6,', '3', 'Б-309', 'БЖД', 'лаб.', 'Шиповский', 'ВХТ-401', '2/1 п/г'));
         if ( !$this->findMatch($title, $items) ) return false;
         $this->report($title, true);
@@ -129,8 +130,8 @@ class TestParser {
     
     private function complexDisciplinesRecognized() {
         $title = 'Распознавание сложных дисциплин (подгруппы, эксплицитные даты, множественные преподаватели и аудитории и т. д.)';
-        $items[] = array(158, new Pair('14.02,14.03,11.04,6.06', '3', 'Б-008', 'Теор. и эксп. мет.иссл. в химии', 'лаб.', 'Новопольцева', 'ВТПЭ-5', ', 009'));
-        $items[] = array(161, new Pair('28.02,28.03,25.04,23.05', '4', 'Б-008', 'Рецептуростр.полим. композ', 'лаб.', 'Новопольцева', 'ВТПЭ-5', ', 009'));
+        $items[] = array(158, new Pair('14.02,14.03,11.04,6.06', '3', 'Б-008', 'Теор. и эксп. мет. иссл. в химии', 'лаб.', 'Новопольцева', 'ВТПЭ-5', ', 009'));
+        $items[] = array(161, new Pair('28.02,28.03,25.04,23.05', '4', 'Б-008', 'Рецептуростр. полим. композ', 'лаб.', 'Новопольцева', 'ВТПЭ-5', ', 009'));
         if ( !$this->findMatch($title, $items) ) return false;
         $this->report($title, true);
         return true;

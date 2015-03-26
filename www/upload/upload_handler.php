@@ -27,8 +27,8 @@
         }
 
         $parseData = $parser->getParseData();
-        $status = array('status' => 'ok', 'details' => 'Распознавание прошло успешно');
-
+        $status = array('status' => 'ok', 'details' => 'Распознавание прошло успешно');        
+        
         $importer = new DataImporter();
         $DisciplineMatcher = new DisciplineMatcher();
 

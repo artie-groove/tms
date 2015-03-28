@@ -56,7 +56,7 @@ class TestParser {
         $groupList = array();
         foreach ( $this->data as $pair )
         {
-            if ( !in_array($pair->Group, $groupList) ) $groupList[] = $pair->Group;
+            if ( !in_array($pair->group, $groupList) ) $groupList[] = $pair->group;
         }
         $n = count($referenceGroupList);
         $intersection = array_intersect($referenceGroupList, $groupList);
@@ -104,7 +104,7 @@ class TestParser {
     
     private function customDateCellsRecognized() {
         $title = 'Распознавание ячеек со встроенными датами';
-        $items[] = array(134, new Pair('24.02, 24.03, 21.04, 19.05', '5', 'В-204', 'Теория кризисного управления', 'пр.', 'Гаврилова', 'ВЭМ-5', 'с 18.00 '));
+        $items[] = array(134, new Pair('24.02, 24.03, 21.04, 19.05', '5', 'В-204', 'Теория кризисного управления', 'пр.', 'Гаврилова', 'ВЭМ-5'));
         if ( !$this->findMatch($title, $items) ) return false;
         $this->report($title, true);
         return true;
@@ -143,14 +143,14 @@ class TestParser {
         $id = -1;
         foreach ( $this->data as $pair ) {
             $id++;            
-            $date = $pair->Date;
-            $type = $pair->Type;
-            $lecturer = $pair->Prepod;
-            $offset = $pair->ParNumber;
-            $discipline = $pair->Predmet;
-            $room = $pair->Auditoria;
-            $group = $pair->Group;
-            $comment = $pair->Comment;
+            $date = $pair->date;
+            $type = $pair->type;
+            $lecturer = $pair->lecturer;
+            $offset = $pair->offset;
+            $discipline = $pair->discipline;
+            $room = $pair->room;
+            $group = $pair->group;
+            $comment = $pair->comment;
             echo "<tr><td>${id}</td><td>${date}</td><td>${offset}</td><td>${discipline}</td><td>${type}</td><td>${group}</td><td>${room}</td><td>${lecturer}</td><td>${comment}</td></tr>";
         }
         echo '</table>';

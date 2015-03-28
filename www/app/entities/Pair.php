@@ -1,38 +1,38 @@
 <?
     class Pair
     {
-        public $Date;
-        public $ParNumber;
-        public $Predmet;        
-        public $Type;
-        public $Group;
-        public $Auditoria;        
-        public $Prepod;
-        public $Comment;
+        public $date;
+        public $offset;
+        public $discipline;        
+        public $type;
+        public $group;
+        public $room;        
+        public $lecturer;
+        public $comment;
         
         public function __construct($date = '', $offset = '', $room = '',
             $discipline = '', $type = '', $lecturer = '', $group = '', $comment = '') {
             
-            $this->Date = $date;
-            $this->ParNumber = $offset;
-            $this->Auditoria = $room;
-            $this->Predmet = $discipline;
-            $this->Type = $type;
-            $this->Prepod = $lecturer;
-            $this->Group = $group;
-            $this->Comment = $comment;            
+            $this->date = $date;
+            $this->offset = $offset;
+            $this->room = $room;
+            $this->discipline = $discipline;
+            $this->type = $type;
+            $this->lecturer = $lecturer;
+            $this->group = $group;
+            $this->comment = $comment;            
         }
         
-        public function copy($old)
+        public function copyFrom($original)
         {
-            $this->Predmet = $old->Predmet;
-            $this->Prepod = $old->Prepod;
-            $this->Type= $old->Type;
-            $this->Auditoria= $old->Auditoria;
-            $this->ParNumber= $old->ParNumber;
-            $this->Date= $old->Date;
-            $this->Comment= $old->Comment;
-            $this->Group= $old->Group;
+            $this->date = $original->date;
+            $this->offset = $original->offset;
+            $this->room = $original->room;
+            $this->discipline = $original->discipline;
+            $this->type = $original->type;
+            $this->lecturer = $original->lecturer;
+            $this->group = $original->group;
+            $this->comment = $original->comment;
         }
     }
 ?>

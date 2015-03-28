@@ -3,8 +3,6 @@
     {
         include $_SERVER['DOCUMENT_ROOT'] . "/app/bootstrap.php";
 
-        
-
         $uploader = new XlsxFileUploader();
 
         if ( !$uploader->uploadFile($_FILES['data_xlsx']) )
@@ -62,6 +60,6 @@
     }
     catch(Exception $e)
     {
-        respond_from_object('error', $e->getMessage());
+        respond('error', $e->getMessage());
     }
 ?>

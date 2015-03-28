@@ -12,7 +12,14 @@
 
     $parser = new Parser();
     $test = new TestParser($parser);
-    $allTestsPassed = $test->run();
+    try {
+        $allTestsPassed = $test->run();
+    }
+    catch(Exception $e)
+    {
+        respond('error', $e->getMessage());
+    }
+    
 
 ?>
 

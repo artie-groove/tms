@@ -177,9 +177,12 @@ class Parser extends Handler implements IStatus
                                 $result[2] = $maches[0][0];
                                 $str = str_replace($maches[0][0], "", $str);
                                 $result[2] = str_replace(" ", "", $result[2]);
+                                /* если больше одного дефиса
                                 preg_match("/-+/", $str, $mac);
                                 $result[2] = str_replace($mac[0], "-", $result[2]);
-
+                                */
+                                                                
+                                // всё остальное - в комментарий
                                 for($i = 1; $i < count($maches[0]); $i++)
                                 {
                                     $result[5] .= $maches[0][$i];
@@ -190,8 +193,10 @@ class Parser extends Handler implements IStatus
                             {
                                 $result[2] = $maches[0][0];
                                 $result[2] = str_replace(" ", "", $result[2]);
+                                /* то же самое 
                                 preg_match("/-+/", $str, $mac);
                                 $result[2] = str_replace($mac[0], "-", $result[2]);
+                                */
                                 $str = str_replace($maches[0][0], "", $str);
                             }
                             $str = trim($str);
@@ -224,6 +229,7 @@ class Parser extends Handler implements IStatus
         $result[7] = $coll - $Start_Coll + 1;
         return $result;
     }
+    
     // Определяет, что за месяц передан в строке и возвращает его номер
     private function Mesac_to_chislo($str)
     {
@@ -255,6 +261,7 @@ class Parser extends Handler implements IStatus
             case "декабрь":  return "12";
         }
     }
+    
     // Получить номер пары
     private function get_par_number($rows, $Coll_Start, $Sheat, &$NewPar)
     {
@@ -277,47 +284,53 @@ class Parser extends Handler implements IStatus
 
         switch ($str)
         {
-            case "1-2":   $NewPar->ParNumber = 1;                           break;
-            case "3-4":   $NewPar->ParNumber = 2;                           break;
-            case "5-6":   $NewPar->ParNumber = 3;                           break;
-            case "7-8":   $NewPar->ParNumber = 4;                           break;
-            case "9-10":  $NewPar->ParNumber = 5;                           break;
-            case "11-12": $NewPar->ParNumber = 6;                           break;
-            case "13-14": $NewPar->ParNumber = 7;                           break;
-            case "15-16": $NewPar->ParNumber = 8;                           break;
-            case "8-00":  $NewPar->ParNumber = 1;  $NewPar->Comment.= $str; break;
-            case "9-40":  $NewPar->ParNumber = 2;  $NewPar->Comment.= $str; break;
-            case "11-20": $NewPar->ParNumber = 3;  $NewPar->Comment.= $str; break;
-            case "13-00": $NewPar->ParNumber = 4;  $NewPar->Comment.= $str; break;
-            case "14-40": $NewPar->ParNumber = 5;  $NewPar->Comment.= $str; break;
-            case "16-20": $NewPar->ParNumber = 6;  $NewPar->Comment.= $str; break;
-            case "18-00": $NewPar->ParNumber = 7;  $NewPar->Comment.= $str; break;
-            case "19-30": $NewPar->ParNumber = 8;  $NewPar->Comment.= $str; break;
-            default:      $NewPar->ParNumber = -1;                          break;
+            case "1-2":   $NewPar->offset = 1;                           break;
+            case "3-4":   $NewPar->offset = 2;                           break;
+            case "5-6":   $NewPar->offset = 3;                           break;
+            case "7-8":   $NewPar->offset = 4;                           break;
+            case "9-10":  $NewPar->offset = 5;                           break;
+            case "11-12": $NewPar->offset = 6;                           break;
+            case "13-14": $NewPar->offset = 7;                           break;
+            case "15-16": $NewPar->offset = 8;                           break;
+            case "8-00":  $NewPar->offset = 1;  $NewPar->comment.= $str; break;
+            case "9-40":  $NewPar->offset = 2;  $NewPar->comment.= $str; break;
+            case "11-20": $NewPar->offset = 3;  $NewPar->comment.= $str; break;
+            case "13-00": $NewPar->offset = 4;  $NewPar->comment.= $str; break;
+            case "14-40": $NewPar->offset = 5;  $NewPar->comment.= $str; break;
+            case "16-20": $NewPar->offset = 6;  $NewPar->comment.= $str; break;
+            case "18-00": $NewPar->offset = 7;  $NewPar->comment.= $str; break;
+            case "19-30": $NewPar->offset = 8;  $NewPar->comment.= $str; break;
+            default:      $NewPar->offset = -1;                          break;
         }
     }
+    
     // Определяет границы таблицы, а так же ширину колонки для группы. Устанавливает глобальные переменные
     private function get_orientirs_d($Sheat)
-    {
+    {        
+        // находим начало таблицы (обнаруживаем верхнюю границу)
         while($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $this->Row_Start)->getStyle()->getBorders()->getBottom()->getBorderStyle() === "none"
            && $this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $this->Row_Start+1)->getStyle()->getBorders()->getTop()->getBorderStyle()  === "none") {
             $this->Row_Start++;
         }
 
-        $this->Row_Start++;
+        $this->Row_Start++; // шагаем внутрь таблицы
+        
+        // ищем строку с датами (должна располагаться начиная со второго столбца)
+        // поиск производится по цвету: белый или бесцветный - это оно
         $this->Row_Start_Date = $this->Row_Start + 1;
-
         while($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $this->Row_Start_Date)->getStyle()->getFill()->getStartColor()->getRGB() !== "FFFFFF"
            && $this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $this->Row_Start_Date)->getStyle()->getFill()->getStartColor()->getRGB() !== "000000") {
             $this->Row_Start_Date++;
         }
 
+        // ищем последнюю строку таблицы (обнаруживаем нижнюю границу)
+        // граница ловится на смене цвета фона в первом столбце на белый #FFFFFF или бесцветный #000000
         $this->Row_End = $this->Row_Start_Date;
-
-        while($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $this->Row_End)->getStyle()->getFill()->getStartColor()->getRGB()        !== "FFFFFF"
-           && $this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $this->Row_Start_Date)->getStyle()->getFill()->getStartColor()->getRGB() !== "000000") {
+        while($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $this->Row_End)->getStyle()->getFill()->getStartColor()->getRGB() !== "FFFFFF"
+           && $this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $this->Row_End)->getStyle()->getFill()->getStartColor()->getRGB() !== "000000") {
             $this->Row_End++;
         }
+        
         // Поиск названия группы в ячейке
         while (!preg_match("/[А-Яа-я]+( )*-+( )*\d\d\d/", trim($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($this->Coll_Start, $this->Row_Start)))) {
             $this->Coll_Start++;
@@ -326,6 +339,7 @@ class Parser extends Handler implements IStatus
         $count_z = 0;
         $coll = $this->Coll_Start;
         // Рассчитываем ширину на группу по первой ячейке для группы.
+        // пиздец какой-то.
         while($count_z < 1)
         {
             $coll++;
@@ -343,6 +357,7 @@ class Parser extends Handler implements IStatus
 
         $this->Coll_End -= $this->Shirina_na_gruppu;
     }
+    
     // Распознавание групп. Объявляет глобальные переменные
     private function group_init_d($Coll_Start, $Coll_End, $Row_Start, $Sheat, $Shirina_na_gruppu)
     {
@@ -361,17 +376,20 @@ class Parser extends Handler implements IStatus
             $gr_cl++;
         }
     }
+    
     // Устанавливает грани между днями недели.
     private  function dey_gran_d($Row_Start_Date, $Row_End, $Sheat)
     {
         $this->objPHPExcel;
         $this->gani;//инициализирует
         $k = 0;
+        //$this->gani[$k++] = $Row_Start_Date;
         for($i = $Row_Start_Date; $i < $Row_End; $i++)
         {
             if($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $i)->getStyle()->getBorders()->getBottom()->getBorderStyle() !== "none"
             || $this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $i+1)->getStyle()->getBorders()->getTop()->getBorderStyle()  !== "none")
             {
+                // определяет, что в группе ячеек записан день недели по наличию соседства с белой ячейкой справа
                 if($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $i)->getStyle()->getFill()->getStartColor()->getRGB() === "FFFFFF"
                 || $this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $i)->getStyle()->getFill()->getStartColor()->getRGB() === "000000") {
                     $this->gani[$k] = $i + 1;
@@ -380,6 +398,7 @@ class Parser extends Handler implements IStatus
             }
         }
     }
+    
     // Заполняет массив с датами.
     private  function get_mounday_d($Coll_Start,$Row_Start,$Sheat,$Row_Start_Date)
     {
@@ -388,25 +407,32 @@ class Parser extends Handler implements IStatus
             $this->date_massiv[$k-1]["month"] = trim($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $Row_Start));
             $this->date_massiv[$k-1]["date"] = array();
 
+            $i = $Row_Start_Date;
             for($p = 0; $p < count($this->gani); $p++)
             {
                 $this->date_massiv[$k-1]["date"][$p] = "";
 
-                $i = ($p == 0 ? $i = $Row_Start_Date : $i = $this->gani[$p-1]);
-
-                for($i; $i < $this->gani[$p]; $i++)
+                //$i = ( $p === 0 ? $Row_Start_Date : $this->gani[$p-1] );
+                //throw new Exception($Row_Start_Date . ' vs. ' . $this->gani[$p]);
+                
+                
+                for (; $i < $this->gani[$p]; $i++)
                 {
-                    if(trim($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i)) != "")
+                    if (trim($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i)) != "")
                         $this->date_massiv[$k-1]["date"][$p] .= trim($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i))."|";
                 }
+                $i = $this->gani[$p];                
             }
         }
     }
+    
     // Анализирует дневное распсиание.
     private  function get_day_raspisanie()
-    {
-        for($Sheat = 0; $Sheat < $this->objPHPExcel->getSheetCount(); $Sheat++)
+    {        
+        $sheetsTotal = $this->objPHPExcel->getSheetCount();
+        for($s = 0; $s < $sheetsTotal; $s++)
         {
+            $sheet = $this->objPHPExcel->getSheet($s);
             $this->Coll_Start = 1;//начало таблицы (непосредственно данных)
             $this->Coll_End = 1;//за концом таблицы
             $this->Row_Start = 0;//начало таблицы
@@ -416,39 +442,47 @@ class Parser extends Handler implements IStatus
             $this->Shirina_na_gruppu = 1;//Число ячеек, отведённых на одну группу.
             $this->gani = false; //массив хранит границы дней недели
             $this->date_massiv = false;
-            $this->Order_66($Sheat);
-            $this->get_orientirs_d($Sheat);
-            $this->group_init_d($this->Coll_Start, $this->Coll_End, $this->Row_Start, $Sheat, $this->Shirina_na_gruppu);
-            $this->dey_gran_d($this->Row_Start_Date, $this->Row_End, $Sheat);
-            $this->get_mounday_d($this->Coll_Start, $this->Row_Start, $Sheat, $this->Row_Start_Date);
+            
+            $this->Order_66($s);
+            $this->get_orientirs_d($s);
+            $this->Group_init_d($this->Coll_Start, $this->Coll_End, $this->Row_Start, $s, $this->Shirina_na_gruppu);
+            $this->dey_gran_d($this->Row_Start_Date, $this->Row_End, $s);
+            $this->get_mounday_d($this->Coll_Start, $this->Row_Start, $s, $this->Row_Start_Date);
 
-            for($i = $this->Row_Start_Date; $i < $this->Row_End; $i++)
+            for ( $i = $this->Row_Start_Date; $i < $this->Row_End; $i++ )
             {
-                if(!$this->objPHPExcel->getSheet($Sheat)->getRowDimension($i)->getVisible())
+                // пропускаем скрытые строки
+                if ( !$sheet->getRowDimension($i)->getVisible() )
                     continue;
 
-                for($k = $this->Coll_Start; $k < $this->Coll_End; $k++)
+                for( $k = $this->Coll_Start; $k < $this->Coll_End; $k++ )
                 {
-                    if(!$this->objPHPExcel->getSheet($Sheat)->getColumnDimension($k)->getVisible())
+                    // пропускаем скрытые столбцы
+                    if ( !$sheet->getColumnDimension($k)->getVisible() )
                         continue;
 
-                    if(($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i)->getStyle()->getBorders()->getLeft()->getBorderStyle() != "none"
-                     || $this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k - 1, $i)->getStyle()->getBorders()->getRight()->getBorderStyle()!= "none")
-                     && ($this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i)->getStyle()->getBorders()->getTop()->getBorderStyle() != "none"
-                     || $this->objPHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i - 1)->getStyle()->getBorders()->getBottom()->getBorderStyle() != "none"))
+                    $bLeft = $sheet->getCellByColumnAndRow($k, $i)->getStyle()->getBorders()->getLeft()->getBorderStyle() != "none";
+                    $bRight = $sheet->getCellByColumnAndRow($k - 1, $i)->getStyle()->getBorders()->getRight()->getBorderStyle()!= "none";
+                    $bTop = $sheet->getCellByColumnAndRow($k, $i)->getStyle()->getBorders()->getTop()->getBorderStyle() != "none";
+                    $bBottom = $sheet->getCellByColumnAndRow($k, $i - 1)->getStyle()->getBorders()->getBottom()->getBorderStyle() != "none";
+                    // эксплорим занятие (спускаемся в клетку)
+                    // если в текущей ячейке точно есть левая и верхняя границы
+                    if ( ( $bLeft || $bRight ) && ( $bTop || $bBottom ) )
                     {
-                        $res = $this->read_cell($i, $k, $Sheat);
+                        $res = $this->read_cell($i, $k, $s);
+                        // индекс текущей группы в массиве Group
                         $nau = floor(($k - $this->Coll_Start) / $this->Shirina_na_gruppu);
                         //Если есть название предмета
                         if($res[0] != "")
                         {
+                            /*
                             $nau_par_count = count($this->Group[$nau]["Para"]);
                             //Проверяем, если у нас пара не первая
                             if($nau_par_count > 0)
                             {
                                 $Prev_par = $nau_par_count - 1;
                                 //если у предыдущей пары нет предмета
-                                if($this->Group[$nau]["Para"][$Prev_par]->Predmet == false) {
+                                if($this->Group[$nau]["Para"][$Prev_par]->discipline == false) {
                                     //Вытягиваем предыдущую пару на заполнение.
                                     $NewPar = array_pop($this->Group[$nau]["Para"]);
                                 } else {
@@ -461,6 +495,10 @@ class Parser extends Handler implements IStatus
                                 $Prev_par = $nau_par_count;
                                 $NewPar = new Pair();
                             }
+                            */
+                            
+                            $NewPar = new Pair();
+                            
                             //если у нас нет дат в ячейке
                             if($res[3] == "")
                             {
@@ -469,106 +507,128 @@ class Parser extends Handler implements IStatus
                                     $moun = $this->Mesac_to_chislo($this->date_massiv[$d]["month"]);
                                     $f = 0;
 
+                                    // пододвигаем указатель к текущему дню
                                     while($i > $this->gani[$f])
                                         $f++;
 
+                                    // даты для текущего дня
                                     $dart = $this->date_massiv[$d]["date"][$f];
                                     $dart = explode("|", $dart);
 
                                     for($l = 0; $l < count($dart) - 1; $l++)
-                                        $NewPar->Date .= $dart[$l] . "." . $moun . ",";
+                                        $NewPar->date .= $dart[$l] . "." . $moun . ",";
                                 }
                             }
                             else {
                                 // Если даты в ячейке есть
-                                $NewPar->Date = $res[3];
+                                $NewPar->date = $res[3];
                             }
 
-                            $NewPar->Predmet   = trim($res[0]);
-                            $NewPar->Type      = trim($res[1]);
-                            $NewPar->Auditoria = trim($res[2]);
-                            $NewPar->Prepod    = trim($res[4]);
-                            $NewPar->Comment  .= trim($res[5]);
-                            $group_count = floor($res[7] / $this->Shirina_na_gruppu);
-                            $this->get_par_number($i, $this->Coll_Start, $Sheat, $NewPar);
+                            $NewPar->discipline    = trim($res[0]);
+                            $NewPar->type       = trim($res[1]);
+                            $NewPar->room  = trim($res[2]);
+                            $NewPar->lecturer     = trim($res[4]);
+                            $NewPar->comment    = trim($res[5]);
+                            
+                            
+                            $this->get_par_number($i, $this->Coll_Start, $s, $NewPar);
 
+                            // количество групп, задействованных в занятии
+                            $group_count = floor($res[7] / $this->Shirina_na_gruppu);
+                            
+                            // если это вторая подгруппа
                             if($group_count == 0 && !is_int(($k-$this->Coll_Start + $this->Shirina_na_gruppu) / $this->Shirina_na_gruppu))
                             {
-                                if($NewPar->Auditoria == "")
-                                    $NewPar->Auditoria = $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Auditoria;
+                                //$tmp = ($k-$this->Coll_Start);
+                                //if ( $i > 39 ) throw new Exception("Got here: '" . implode('|', $res) . "' @ {R\$$i:C\$$k} ($tmp)");
+                                
+                                // Иногда случается так, что преподаватель, аудитория и тип занятия одинаковы
+                                // для двух подгрупп и указаны в самом низу половинчатой клетки в строке.
+                                // Эта строка занимает клетку по ширине полностью. Поэтому, вначале разбирается
+                                // одна часть клетки: дисциплина, даты + преподаватель и аудитория. Затем
+                                // другая: дисциплина, даты + тип занятия. После чего недостающие данные
+                                // взаимно переливаются из смежных занятий
+                                // 
+                                // Пример:
+                                // Математика        | Физика
+                                // 25.03, 14.04     | 18.03, 3.04
+                                //                  |
+                                // Габдулхакова        Б-401    пр.
+                                // 
+                                $n = count($this->Group[$nau]["Para"]) - 1;
+                                $prevLesson = $this->Group[$nau]["Para"][$n];
+                                
+                                // переливаем в текущую из предыдущей
+                                if ( empty($NewPar->room)  ) $NewPar->room = $prevLesson->room;
+                                if ( empty($NewPar->lecturer)     ) $NewPar->lecturer = $prevLesson->lecturer;
+                                if ( empty($NewPar->comment)    ) $NewPar->comment = $prevLesson->comment;
+                                if ( empty($NewPar->type)       ) $NewPar->type = $prevLesson->type;
 
-                                if($NewPar->Prepod == "")
-                                    $NewPar->Prepod = $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Prepod;
-
-                                if($NewPar->Comment == "")
-                                    $NewPar->Comment = $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Comment;
-
-                                if($NewPar->Type == "")
-                                    $NewPar->Type = $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Type;
-
-                                //_____________________________________________
-                                if($this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Auditoria == "")
-                                    $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Auditoria= $NewPar->Auditoria;
-
-                                if($this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Prepod == "")
-                                    $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Prepod = $NewPar->Prepod;
-
-                                if($this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Comment == "")
-                                    $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Comment = $NewPar->Comment;
-
-                                if($this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Type == "")
-                                    $this->Group[$nau]["Para"][count($this->Group[$nau]["Para"])-1]->Type;
+                                // из текущей в предыдущую
+                                if ( empty($prevLesson->room)  ) $prevLesson->room = $NewPar->room;
+                                if ( empty($prevLesson->lecturer)     ) $prevLesson->lecturer = $NewPar->lecturer;
+                                if ( empty($prevLesson->comment)    ) $prevLesson->comment = $NewPar->comment;
+                                if ( empty($prevLesson->type)       ) $prevLesson->type = $NewPar->type;
 
                                 //_______________________________________
+                                
                                 $par_count = floor($res[6] / 2);//ЗАМЕТКА!!!!!_______ потом рассчитать длинну в стоках для пары. На основе размера ячейки с указанием номера пары.
                                 for($d = 0; $d < $par_count; $d++)
                                 {
                                     $par_temp = new Pair();
-                                    $par_temp->copy($NewPar);
-                                    $par_temp->ParNumber += $d;
-                                    $par_temp->Group = $this->Group[$nau]["NameGroup"];
+                                    $par_temp->copyFrom($NewPar);
+                                    $par_temp->offset += $d;
+                                    $par_temp->group = $this->Group[$nau]["NameGroup"];
                                     array_push($this->Group[$nau]["Para"], $par_temp);
                                 }
                             }
-                            else
+                            else // если одна и более групп
                             {
                                 $par_count = floor($res[6] / 2);//ЗАМЕТКА!!!!!_______ потом рассчитать длинну в стоках для пары. На основе размера ячейки с указанием номера пары.
 
-                                if($group_count == 0)
+                                if ( $group_count == 0 )
                                     $group_count = 1;
-
-                                for($l = 0; $l < $group_count; $l++)
+ 
+                                for ( $l = 0; $l < $group_count; $l++ )
                                 {
-                                    if(count($this->Group[$nau+$l]["Para"]) > 0)
+                                    /*
+                                    // если уже есть хоть одно занятие у текущей группы
+                                    if ( count($this->Group[$nau+$l]["Para"]) >= 1 )
                                     {
-                                        if($this->Group[$nau+$l]["Para"][count($this->Group[$nau+$l]["Para"])-1]->Predmet == "")
+                                        $n = count($this->Group[$nau+$l]["Para"]) - 1;
+                                        $prevLesson = $this->Group[$nau+$l]["Para"][$n];
+                                        if ( empty($prevLesson->discipline) )
                                             array_pop($this->Group[$nau+$l]["Para"]);
                                     }
+                                    */
 
-                                    for($z = 0; $z < $par_count; $z++)
+                                    for ( $z = 0; $z < $par_count; $z++ )
                                     {
                                         $par_temp = new Pair();
-                                        $par_temp->copy($NewPar);
-                                        $par_temp->ParNumber += $z;
-                                        $par_temp->Group = $this->Group[$nau + $l]["NameGroup"];
+                                        $par_temp->copyFrom($NewPar);
+                                        $par_temp->offset += $z;
+                                        $par_temp->group = $this->Group[$nau + $l]["NameGroup"];
                                         array_push($this->Group[$nau + $l]["Para"], $par_temp);
                                     }
                                 }
                             }
                         }
-                        else // Названия предмета нет.
-                        {
+                        /*
+                        else // Названия предмета нет
+                        {  
+                            // если в клетке что-то содержится
                             if(trim($res[5]) != "")
                             {
+                                //if ( $i > 65 ) throw new Exception("No discipline name found: '" . implode('|', $res) . "' @ {R\$$i:C\$$k}");
                                 $NewPar = new Pair();
-                                $NewPar->Predmet = false;
-                                $NewPar->Comment = $res[5];
-                                $NewPar->Group = $this->Group[$nau]["NameGroup"];
+                                $NewPar->discipline = false;
+                                $NewPar->comment = $res[5];
+                                $NewPar->group = $this->Group[$nau]["NameGroup"];
                                 array_push($this->Group[$nau]["Para"], $NewPar);
                             }
                         }
+                        */
                     }
-
                 }
             }
         }
@@ -648,6 +708,7 @@ class Parser extends Handler implements IStatus
             $this->Section_date_start++;
         }
     }
+    
     private   function get_mounday_z($Row_Start_Date, $Section_Start, $Row_End, $Sheet)
     {
         $this->date_massiv;//инициализируется, предварительно обнуляется.
@@ -674,14 +735,15 @@ class Parser extends Handler implements IStatus
             }
         }
     }
+    
     ///////////////////////////////////////////
     public function parsing($file_name)
     {
         try {
             $this->objPHPExcel = PHPExcel_IOFactory::load($file_name);
-            $this->Type_stady = 0;
+            $this->type_stady = 0;
 
-            switch ($this->Type_stady)
+            switch ($this->type_stady)
             {
                 case 0:  $this->get_day_raspisanie(); break;//расписание дневное - фас!
                 case 1:  $this->get_day_raspisanie(); break;//распсиание вечернее - фас!
@@ -697,6 +759,7 @@ class Parser extends Handler implements IStatus
         }
 
     }
+    
     public function getParseData()
     {
         try {

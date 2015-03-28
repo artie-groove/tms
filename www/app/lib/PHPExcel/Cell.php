@@ -756,7 +756,7 @@ class PHPExcel_Cell
 
 		if (isset($_indexCache[$pString]))
 			return $_indexCache[$pString];
-
+        
 		//	It's surprising how costly the strtoupper() and ord() calls actually are, so we use a lookup array rather than use ord()
 		//		and make it case insensitive to get rid of the strtoupper() as well. Because it's a static, there's no significant
 		//		memory overhead either

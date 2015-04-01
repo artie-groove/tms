@@ -54,5 +54,11 @@
 
     error_reporting(E_ERROR | E_PARSE);
     //error_reporting(E_ALL);
+    
+    function exception_handler($exception) {
+      respond('error', "Неперехватываемое исключение", $exception->getMessage());
+    }
 
+    set_exception_handler('exception_handler');
+   
 ?>

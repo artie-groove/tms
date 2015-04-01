@@ -37,7 +37,7 @@
             exit(4);
         }
 
-        $checker = new ImportChecker($dbh);    
+        $checker = new ImportChecker($dbh); 
         if ( !$checker->check() )
         {
             respond_from_object($checker);
@@ -58,7 +58,7 @@
         respond_from_object($checker);
         
     }
-    catch(Exception $e)
+    catch (Exception $e)
     {
         respond('error', $e->getMessage());
     }

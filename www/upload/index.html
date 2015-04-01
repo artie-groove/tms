@@ -52,7 +52,7 @@
             return '<span class="badge">' + v + '</span>';
         }
         highlight = function(obj) {
-            var fields = obj.comment.split('/');
+            var fields = obj.comment.split('|');
             var dates = fields.shift();
             var properties = ['offset', 'discipline', 'type', 'group', 'room', 'lecturer'];
             var str = '';

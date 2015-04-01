@@ -1,21 +1,5 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: root
- * Date: 27.05.14
- * Time: 23:59
- */
 
-/*
- *          public $Predmet;?!
-            public $Prepod;!
-            public $Type;!
-            public $Auditoria;!
-            public $ParNumber;
-            public $Date;!
-            public $Comment;
-            public $Group;!
- */
 class DataImporter extends Handler implements IStatus
 {
     public function import($par_mass, $Type_stady, $DisciplineMatcher)//Запись в базу данных массива
@@ -32,6 +16,8 @@ class DataImporter extends Handler implements IStatus
                         
             for($i = 0; $i < count($par_mass); $i++)
             {
+                //if ( ($par_mass[$i]->lecturer === "Хаирова") && ( strpos($par_mass[$i]->comment, '10.00-') !== false) && ($par_mass[$i]->offset === 1)) throw new Exception("Fuck! " . implode("&bull;", (array)$par_mass[$i]) . ' and ' . implode("&bull;", (array)$par_mass[$i-1]));
+                
                 $group_id = 0;
                 if (trim($par_mass[$i]->group) != "")
                 {
@@ -65,20 +51,23 @@ class DataImporter extends Handler implements IStatus
                 $par_mass[$i]->lecturer=trim($par_mass[$i]->lecturer);
                 if($par_mass[$i]->lecturer != "")
                 {
+                    //if ( (strpos($par_mass[$i]->lecturer, 'Перевалова') !== false) && ( $par_mass[$i]->room === 'Б-207' ) ) throw new Exception('Fuck: ' . implode('&bull;', (array)$par_mass[$i]) . '  id => ' . $prepod_id);
                     $inicial = array();
-                    if (preg_match_all("/[А-Я]\./ui", $par_mass[$i]->lecturer, $matches, PREG_PATTERN_ORDER) > 0)
+                    if (preg_match_all("/[А-Я]\./u", $par_mass[$i]->lecturer, $matches, PREG_PATTERN_ORDER) > 0)
                     {
-                        for ($l = 0; $l < count($matches[0]); $l++)
-                        {
-                            $par_mass[$i]->lecturer = trim(str_replace($matches[0][$l], "", $par_mass[$i]->lecturer));
-                            $inicial[$l] = trim(rtrim($matches[0][$l], '.'));
+                        $surname = $par_mass[$i]->lecturer;
+                        for ( $l = 0; $l < count($matches[0]); $l++ )
+                        {                            
+                            $inicial[$l] = trim(rtrim($matches[0][$l], '.'));                            
+                            $surname = trim(str_replace($matches[0][$l], "", $surname));
                         }
+                        
 
                         $query = "
                             SELECT id, surname, name, patronymic
                             FROM lecturers
                             WHERE
-                                surname='" . $par_mass[$i]->lecturer . "'
+                                surname='" . $surname . "'
                                 AND (name LIKE '" . $inicial[0] . "%' OR name='-')
                                 AND (patronymic LIKE '" . $inicial[1] . "%' OR patronymic='-')";
                         
@@ -86,7 +75,8 @@ class DataImporter extends Handler implements IStatus
                         
                         if ( $row = $res->fetch(PDO::FETCH_ASSOC) )
                             $prepod_id = $row['id'];
-
+                        
+                        
                     }
                     else
                     {
@@ -101,12 +91,14 @@ class DataImporter extends Handler implements IStatus
                 if($par_mass[$i]->discipline != "")
                 {
 					$par_mass[$i]->discipline = trim($par_mass[$i]->discipline);
-					$par_mass[$i]->discipline = str_replace('ё', 'е', $par_mass[$i]->discipline);
+					//$par_mass[$i]->discipline = str_replace('ё', 'е', $par_mass[$i]->discipline);
+                    $par_mass[$i]->discipline = str_replace('/', '.', $par_mass[$i]->discipline);
                     
 // 					preg_match("/\S/ui", $par_mass[$i]->discipline, $mc);
                     
 //                     if (count($mc) > 0)
 //                     {
+//                     // сначала поищем в таблице сокращений
                         $res = $dbh->query("SELECT id, shortening, id_discipline FROM disciplines_shortenings WHERE shortening = '" . $par_mass[$i]->discipline . "'");
 
                         if ($row = $res->fetch(PDO::FETCH_ASSOC))
@@ -117,19 +109,29 @@ class DataImporter extends Handler implements IStatus
                                 $predmet_id = $row['id_discipline'];
                             }
                         }
-
+                        
+                        // если не нашли, включаем основной алгоритм поиска
                         if ($predmet_id == 0)
                         {
                             $mc = $par_mass[$i]->discipline;
                             //$mc = str_replace('  ', ' ', $mc);
                             $mc = mb_eregi_replace('\.{2,}', '.', $mc);                            
 
-                            $mc = str_replace(array('.-', '.', '-'), array('%', '% ', '%'), $mc);
+                            $mc = str_replace(array('.)', '.-', '-', '.,', '.'), array('%', '%', '%', '%, ', '% '), $mc);
 //                             $mc = preg_replace('\.\-', '%', $mc);
 //                             $mc = preg_replace('\-', '%', $mc);
 //                             $mc = preg_replace('\.', '% ', $mc);
                             $mc = mb_eregi_replace('\s{2,}', ' ', $mc);
+                            
+                            
+                            // разбиваем аббревиатуры на отдельные символы
+                            $c = 0; // количество произведённых замен
+                            $mc = preg_replace('/([А-Я])(?=(?:[А-Я]|\s|$))/u', '$1% ', $mc, -1, $c);
                             $mc = trim($mc);
+                            //if ( $c > 0 )  throw new Exception('replaced: ' . $mc . '|');
+                            
+                            
+                            
 //                             file_put_contents('log.txt', $mc . "\n", FILE_APPEND);
                             /*
                             $query = "SELECT id, REPLACE(name, 'ё', 'е') AS name FROM disciplines WHERE name LIKE '" . $mc[0] . "%'";
@@ -158,7 +160,8 @@ class DataImporter extends Handler implements IStatus
                             }
                             */
                             
-                            $query = "SELECT id, REPLACE(name, 'ё', 'е') AS name FROM disciplines WHERE name LIKE '" . $mc . "'";
+                            //$query = "SELECT id, REPLACE(name, 'ё', 'е') AS name FROM disciplines WHERE name LIKE '" . $mc . "'";
+                            $query = "SELECT id, name FROM disciplines WHERE name LIKE '" . $mc . "'";
                             $res = $dbh->query($query);                 
 							$data = $res->fetch(PDO::FETCH_ASSOC);
                             if ( $data !== FALSE )
@@ -169,7 +172,8 @@ class DataImporter extends Handler implements IStatus
                             {
                                 //preg_match("/\S/ui", $par_mass[$i]->discipline, $mc);
                                 $a = mb_substr($mc, 0, 1);
-                                $query = "SELECT id, REPLACE(name, 'ё', 'е') AS name FROM disciplines WHERE name LIKE '" . $a . "%'";
+                                //$query = "SELECT id, REPLACE(name, 'ё', 'е') AS name FROM disciplines WHERE name LIKE '" . $a . "%'";
+                                $query = "SELECT id, name FROM disciplines WHERE name LIKE '" . $a . "%'";
 //                                 file_put_contents('log.txt', $a . "\n", FILE_APPEND);
                                 $res = $dbh->query($query);                            
                                 $data = $res->fetchAll(PDO::FETCH_ASSOC);
@@ -207,8 +211,10 @@ class DataImporter extends Handler implements IStatus
                 {
                     $par_mass[$i]->room = 'СК';
                     $par_mass[$i]->type = 'пр';
+                    
                 }
                     
+                //if ( ($par_mass[$i]->lecturer === "Хаирова") && ( strpos($par_mass[$i]->comment, '10.00-') !== false) && ($par_mass[$i]->offset === 1)) throw new Exception("Fuck! " . implode("&bull;", (array)$par_mass[$i]) . ' and disciplineId = ' . $predmet_id);
                 
                 if ( $par_mass[$i]->room != "" )
                 {
@@ -253,7 +259,8 @@ class DataImporter extends Handler implements IStatus
                         $date_to_write = $nay_year . "-" . $d_m_c[1] . "-" . $d_m_c[0];
                         if ( $d_m_c[0] === '00' || $d_m_c[1] === '00' ) $date_to_write = null;
 						$el = $par_mass[$i];
-						$comment = implode('- / -', (array)($par_mass[$i]));
+						$comment = implode('&bull; | &bull;', (array)($par_mass[$i]));
+                        $comment = rtrim($comment, "&bull;");
                         
                         //mb_substitute_character('long');
                         //$comment = mb_convert_encoding($comment, 'UTF-8', 'UTF-8');

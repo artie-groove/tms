@@ -49,7 +49,7 @@
         <div class="container-fluid" id="controls">
             <div class="row">
                 <!-- Group selection panel -->
-                <div class="col-xs-12 col-sm-6 tap-form hide" id="group-panel">
+                <div class="col-xs-12 col-sm-6 tap-form" id="group-panel">
                     <div class="row" id="group-division">
                         <div class="col-xs-12 col-sm-3">
                             <div class="visible-xs"><span>отделение</span></div>

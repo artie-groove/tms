@@ -1,5 +1,5 @@
 <?
-    class Pair
+    class Meeting
     {
         public $date;
         public $offset;

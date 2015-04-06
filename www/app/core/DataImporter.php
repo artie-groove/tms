@@ -13,7 +13,10 @@ class DataImporter extends Handler implements IStatus
             $positive = 0;
             $negative = 0;
             $insert = 0;
-                        
+            
+            $logfile = $_SERVER['DOCUMENT_ROOT'] . '/punctuation.log';
+            unlink($logfile);      
+            
             for($i = 0; $i < count($par_mass); $i++)
             {
                 //if ( ($par_mass[$i]->lecturer === "Хаирова") && ( strpos($par_mass[$i]->comment, '10.00-') !== false) && ($par_mass[$i]->offset === 1)) throw new Exception("Fuck! " . implode("&bull;", (array)$par_mass[$i]) . ' and ' . implode("&bull;", (array)$par_mass[$i-1]));
@@ -111,74 +114,42 @@ class DataImporter extends Handler implements IStatus
                         }
                         
                         // если не нашли, включаем основной алгоритм поиска
-                        if ($predmet_id == 0)
+                        if ( $predmet_id == 0 )
                         {
                             $mc = $par_mass[$i]->discipline;
-                            //$mc = str_replace('  ', ' ', $mc);
-                            $mc = mb_eregi_replace('\.{2,}', '.', $mc);                            
-
-                            $mc = str_replace(array('.)', '.-', '-', '.,', '.'), array('%', '%', '%', '%, ', '% '), $mc);
-//                             $mc = preg_replace('\.\-', '%', $mc);
-//                             $mc = preg_replace('\-', '%', $mc);
-//                             $mc = preg_replace('\.', '% ', $mc);
-                            $mc = mb_eregi_replace('\s{2,}', ' ', $mc);
+                                                        
+                            // устраняем дублирование пунктуации
+                            $mc = preg_replace('/(\s|\.|-)(?=\1)/u', '', $mc);
                             
+                            // корректируем типографику
+                            $mc = preg_replace('/(\.|\.?,)(?![\s-,)]|$)/u', '$1 ', $mc);
                             
-                            // разбиваем аббревиатуры на отдельные символы
-                            $c = 0; // количество произведённых замен
-                            $mc = preg_replace('/([А-Я])(?=(?:[А-Я]|\s|$))/u', '$1% ', $mc, -1, $c);
-                            $mc = trim($mc);
-                            //if ( $c > 0 )  throw new Exception('replaced: ' . $mc . '|');
+                            // вставляем подстановочный знак % вместо точек и дефисов
+                            $mc = preg_replace('/[\.-]/u', '%', $mc);
                             
+                            // разбиваем аббервиатуры
+                            $mc = preg_replace('/([А-Я])(?=[А-Я,\s]|$)/u', '$1%', $mc);
                             
-                            
-//                             file_put_contents('log.txt', $mc . "\n", FILE_APPEND);
-                            /*
-                            $query = "SELECT id, REPLACE(name, 'ё', 'е') AS name FROM disciplines WHERE name LIKE '" . $mc[0] . "%'";
-                            $res = $dbh->query($query);                            
-							$data = $res->fetchAll(PDO::FETCH_ASSOC);
-
-                            if (count($data))
-                            {
-                                $base_dump = array();
-                                $p = 0;
-								foreach($data as $row)
-                                {
-                                    $base_dump['id'][$p] = $row['id'];
-                                    $base_dump['name'][$p] = $row['name'];                                    
-                                    $p++;
-                                }
-
-                                $index = $DisciplineMatcher->GetMatch($base_dump['name'], $par_mass[$i]->discipline);
-                                if (!is_null($index))
-                                {
-                                    $positive++;
-                                    $predmet_id = $base_dump['id'][$index];
-                                }
-                                else
-                                    $negative++;
-                            }
-                            */
-                            
-                            //$query = "SELECT id, REPLACE(name, 'ё', 'е') AS name FROM disciplines WHERE name LIKE '" . $mc . "'";
                             $query = "SELECT id, name FROM disciplines WHERE name LIKE '" . $mc . "'";
                             $res = $dbh->query($query);                 
 							$data = $res->fetch(PDO::FETCH_ASSOC);
+                            
                             if ( $data !== FALSE )
                             {
                                 $predmet_id = $data['id']; 
                             }
                             else
                             {
-                                //preg_match("/\S/ui", $par_mass[$i]->discipline, $mc);
+                                file_put_contents($logfile, $par_mass[$i]->discipline . "\n", FILE_APPEND);
+                                
                                 $a = mb_substr($mc, 0, 1);
-                                //$query = "SELECT id, REPLACE(name, 'ё', 'е') AS name FROM disciplines WHERE name LIKE '" . $a . "%'";
+                                
                                 $query = "SELECT id, name FROM disciplines WHERE name LIKE '" . $a . "%'";
-//                                 file_put_contents('log.txt', $a . "\n", FILE_APPEND);
+
                                 $res = $dbh->query($query);                            
                                 $data = $res->fetchAll(PDO::FETCH_ASSOC);
 
-                                if (count($data))
+                                if ( count($data) )
                                 {
                                     $base_dump = array();
                                     $p = 0;

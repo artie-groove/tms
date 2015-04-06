@@ -145,13 +145,21 @@ class Parser extends Handler implements IStatus
                 {
                     // Записываем значение ячейки
                     $str = trim($this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll, $row));
-                    // если текст помечен жирным, то это название дисциплины
                     
+                    // если текст помечен жирным, то это название дисциплины
                     if($this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll, $row)->getStyle()->getFont()->getBold() == 1)
-                    {                        
+                    {
+                        // кроме названия дисциплины в строке могут находиться и другие сведения
+                        $matches = array();
+                        if ( preg_match('@([А-я\s./-]+)@u', $str, $matches) !== false )
+                        {   
+                            $result[0] .= ' ' . rtrim($matches[1]);
+                            $str = mb_substr($str, mb_strlen($matches[1]));
+                            $result[5] .= ' ' . $str;
+                            //throw new Exception('Ok: <pre>' . $result[0] . '</pre>');
+                        }
                         // конкатенация для тех случаев, когда название дисциплины
                         // продолжается в следующей ячейке
-                        $result[0] .= " " . $str;
                     }
                     else
                     {
@@ -602,7 +610,7 @@ class Parser extends Handler implements IStatus
                                 // 
                                 $n = count($this->Group[$nau]["Para"]) - 1;
                                 $prevMeeting = $this->Group[$nau]["Para"][$n];                           
-                                if ( ($prevMeeting->offset + $i) >= $i )
+                                if ( $prevMeeting->offset >= $meeting->offset )
                                     $this->crossFillItems($meeting, $prevMeeting);
                                 // но, опять же, если в предыдущем записана физ-ра (что тоже маловероятно, то функция захуярит туда тип занятия и аудиторию)
                                 //if ( ($meeting->lecturer == "Хаирова") && ($meeting->offset == 0) ) throw new Exception("type: " . $meeting->type);

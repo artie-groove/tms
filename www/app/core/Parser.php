@@ -151,21 +151,19 @@ class Parser extends Handler implements IStatus
                     {
                         // кроме названия дисциплины в строке могут находиться и другие сведения
                         $matches = array();
-                        if ( preg_match('@([А-я\s./-]+)@u', $str, $matches) !== false )
+                        if ( preg_match('@[А-я\s.,/()-]+@u', $str, $matches) !== false )
                         {   
-                            $result[0] .= ' ' . rtrim($matches[1]);
-                            $str = mb_substr($str, mb_strlen($matches[1]));
-                            $result[5] .= ' ' . $str;
-                            //throw new Exception('Ok: <pre>' . $result[0] . '</pre>');
-                        }
-                        // конкатенация для тех случаев, когда название дисциплины
-                        // продолжается в следующей ячейке
+                            // конкатенация для тех случаев, когда название дисциплины
+                            // продолжается в следующей ячейке
+                            $result[0] .= ' ' . rtrim($matches[0]);
+                            $str = mb_substr($str, mb_strlen($matches[0]));
+                            $result[5] .= ' ' . $str;                            
+                        }                        
                     }
                     else
                     {
-                        // Поиск типа занятия
-                        // 
-                        if(preg_match("/(?:^|\s)(лаб|лек|пр)\s*\.?/u", $str, $maches))
+                        // поиск типа занятия                        
+                        if ( preg_match("/(?:^|\s)(?:лаб|лек|пр)\s*\.?/u", $str, $maches) )
                         {
                             $result[1] = $maches[0];
                             $str = str_replace($maches[0], "", $str);
@@ -182,8 +180,7 @@ class Parser extends Handler implements IStatus
                             $str = trim($str);
                         }
                         
-                        // Поиск аудитории
-                        
+                        // поиск аудитории                        
                         if ( preg_match_all("/(?:(?:[АБВД]|БЛК)-\d{2,3}|ВПЗ|Гараж\s№\s?3)/u", $str, $maches, PREG_PATTERN_ORDER) )
                         {
                             // Если совпадений больше 1
@@ -216,27 +213,21 @@ class Parser extends Handler implements IStatus
                             }
                             $str = trim($str);
                         }
-                        // Поиск даты подгрупп
-                        //if(preg_match("/(\d{1,2}.\d{1,2}(,)?( )*){2,}/", $str, $maches))
-                        if ( preg_match('/(\d{1,2}\.\d{2}(,\s?|$))+/', $str, $maches) )
+                        
+                        // поиск эксплицитных дат
+                        //if ( preg_match('/(\d{1,2}\.\d{2}(?:,\s?|$))+/u', $str, $maches) )
+                        if ( preg_match('/(?:([1-3]?\d\.[01]\d)(?:\s?(?=,),\s*|(?:(?!\1)|(?!))))+/u', $str, $maches) )
                         {
                             $result[3] = $maches[0];
                             $str = str_replace($maches[0], "", $str);
                             $str = trim($str);
-                        }
+                        }                                               
                         
-                        //$str = 'Мозговая 1 п/г';
-                        //if ( strpos($str, 'Мозговая') !== false ) throw new Exception("|" . $str . "|");
-                        //if ( (strpos($str, 'Мозговая') !== false) && (strpos($result[2], 'А-18') !== false) ) throw new Exception("|" . $str . "|");
-                        //if ( (strpos($str, 'Мозговая') !== false) ) throw new Exception("|" . $str . "|");
-                        
-                        // Поиск преподавателя
-                        // /(([А-Я](\.)?( )*){0,2}[А-Я][а-я]+)( )*(([А-Я](\.)?( )*){0,2})/ui
+                        // поиск преподавателя                        
                         if ( preg_match("/[А-Я][а-я]+(?:\s*[А-Я]\.){0,2}/u", $str, $maches) )
-                        {
-                            //if ( (strpos($maches[0], 'Мозговая') !== false) && ($result[2]==="Д-207") ) throw new Exception("|" . $str . "|");
+                        {                            
                             $result[4] = $maches[0];
-                            $str= str_replace($maches[0], "", $str);
+                            $str= str_replace($maches[0], '', $str);
                             $str=trim($str);
                         }
                         if(trim($str) != "")
@@ -529,62 +520,57 @@ class Parser extends Handler implements IStatus
                         $nau = floor(($k - $this->iDataFirstCol) / $this->iGroupWidth);
                         //Если есть название предмета
                         if($res[0] != "")
-                        {
-                            /*
-                            $nau_par_count = count($this->Group[$nau]["Para"]);
-                            //Проверяем, если у нас пара не первая
-                            if($nau_par_count > 0)
-                            {
-                                $Prev_par = $nau_par_count - 1;
-                                //если у предыдущей пары нет предмета
-                                if($this->Group[$nau]["Para"][$Prev_par]->discipline == false) {
-                                    //Вытягиваем предыдущую пару на заполнение.
-                                    $meeting = array_pop($this->Group[$nau]["Para"]);
-                                } else {
-                                    // Иначе создаём новую пару.
-                                    $meeting = new Meeting();
-                                }
-                            }
-                            else // если у нас первая пара
-                            {
-                                $Prev_par = $nau_par_count;
-                                $meeting = new Meeting();
-                            }
-                            */
-                            
+                        {                            
                             $meeting = new Meeting();
-                            
-                            //если у нас нет дат в ячейке
-                            if ( $res[3] == "" )
-                            {
-                                for ( $d = 0; $d < count($this->date_massiv); $d++ )
-                                {
-                                    $moun = $this->Mesac_to_chislo($this->date_massiv[$d]["month"]);
-                                    $f = 0;
-
-                                    // находим индекс текущего дня в таблице дат
-                                    while ( $i >= $this->dayLimitRowIndexes[$f] )
-                                        $f++;
-
-                                    // даты для текущего дня
-                                    $dart = $this->date_massiv[$d]["date"][$f];
-                                    $dart = explode("|", $dart);
-
-                                    for ( $l = 0; $l < count($dart) - 1; $l++ )
-                                        $meeting->date .= $dart[$l] . "." . $moun . ",";
-                                }
-                            }
-                            else { // если даты в ячейке есть                                
-                                $meeting->date = $res[3];
-                            }
-
                             $meeting->discipline    = trim($res[0]);
                             $meeting->type          = trim($res[1]);
                             $meeting->room          = trim($res[2]);
+                            $meeting->date          = trim($res[3]);
                             $meeting->lecturer      = trim($res[4]);
-                            $meeting->comment       = trim($res[5]);                            
+                            $meeting->comment       = trim($res[5]);
                             
-                            //if ( ($meeting->lecturer == "Хаирова") && ($meeting->offset == 0) ) throw new Exception("type: " . $meeting->type);
+                            // вырезаем двусмысленные эксплицитные указания времени занятия
+                            empty($meeting->comment) ?: $meeting->comment = preg_replace('/(?:[Сс]\s*)?([012]?\d[.:][0-5]0)(?:\s*-\s*(?-1))?/u', '', $meeting->comment);
+                            // ToDo: распознавать время и учитывать его в позиционировании занятия,
+                            // а также реструктурировать базу данных
+                            
+                            // проверяем даты
+                            if ( empty($meeting->date) )
+                            {
+                                
+                                // анализируем даты, попавшие в комментарий
+                                $mc = array();                                
+                                // определяем цепочку с датами, если встречаются цифры, разделённые запятыми,
+                                // возможно, с пробелами до и после запятых
+                                if ( !empty($meeting->comment) && preg_match('/(?:([1-3]?\d\.[01]\d)(?:\s?(?=,),\s*|(?:(?!\1)|(?!))))+/u', $meeting->comment, $mc, PREG_OFFSET_CAPTURE) )
+                                {
+                                    // вырезаем подстроку с датами из коментария
+                                    $posFrom = $mc[0][1];
+                                    $posTo = $posFrom + mb_strlen($mc[0][0]);
+                                    $meeting->comment = mb_substr($meeting->comment, 0, $posFrom) . mb_substr($meeting->comment, $posTo);
+                                    // вырезаем все пробелы из строки с датами                                    
+                                    $meeting->date = preg_replace('/\s/u', '', $mc[0][0]);
+                                }
+                                else // берём их из массива дат в самой таблице
+                                {
+                                    for ( $d = 0; $d < count($this->date_massiv); $d++ )
+                                    {
+                                        $moun = $this->Mesac_to_chislo($this->date_massiv[$d]["month"]);
+                                        $f = 0;
+
+                                        // находим индекс текущего дня в таблице дат
+                                        while ( $i >= $this->dayLimitRowIndexes[$f] )
+                                            $f++;
+
+                                        // даты для текущего дня
+                                        $dart = $this->date_massiv[$d]["date"][$f];
+                                        $dart = explode("|", $dart);
+
+                                        for ( $l = 0; $l < count($dart) - 1; $l++ )
+                                            $meeting->date .= $dart[$l] . "." . $moun . ",";
+                                    }    
+                                }
+                            }
                             
                             $this->get_par_number($i, $this->iDataFirstCol, $s, $meeting);
 
@@ -612,8 +598,7 @@ class Parser extends Handler implements IStatus
                                 $prevMeeting = $this->Group[$nau]["Para"][$n];                           
                                 if ( $prevMeeting->offset >= $meeting->offset )
                                     $this->crossFillItems($meeting, $prevMeeting);
-                                // но, опять же, если в предыдущем записана физ-ра (что тоже маловероятно, то функция захуярит туда тип занятия и аудиторию)
-                                //if ( ($meeting->lecturer == "Хаирова") && ($meeting->offset == 0) ) throw new Exception("type: " . $meeting->type);
+                                // но, опять же, если в предыдущем записана физ-ра (что тоже маловероятно, то функция захуярит туда тип занятия и аудиторию)       
                             }
                             if ( $groupsCount == 0 )
                                     $groupsCount = 1;
@@ -630,7 +615,6 @@ class Parser extends Handler implements IStatus
                                     $m->offset += $z;
                                     $m->group = $this->Group[$nau + $l]["NameGroup"];
                                     array_push($this->Group[$nau + $l]["Para"], $m);
-                                    //if ( ($m->lecturer === "Хаирова") && ($m->offset === 1) ) throw new Exception(implode('&bull;', (array)$m) . ' and ' . implode('&bull;', (array)$meeting));
                                 }
                             }
                         }       

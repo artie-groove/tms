@@ -151,7 +151,8 @@ class Parser extends Handler implements IStatus
                     {
                         // кроме названия дисциплины в строке могут находиться и другие сведения
                         $matches = array();
-                        if ( preg_match('@[А-я\s.,/()-]+@u', $str, $matches) !== false )
+                        //if ( preg_match('@[А-я\s.,/()-]+@u', $str, $matches) !== false )
+                        if ( preg_match('/((?:[А-я]+[\s.,\/-]{0,3})+)(?:\((?1)\))?/u', $str, $matches) !== false )
                         {   
                             // конкатенация для тех случаев, когда название дисциплины
                             // продолжается в следующей ячейке

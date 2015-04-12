@@ -114,40 +114,121 @@ class Parser extends Handler implements IStatus
         }
     }
 
-    // Читает ячейку
-    private function read_cell($Staret_Row, $Start_Coll, $Sheet)
-    {
-        // Начальный столбец
-        $row = $Staret_Row;
-        // Массив результатов
-        $result = array("", "", "", "", "", "", 0, 0);
-        // Начальная строка
-        $coll = $Start_Coll;
-        $shirina = 0;
-        // Находим границы ячейки
-        while(!($this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll, $row)->getStyle()->getBorders()->getRight()->getBorderStyle()  != "none"
-             || $this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll+1, $row)->getStyle()->getBorders()->getLeft()->getBorderStyle() != "none")) {
-            $coll++;
-            $shirina++;
+    // === Проверить, есть ли правая граница
+    private function hasRightBorder($sheet, $rx, $cx) {
+        $currentCellHasRightBorder = $sheet->getCellByColumnAndRow($cx, $rx)->getStyle()->getBorders()->getRight()->getBorderStyle() !== "none";
+        $nextCellHasLeftBorder = $sheet->getCellByColumnAndRow($cx + 1, $rx)->getStyle()->getBorders()->getLeft()->getBorderStyle() !== "none";
+        return ( $currentCellHasRightBorder || $nextCellHasLeftBorder );
+    }
+    
+    // === Проверить, есть ли нижняя граница
+    private function hasBottomBorder($sheet, $rx, $cx) {
+        $currentCellHasBottomBorder = $sheet->getCellByColumnAndRow($cx, $rx)->getStyle()->getBorders()->getBottom()->getBorderStyle() !== "none";
+        $nextCellHasTopBorder = $sheet->getCellByColumnAndRow($cx, $rx + 1)->getStyle()->getBorders()->getTop()->getBorderStyle() !== "none";
+        return ( $currentCellHasBottomBorder || $nextCellHasTopBorder );
+    }
+    
+    // === Замерить локацию (клетку с описанием занятия)
+    // ищем границы локации: упираемся в правую и находим ширину, затем в нижнюю и находим высоту
+    // пока ищем высоту, выискиваем "дырки" в правой границе
+    // если обнаружена "дырка" - ныряем до упора: граница типа B
+    // если нет - проходимся по строкам локации в поисках внутренней границы типа А
+    // факт существования границы говорит о том, что у локации нарушена целостность
+    private function inspectLocation($sheet, $rx, $cx)
+    {        
+        $summary = array(               // выходные данные локации:
+            'width' => '',              // ширина (в ячейках)
+            'height' => '',             // высота (в ячейках)
+            'offset' => 0               // смещение в столбцах до внутренней границы
+        );
+        $row = $rx; // начальная строка
+        $col = $cx; // начальный столбец
+        
+        // находим правую границу локации        
+        while ( ! $this->hasRightBorder($sheet, $rx, $col) ) $col++;
+        $summary['width'] = $col - $cx + 1;
+        // ищем нижнюю границу локации начиная со второй строки
+        $row++;
+        while ( ! $this->hasBottomBorder($sheet, $row - 1, $col) ) {
+            // в это же время поглядываем на правую границу
+            if ( ! $this->hasRightBorder($sheet, $row, $col) ) {
+                // если справа "дырка", то фиксируем это в протокол,
+                // смещаемся до правой границы, корректируем ширину и падаем на дно 
+                $summary['offset'] = $col - $cx + 1;     
+                while ( ! $this->hasRightBorder($sheet, $row, $col) ) $col++;
+                $summary['width'] = $col - $cx + 1;
+                while ( ! $this->hasBottomBorder($sheet, $row, $col) ) $row++;             
+                $summary['height'] = $row - $rx + 1;
+                //$strSummary = var_dump($summary);
+                //throw new Exception( $strSummary . '===' . $rx . ':' . $cx );
+            }     
+            $row++;
+        }  
+        $summary['height'] = $row - $rx + 1;
+        if ( ! empty($summary['offset']) ) return $summary;
+        
+               
+        
+        // ищем внутренние границы
+        for ( $r = $rx; $r <= $row; $r++ ) {
+            for ( $c = $cx; $c < $col; $c++ ) {
+                if ( $this->hasRightBorder($sheet, $r, $c) ) {
+                    $summary['offset'] = $c - $cx + 1;                
+                    return $summary;
+                }
+            }
         }
-        $row = $Staret_Row - 1;
+        return $summary;
+    }
+    
+    // Читает ячейку
+    private function read_cell($rx, $cx, $sheet)
+    {
+        // начальный столбец
+        $row = $rx;
+        // начальная строка
+        $col = $cx;
+        $width = 0;
+        
+        // массив результатов
+        $result = array(
+            'discipline' => '',
+            'type' => '',
+            'room' => '',
+            'lecturer' => '',
+            'dates' => '',
+            'comment' => ''
+        );
+        
+        
+        // находим границы занятия
+        do {
+            $currentCellHasNoRightBorder = $sheet->getCellByColumnAndRow($col, $row)->getStyle()->getBorders()->getRight()->getBorderStyle() == "none";
+            $nextCellHasNoLeftBorder = $sheet->getCellByColumnAndRow($col + 1, $row)->getStyle()->getBorders()->getLeft()->getBorderStyle() == "none";
+            $col++;
+            $width++;
+        } while ( $currentCellHasNoRightBorder && $nextCellHasNoLeftBorder );
+        $col--;
+        $width--;
+        
+        $row = $rx - 1;
         // Цикл по строкам
         do
         {
             $row++;
-            $coll = $Start_Coll - 1;
+            $col = $cx - 1;
             // Цикл по столбцам
             do
             {
-                $coll++;
+                $col++;
                 // Если ячейка не пуста
-                if(trim($this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll, $row)) != "")
+                if ( trim($sheet->getCellByColumnAndRow($col, $row)) != "" )
                 {
                     // Записываем значение ячейки
-                    $str = trim($this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll, $row));
+                    $str = trim($sheet->getCellByColumnAndRow($col, $row));
                     
                     // если текст помечен жирным, то это название дисциплины
-                    if($this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll, $row)->getStyle()->getFont()->getBold() == 1)
+                    if ( $sheet->getCellByColumnAndRow($col, $row)->getStyle()->getFont()->getBold() == 1)
                     {
                         // кроме названия дисциплины в строке могут находиться и другие сведения
                         $matches = array();
@@ -156,93 +237,94 @@ class Parser extends Handler implements IStatus
                         {   
                             // конкатенация для тех случаев, когда название дисциплины
                             // продолжается в следующей ячейке
-                            $result[0] .= ' ' . rtrim($matches[0]);
+                            $result['discipline'] .= ' ' . rtrim($matches[0]);
                             $str = mb_substr($str, mb_strlen($matches[0]));
-                            $result[5] .= ' ' . $str;                            
+                            $result['comment'] .= ' ' . $str;                            
                         }                        
                     }
                     else
                     {
                         // поиск типа занятия                        
-                        if ( preg_match("/(?:^|\s)(?:лаб|лек|пр)\s*\.?/u", $str, $maches) )
+                        if ( preg_match("/(?:^|\s)(?:лаб|лек|пр)\s*\.?/u", $str, $matches) )
                         {
-                            $result[1] = $maches[0];
-                            $str = str_replace($maches[0], "", $str);
+                            $result['type'] = $matches[0];
+                            $str = str_replace($matches[0], "", $str);
                             $str = trim($str);
                         }
                         
                         // ищем временные диапазоны (типа коментариев: с 18:30 или 13:00-16:00)
                         // если этого не сделать, то эти данные могут быть интерпретированы как даты
                         
-                        if ( preg_match("/(?:с\s+)?\d{1,2}\.\d\d\s*-\s*\d{1,2}\.\d\d/i", $str, $maches) )
+                        if ( preg_match("/(?:с\s+)?\d{1,2}\.\d\d\s*-\s*\d{1,2}\.\d\d/i", $str, $matches) )
                         {
-                            $result[5] .= " " . $maches[0];
-                            $str = str_replace($maches[0], "", $str);
+                            $result['comment'] .= " " . $matches[0];
+                            $str = str_replace($matches[0], "", $str);
                             $str = trim($str);
                         }
                         
                         // поиск аудитории                        
-                        if ( preg_match_all("/(?:(?:[АБВД]|БЛК)-\d{2,3}|ВПЗ|Гараж\s№\s?3)/u", $str, $maches, PREG_PATTERN_ORDER) )
+                        if ( preg_match_all("/(?:(?:[АБВД]|БЛК)-\d{2,3}|ВПЗ|Гараж\s№\s?3)/u", $str, $matches, PREG_PATTERN_ORDER) )
                         {
                             // Если совпадений больше 1
-                            if(count($maches[0]) > 1)
+                            if(count($matches[0]) > 1)
                             {
-                                $result[2] = $maches[0][0];
-                                $str = str_replace($maches[0][0], "", $str);
-                                $result[2] = str_replace(" ", "", $result[2]);
+                                $result['room'] = $matches[0][0];
+                                $str = str_replace($matches[0][0], "", $str);
+                                $result['room'] = str_replace(" ", "", $result['room']);
                                 /* если больше одного дефиса
                                 preg_match("/-+/", $str, $mac);
-                                $result[2] = str_replace($mac[0], "-", $result[2]);
+                                $result['room'] = str_replace($mac[0], "-", $result['room']);
                                 */
                                                                 
                                 // всё остальное - в комментарий
-                                for($i = 1; $i < count($maches[0]); $i++)
+                                for($i = 1; $i < count($matches[0]); $i++)
                                 {
-                                    $result[5] .= $maches[0][$i];
-                                    $str = str_replace($maches[0][$i], "", $str);
+                                    $result['comment'] .= $matches[0][$i];
+                                    $str = str_replace($matches[0][$i], "", $str);
                                 }
                             }
                             else
                             {
-                                $result[2] = $maches[0][0];
-                                $result[2] = str_replace(" ", "", $result[2]);
+                                $result['room'] = $matches[0][0];
+                                $result['room'] = str_replace(" ", "", $result['room']);
                                 /* если больше одного дефиса 
                                 preg_match("/-+/", $str, $mac);
-                                $result[2] = str_replace($mac[0], "-", $result[2]);
+                                $result['room'] = str_replace($mac[0], "-", $result['room']);
                                 */
-                                $str = str_replace($maches[0][0], "", $str);
+                                $str = str_replace($matches[0][0], "", $str);
                             }
                             $str = trim($str);
                         }
                         
                         // поиск эксплицитных дат
-                        //if ( preg_match('/(\d{1,2}\.\d{2}(?:,\s?|$))+/u', $str, $maches) )
-                        if ( preg_match('/(?:([1-3]?\d\.[01]\d)(?:\s?(?=,),\s*|(?:(?!\1)|(?!))))+/u', $str, $maches) )
+                        //if ( preg_match('/(\d{1,2}\.\d{2}(?:,\s?|$))+/u', $str, $matches) )
+                        if ( preg_match('/(?:([1-3]?\d\.[01]\d)(?:\s?(?=,),\s*|(?:(?!\1)|(?!))))+/u', $str, $matches) )
                         {
-                            $result[3] = $maches[0];
-                            $str = str_replace($maches[0], "", $str);
+                            $result['dates'] = $matches[0];
+                            $str = str_replace($matches[0], "", $str);
                             $str = trim($str);
                         }                                               
                         
                         // поиск преподавателя                        
-                        if ( preg_match("/[А-Я][а-я]+(?:\s*[А-Я]\.){0,2}/u", $str, $maches) )
+                        if ( preg_match("/[А-Я][а-я]+(?:\s*[А-Я]\.){0,2}/u", $str, $matches) )
                         {                            
-                            $result[4] = $maches[0];
-                            $str= str_replace($maches[0], '', $str);
+                            $result['lecturer'] = $matches[0];
+                            $str= str_replace($matches[0], '', $str);
                             $str=trim($str);
                         }
                         if(trim($str) != "")
-                            $result[5] .= $str . " ";
+                            $result['comment'] .= $str . " ";
                     }
                 }
             }
-            while($coll < $Start_Coll + $shirina);
+            while ($col < $cx + $width);
         }
-        while(!($this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll,$row)->getStyle()->getBorders()->getBottom()->getBorderStyle() != "none"
-             || $this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($coll,$row+1)->getStyle()->getBorders()->getTop()->getBorderStyle()  != "none"));
-        $result[6] = $row  - $Staret_Row + 1;
-        $result[7] = $coll - $Start_Coll + 1;
-        //if ( ($result[4] == "Хаирова") && ( strpos($result[5], '10.00-')  !== FALSE ) ) throw new Exception(implode('|', $result));
+        while( !($sheet->getCellByColumnAndRow($col, $row)->getStyle()->getBorders()->getBottom()->getBorderStyle() != "none"
+             || $sheet->getCellByColumnAndRow($col, $row + 1)->getStyle()->getBorders()->getTop()->getBorderStyle()  != "none"));
+        
+        $result[6] = $row - $rx + 1;
+        $result[7] = $col - $cx + 1;
+        
         return $result;
     }
     
@@ -431,7 +513,7 @@ class Parser extends Handler implements IStatus
     }
     
     // Устанавливает грани между днями недели.
-    private  function lookupDayLimitRowIndexes($sheet, $iDatesMatrixFirstRow, $iFinalRow)
+    private function lookupDayLimitRowIndexes($sheet, $iDatesMatrixFirstRow, $iFinalRow)
     {        
         $k = 0;        
         for ( $i = $iDatesMatrixFirstRow; $i < $iFinalRow; $i++ )
@@ -450,7 +532,7 @@ class Parser extends Handler implements IStatus
     }
     
     // Заполняет массив с датами
-    private  function gatherDates($sheet, $iDataFirstColumn, $iTableFirstRow, $iDateMatrixFirstRow)
+    private function gatherDates($sheet, $iDataFirstColumn, $iTableFirstRow, $iDateMatrixFirstRow)
     {
         for ( $k = 1; $k < $iDataFirstColumn - 1; $k++ )
         {
@@ -474,7 +556,7 @@ class Parser extends Handler implements IStatus
     }
     
     // Анализирует дневное распсиание
-    private  function get_day_raspisanie()
+    private function get_day_raspisanie()
     {        
         $sheetsTotal = $this->PHPExcel->getSheetCount();
         for ( $s = 0; $s < $sheetsTotal; $s++ )
@@ -516,19 +598,22 @@ class Parser extends Handler implements IStatus
                     // если в текущей ячейке точно есть левая и верхняя границы
                     if ( ( $bLeft || $bRight ) && ( $bTop || $bBottom ) )
                     {
-                        $res = $this->read_cell($i, $k, $s);
+                        if ( $sheet->getCellByColumnAndRow($k, $i) == '' ) continue;
+                        //$this->inspectLocation($sheet, $i, $k);
+                        //continue;
+                        $res = $this->read_cell($i, $k, $sheet);
                         // индекс текущей группы в массиве Group
                         $nau = floor(($k - $this->iDataFirstCol) / $this->iGroupWidth);
                         //Если есть название предмета
-                        if($res[0] != "")
+                        if($res['discipline'] != "")
                         {                            
                             $meeting = new Meeting();
-                            $meeting->discipline    = trim($res[0]);
-                            $meeting->type          = trim($res[1]);
-                            $meeting->room          = trim($res[2]);
-                            $meeting->date          = trim($res[3]);
-                            $meeting->lecturer      = trim($res[4]);
-                            $meeting->comment       = trim($res[5]);
+                            $meeting->discipline    = trim($res['discipline']);
+                            $meeting->type          = trim($res['type']);
+                            $meeting->room          = trim($res['room']);
+                            $meeting->date          = trim($res['dates']);
+                            $meeting->lecturer      = trim($res['lecturer']);
+                            $meeting->comment       = trim($res['comment']);
                             
                             // вырезаем двусмысленные эксплицитные указания времени занятия
                             empty($meeting->comment) ?: $meeting->comment = preg_replace('/(?:[Сс]\s*)?([012]?\d[.:][0-5]0)(?:\s*-\s*(?-1))?/u', '', $meeting->comment);

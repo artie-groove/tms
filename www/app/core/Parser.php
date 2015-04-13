@@ -158,13 +158,13 @@ class Parser extends Handler implements IStatus
                 while ( ! $this->hasRightBorder($sheet, $row, $col) ) $col++;
                 $summary['width'] = $col - $cx + 1;
                 while ( ! $this->hasBottomBorder($sheet, $row, $col) ) $row++;             
-                $summary['height'] = $row - $rx + 1;
+                $summary['height'] = $row - $rx;
                 //$strSummary = var_dump($summary);
                 //throw new Exception( $strSummary . '===' . $rx . ':' . $cx );
             }     
             $row++;
         }  
-        $summary['height'] = $row - $rx + 1;
+        $summary['height'] = $row - $rx;
         if ( ! empty($summary['offset']) ) return $summary;
         
                
@@ -182,7 +182,7 @@ class Parser extends Handler implements IStatus
     }
     
     // Читает ячейку
-    private function read_cell($rx, $cx, $sheet)
+    private function extractLocation($sheet, $rx, $h, $cx, $w)
     {
         // начальный столбец
         $row = $rx;
@@ -200,35 +200,26 @@ class Parser extends Handler implements IStatus
             'comment' => ''
         );
         
-        
-        // находим границы занятия
-        do {
-            $currentCellHasNoRightBorder = $sheet->getCellByColumnAndRow($col, $row)->getStyle()->getBorders()->getRight()->getBorderStyle() == "none";
-            $nextCellHasNoLeftBorder = $sheet->getCellByColumnAndRow($col + 1, $row)->getStyle()->getBorders()->getLeft()->getBorderStyle() == "none";
-            $col++;
-            $width++;
-        } while ( $currentCellHasNoRightBorder && $nextCellHasNoLeftBorder );
-        $col--;
-        $width--;
-        
-        $row = $rx - 1;
+        //throw new Exception("$rx:$cx:$w:$h");
+                
+        //$row = $rx - 1;
         // Цикл по строкам
-        do
+        for ( $r = $rx; $r < $rx + $h; $r++ )
         {
-            $row++;
-            $col = $cx - 1;
+            //$row++;
+            //$col = $cx - 1;
             // Цикл по столбцам
-            do
+            for ( $c = $cx; $c < $cx + $w; $c++ )
             {
-                $col++;
+                //$col++;
                 // Если ячейка не пуста
-                if ( trim($sheet->getCellByColumnAndRow($col, $row)) != "" )
+                if ( trim($sheet->getCellByColumnAndRow($c, $r)) != "" )
                 {
                     // Записываем значение ячейки
-                    $str = trim($sheet->getCellByColumnAndRow($col, $row));
+                    $str = trim($sheet->getCellByColumnAndRow($c, $r));
                     
                     // если текст помечен жирным, то это название дисциплины
-                    if ( $sheet->getCellByColumnAndRow($col, $row)->getStyle()->getFont()->getBold() == 1)
+                    if ( $sheet->getCellByColumnAndRow($c, $r)->getStyle()->getFont()->getBold() == 1)
                     {
                         // кроме названия дисциплины в строке могут находиться и другие сведения
                         $matches = array();
@@ -237,7 +228,7 @@ class Parser extends Handler implements IStatus
                         {   
                             // конкатенация для тех случаев, когда название дисциплины
                             // продолжается в следующей ячейке
-                            $result['discipline'] .= ' ' . rtrim($matches[0]);
+                            $result['discipline'] .= $matches[0] . ' ';
                             $str = mb_substr($str, mb_strlen($matches[0]));
                             $result['comment'] .= ' ' . $str;                            
                         }                        
@@ -245,10 +236,10 @@ class Parser extends Handler implements IStatus
                     else
                     {
                         // поиск типа занятия                        
-                        if ( preg_match("/(?:^|\s)(?:лаб|лек|пр)\s*\.?/u", $str, $matches) )
+                        if ( preg_match("/(?:^|\s)((?:лаб|лек|пр)\s*\.?)/u", $str, $matches) )
                         {
-                            $result['type'] = $matches[0];
-                            $str = str_replace($matches[0], "", $str);
+                            $result['type'] = $matches[1];
+                            $str = str_replace($matches[1], "", $str);
                             $str = trim($str);
                         }
                         
@@ -317,14 +308,16 @@ class Parser extends Handler implements IStatus
                     }
                 }
             }
-            while ($col < $cx + $width);
+            //while ($col < $cx + $width);
         }
-        while( !($sheet->getCellByColumnAndRow($col, $row)->getStyle()->getBorders()->getBottom()->getBorderStyle() != "none"
-             || $sheet->getCellByColumnAndRow($col, $row + 1)->getStyle()->getBorders()->getTop()->getBorderStyle()  != "none"));
+        //while( !($sheet->getCellByColumnAndRow($col, $row)->getStyle()->getBorders()->getBottom()->getBorderStyle() != "none"
+            // || $sheet->getCellByColumnAndRow($col, $row + 1)->getStyle()->getBorders()->getTop()->getBorderStyle()  != "none"));
         
-        $result[6] = $row - $rx + 1;
-        $result[7] = $col - $cx + 1;
-        
+        //$result[6] = $row - $rx + 1;
+        //$result[7] = $col - $cx + 1;
+        //throw new Exception(var_dump($result));
+        $result['comment'] = trim($result['comment']);
+        $result['discipline'] = trim($result['discipline']);
         return $result;
     }
     
@@ -360,19 +353,19 @@ class Parser extends Handler implements IStatus
         }
     }
     
-    // Получить номер пары
-    private function get_par_number($rows, $Coll_Start, $Sheat, &$meeting)
+    // === Получить номер пары
+    private function lookupLocationOffset($sheet, $cx, $rx)
     {
         $k = 0;
 
         do
         {
-            $str = $this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow($Coll_Start - 1, $rows + $k);
+            $str = $sheet->getCellByColumnAndRow($cx - 1, $rx + $k);
             $str = trim($str);
             str_replace(" ", "", $str);
             $k++;
         }
-        while($str == "");
+        while ($str == "");
 
         $matches[0] = false;
         preg_match("/-+/iu", $str, $matches);
@@ -380,26 +373,30 @@ class Parser extends Handler implements IStatus
         if(count($matches) > 0)
             $str = str_replace($matches[0], "-", $str);
 
+        $offset = -2;
+        
         switch ($str)
         {
-            case "1-2":   $meeting->offset = 0;                           break;
-            case "3-4":   $meeting->offset = 1;                           break;
-            case "5-6":   $meeting->offset = 2;                           break;
-            case "7-8":   $meeting->offset = 3;                           break;
-            case "9-10":  $meeting->offset = 4;                           break;
-            case "11-12": $meeting->offset = 5;                           break;
-            case "13-14": $meeting->offset = 6;                           break;
-            case "15-16": $meeting->offset = 7;                           break;
-            case "8-00":  $meeting->offset = 0;  $meeting->comment.= $str; break;
-            case "9-40":  $meeting->offset = 1;  $meeting->comment.= $str; break;
-            case "11-20": $meeting->offset = 2;  $meeting->comment.= $str; break;
-            case "13-00": $meeting->offset = 3;  $meeting->comment.= $str; break;
-            case "14-40": $meeting->offset = 4;  $meeting->comment.= $str; break;
-            case "16-20": $meeting->offset = 5;  $meeting->comment.= $str; break;
-            case "18-00": $meeting->offset = 6;  $meeting->comment.= $str; break;
-            case "19-30": $meeting->offset = 7;  $meeting->comment.= $str; break;
-            default:      $meeting->offset = -1;                          break;
+            case "1-2":   $offset = 0;                           break;
+            case "3-4":   $offset = 1;                           break;
+            case "5-6":   $offset = 2;                           break;
+            case "7-8":   $offset = 3;                           break;
+            case "9-10":  $offset = 4;                           break;
+            case "11-12": $offset = 5;                           break;
+            case "13-14": $offset = 6;                           break;
+            case "15-16": $offset = 7;                           break;
+            case "8-00":  $offset = 0;  break;
+            case "9-40":  $offset = 1;   break;
+            case "11-20": $offset = 2;  break;
+            case "13-00": $offset = 3;  break;
+            case "14-40": $offset = 4;   break;
+            case "16-20": $offset = 5;   break;
+            case "18-00": $offset = 6;   break;
+            case "19-30": $offset = 7;   break;
+            default:      $offset = -1;                          break;
         }
+        
+        return $offset;
     }
     
     // Определяет границы таблицы, а так же ширину колонки для группы. Устанавливает глобальные переменные
@@ -536,19 +533,19 @@ class Parser extends Handler implements IStatus
     {
         for ( $k = 1; $k < $iDataFirstColumn - 1; $k++ )
         {
-            $this->date_massiv[$k-1]["month"] = trim($sheet->getCellByColumnAndRow($k, $iTableFirstRow));
-            $this->date_massiv[$k-1]["date"] = array();
+            $this->dates_massiv[$k-1]["month"] = trim($sheet->getCellByColumnAndRow($k, $iTableFirstRow));
+            $this->dates_massiv[$k-1]["date"] = array();
 
             $i = $iDateMatrixFirstRow;
             $n = count($this->dayLimitRowIndexes);
             for ( $p = 0; $p < $n; $p++ )
             {
-                $this->date_massiv[$k-1]["date"][$p] = "";
+                $this->dates_massiv[$k-1]["date"][$p] = "";
 
                 for (; $i < $this->dayLimitRowIndexes[$p]; $i++)
                 {
                     if (trim($sheet->getCellByColumnAndRow($k, $i)) != "")
-                        $this->date_massiv[$k-1]["date"][$p] .= trim($sheet->getCellByColumnAndRow($k, $i))."|";
+                        $this->dates_massiv[$k-1]["date"][$p] .= trim($sheet->getCellByColumnAndRow($k, $i))."|";
                 }
                 $i = $this->dayLimitRowIndexes[$p];                
             }
@@ -570,7 +567,7 @@ class Parser extends Handler implements IStatus
             $this->Group = array();//массив с данными.
             $this->iGroupWidth = 1;//Число ячеек, отведённых на одну группу.
             $this->dayLimitRowIndexes = false; //массив хранит границы дней недели
-            $this->date_massiv = false;
+            $this->dates_massiv = false;
             
             $this->Order_66($s);
             $this->lookupTableGeometry($sheet);
@@ -599,70 +596,84 @@ class Parser extends Handler implements IStatus
                     if ( ( $bLeft || $bRight ) && ( $bTop || $bBottom ) )
                     {
                         if ( $sheet->getCellByColumnAndRow($k, $i) == '' ) continue;
-                        //$this->inspectLocation($sheet, $i, $k);
-                        //continue;
-                        $res = $this->read_cell($i, $k, $sheet);
-                        // индекс текущей группы в массиве Group
-                        $nau = floor(($k - $this->iDataFirstCol) / $this->iGroupWidth);
-                        //Если есть название предмета
-                        if($res['discipline'] != "")
-                        {                            
-                            $meeting = new Meeting();
-                            $meeting->discipline    = trim($res['discipline']);
-                            $meeting->type          = trim($res['type']);
-                            $meeting->room          = trim($res['room']);
-                            $meeting->date          = trim($res['dates']);
-                            $meeting->lecturer      = trim($res['lecturer']);
-                            $meeting->comment       = trim($res['comment']);
-                            
-                            // вырезаем двусмысленные эксплицитные указания времени занятия
-                            empty($meeting->comment) ?: $meeting->comment = preg_replace('/(?:[Сс]\s*)?([012]?\d[.:][0-5]0)(?:\s*-\s*(?-1))?/u', '', $meeting->comment);
-                            // ToDo: распознавать время и учитывать его в позиционировании занятия,
-                            // а также реструктурировать базу данных
-                            
-                            // проверяем даты
-                            if ( empty($meeting->date) )
-                            {
-                                
-                                // анализируем даты, попавшие в комментарий
-                                $mc = array();                                
-                                // определяем цепочку с датами, если встречаются цифры, разделённые запятыми,
-                                // возможно, с пробелами до и после запятых
-                                if ( !empty($meeting->comment) && preg_match('/(?:([1-3]?\d\.[01]\d)(?:\s?(?=,),\s*|(?:(?!\1)|(?!))))+/u', $meeting->comment, $mc, PREG_OFFSET_CAPTURE) )
-                                {
-                                    // вырезаем подстроку с датами из коментария
-                                    $posFrom = $mc[0][1];
-                                    $posTo = $posFrom + mb_strlen($mc[0][0]);
-                                    $meeting->comment = mb_substr($meeting->comment, 0, $posFrom) . mb_substr($meeting->comment, $posTo);
-                                    // вырезаем все пробелы из строки с датами                                    
-                                    $meeting->date = preg_replace('/\s/u', '', $mc[0][0]);
-                                }
-                                else // берём их из массива дат в самой таблице
-                                {
-                                    for ( $d = 0; $d < count($this->date_massiv); $d++ )
-                                    {
-                                        $moun = $this->Mesac_to_chislo($this->date_massiv[$d]["month"]);
-                                        $f = 0;
-
-                                        // находим индекс текущего дня в таблице дат
-                                        while ( $i >= $this->dayLimitRowIndexes[$f] )
-                                            $f++;
-
-                                        // даты для текущего дня
-                                        $dart = $this->date_massiv[$d]["date"][$f];
-                                        $dart = explode("|", $dart);
-
-                                        for ( $l = 0; $l < count($dart) - 1; $l++ )
-                                            $meeting->date .= $dart[$l] . "." . $moun . ",";
-                                    }    
-                                }
+                        $layout = $this->inspectLocation($sheet, $i, $k);
+                        $meetings = array();
+                        if ( $layout['offset'] ) {
+                            $w1 = $layout['offset'];
+                            $w2 = $layout['width'] - $w1;
+                            $res1 = $this->extractLocation($sheet, $i, $layout['height'], $k, $w1);
+                            $res2 = $this->extractLocation($sheet, $i, $layout['height'], $k + $w1, $w2);
+                            $basis = array('discipline', 'type', 'room', 'lecturer');
+                            $areEqual = true;
+                            foreach ( $basis as $el )
+                                $areEqual &= empty($res1[$el]) ^ empty($res2[$el]);
+                            if ( $areEqual ) {
+                                foreach ( $basis as $el )
+                                    if ( empty($res1[$el]) ) $res1[$el] = $res2[$el];
+                                $res1['comment'] = trim($res1['comment'] . ' ' . $res2['comment']);
+                                $this->postProcessLocationData($res1, $i);
+                                $meetings[] = new Meeting();
+                                $meetings[0]->initFromArray($res1);
                             }
-                            
-                            $this->get_par_number($i, $this->iDataFirstCol, $s, $meeting);
+                            else {
+                                /*
+                                echo var_dump($res1);
+                                echo var_dump($res2);
+                                throw new Exception();
+                                */
+                                $this->postProcessLocationData($res1, $i);
+                                $this->postProcessLocationData($res2, $i);
+                                $meetings[] = new Meeting();
+                                $meetings[] = new Meeting();
+                                $meetings[0]->initFromArray($res1);
+                                $meetings[1]->initFromArray($res2);
+                                $this->crossFillItems($meetings[0], $meetings[1]);
+                            }
+                        }
+                        else {
+                            $res = $this->extractLocation($sheet, $i, $layout['height'], $k, $layout['width']);
+                            $this->postProcessLocationData($res, $i);
+                            $meetings[] = new Meeting();
+                            $meetings[0]->initFromArray($res);
+                        }
+                        
+                        
+                        if ( empty($meetings[0]->discipline) ) {
+                            $k += $layout['width'] - 1;
+                            continue;
+                        }
+                        
+                        // индекс текущей группы в массиве Group
+                        $gid = floor(($k - $this->iDataFirstCol) / $this->iGroupWidth);
+                                       
+                        // номер пары
+                        $offset = $this->lookupLocationOffset($sheet, $this->iDataFirstCol, $i);
 
-                            // количество групп, задействованных в занятии
-                            $groupsCount = floor($res[7] / $this->iGroupWidth);
-                            
+                        // количество групп, задействованных в занятии
+                        $groupsCount = ceil($layout['width'] / $this->iGroupWidth);
+                        
+                        if ( ! $groupsCount  ) throw new Exception(var_dump($meetings[0]));
+
+                        // количество занятий
+                        $meetingsCount = floor($layout['height'] / 2); // Todo: на основе размера ячейки с указанием номера пары (то есть вместо "двойки" определить количество строк, фактически занимаемых парой)
+
+                        foreach ( $meetings as $meeting ) {
+                            $meeting->offset = $offset;
+                            // множим занятия (по группам и по академическим часам)
+                            for ( $g = 0; $g < $groupsCount; $g++ )
+                                for ( $z = 0; $z < $meetingsCount; $z++ )
+                                {
+                                    $m = new Meeting();
+                                    $m->copyFrom($meeting);
+                                    $m->offset += $z;
+                                    $m->group = $this->Group[$gid + $g]["NameGroup"];
+                                    array_push($this->Group[$gid + $g]["Para"], $m);
+                                }
+                        }                        
+                     
+                        $k += $layout['width'] - 1;
+                        
+                        /*
                             // если это вторая подгруппа
                             if ( $groupsCount == 0
                                 && !is_int( ($k - $this->iDataFirstCol + $this->iGroupWidth) / $this->iGroupWidth) )
@@ -680,49 +691,79 @@ class Parser extends Handler implements IStatus
                                 //                  |
                                 // Габдулхакова        Б-401    пр.
                                 // 
-                                $n = count($this->Group[$nau]["Para"]) - 1;
-                                $prevMeeting = $this->Group[$nau]["Para"][$n];                           
+                                $n = count($this->Group[$gid]["Para"]) - 1;
+                                $prevMeeting = $this->Group[$gid]["Para"][$n];                           
                                 if ( $prevMeeting->offset >= $meeting->offset )
                                     $this->crossFillItems($meeting, $prevMeeting);
                                 // но, опять же, если в предыдущем записана физ-ра (что тоже маловероятно, то функция захуярит туда тип занятия и аудиторию)       
                             }
                             if ( $groupsCount == 0 )
                                     $groupsCount = 1;
-                            
-                            // количество занятий
-                            $meetingsCount = floor($res[6] / 2); // Todo: на основе размера ячейки с указанием номера пары (то есть вместо "двойки" определить количество строк, фактически занимаемых парой)
-                            
-                            for ( $l = 0; $l < $groupsCount; $l++ )
-                            {      
-                                for ( $z = 0; $z < $meetingsCount; $z++ )
-                                {
-                                    $m = new Meeting();
-                                    $m->copyFrom($meeting);
-                                    $m->offset += $z;
-                                    $m->group = $this->Group[$nau + $l]["NameGroup"];
-                                    array_push($this->Group[$nau + $l]["Para"], $m);
-                                }
-                            }
-                        }       
+                            */
+
+                        
                     }
                 }
             }
         }
     }
     
+    // Пост-обработка данных, полученных из локации
+    private function postProcessLocationData(&$data, $rx) {
+        // вырезаем двусмысленные эксплицитные указания времени занятия
+        empty($data['comment']) ?: $data['comment'] = preg_replace('/(?:[Сс]\s*)?([012]?\d[.:][0-5]0)(?:\s*-\s*(?-1))?/u', '', $data['comment']);
+        // ToDo: распознавать время и учитывать его в позиционировании занятия,
+        // а также реструктурировать базу данных
+
+        // проверяем даты
+        if ( empty($data['dates']) )
+        {
+
+            // анализируем даты, попавшие в комментарий
+            $mc = array();                                
+            // определяем цепочку с датами, если встречаются цифры, разделённые запятыми,
+            // возможно, с пробелами до и после запятых
+            if ( !empty($data['comment']) && preg_match('/(?:([1-3]?\d\.[01]\d)(?:\s?(?=,),\s*|(?:(?!\1)|(?!))))+/u', $data['comment'], $mc, PREG_OFFSET_CAPTURE) )
+            {
+                // вырезаем подстроку с датами из коментария
+                $posFrom = $mc[0][1];
+                $posTo = $posFrom + mb_strlen($mc[0][0]);
+                $data['comment'] = mb_substr($data['comment'], 0, $posFrom) . mb_substr($data['comment'], $posTo);
+                // вырезаем все пробелы из строки с датами                                    
+                $data['dates'] = preg_replace('/\s/u', '', $mc[0][0]);
+            }
+            else // берём их из массива дат в самой таблице
+            {                
+                for ( $d = 0; $d < count($this->dates_massiv); $d++ )
+                {
+                    $moun = $this->Mesac_to_chislo($this->dates_massiv[$d]["month"]);
+                    $f = 0;
+
+                    // находим индекс текущего дня в таблице дат
+                    while ( $rx >= $this->dayLimitRowIndexes[$f] )
+                        $f++;
+
+                    // даты для текущего дня
+                    $dart = $this->dates_massiv[$d]["date"][$f];
+                    $dart = explode("|", $dart);
+
+                    for ( $l = 0; $l < count($dart) - 1; $l++ )
+                        $data['dates'] .= $dart[$l] . "." . $moun . ",";
+                }    
+            }
+        }
+    }
+    
     // Взаимодополнить поля двух занятий
     private function crossFillItems($m1, $m2) {
-        // переливаем в текущую из предыдущей
-        if ( empty($m1->room)       ) $m1->room = $m2->room;
-        if ( empty($m1->lecturer)   ) $m1->lecturer = $m2->lecturer;
-        if ( empty($m1->comment)    ) $m1->comment = $m2->comment;
-        if ( empty($m1->type)       ) $m1->type = $m2->type;
-
-        // из текущей в предыдущую
-        if ( empty($m2->room)       ) $m2->room = $m1->room;
-        if ( empty($m2->lecturer)   ) $m2->lecturer = $m1->lecturer;
-        if ( empty($m2->comment)    ) $m2->comment = $m1->comment;
-        if ( empty($m2->type)       ) $m2->type = $m1->type;      
+        $basis = array('discipline', 'type', 'room', 'lecturer', 'dates');
+        foreach ( $basis as $el ) {
+            if ( empty($m1->$el) ) $m1->$el = $m2->$el;
+            else if ( empty($m2->$el) ) $m2->$el = $m1->$el;
+        }
+        $comment = trim($m1->comment . ' ' . $m2->comment);
+        $m1->comment = $comment;
+        $m2->comment = $comment;      
     }
     
     //----------------------------------------------------------------------//Функции для заочного распсиания
@@ -803,11 +844,11 @@ class Parser extends Handler implements IStatus
     
     private   function get_mounday_z($Row_Start_Date, $Section_Start, $Row_End, $Sheet)
     {
-        $this->date_massiv;//инициализируется, предварительно обнуляется.
+        $this->dates_massiv;//инициализируется, предварительно обнуляется.
         $this->dayLimitRowIndexes;
         $this->PHPExcel;
-        $this->date_massiv = false;
-        $this->date_massiv[0]["month"] = false;
+        $this->dates_massiv = false;
+        $this->dates_massiv[0]["month"] = false;
         for($i = $Row_Start_Date; $i < $Row_End; $i++)
         {
             if(trim($this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($Section_Start+1, $i)) != "")
@@ -819,10 +860,10 @@ class Parser extends Handler implements IStatus
                         break;
                 }
 
-                if(isset($this->date_massiv[0]["month"][$k])) {
-                    $this->date_massiv[0]["month"][$k] .= trim($this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($Section_Start+1, $i));
+                if(isset($this->dates_massiv[0]["month"][$k])) {
+                    $this->dates_massiv[0]["month"][$k] .= trim($this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($Section_Start+1, $i));
                 } else {
-                    $this->date_massiv[0]["date"][$k] = trim($this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($Section_Start+1, $i));
+                    $this->dates_massiv[0]["date"][$k] = trim($this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($Section_Start+1, $i));
                 }
             }
         }

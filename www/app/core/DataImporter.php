@@ -195,9 +195,9 @@ class DataImporter extends Handler implements IStatus
                         $auditoria_id = $row['id'];
                 }
 
-                if($par_mass[$i]->date!="")
+                if($par_mass[$i]->dates!="")
                 {
-                    $date_m = explode(",", $par_mass[$i]->date);
+                    $date_m = explode(",", $par_mass[$i]->dates);
                     $correct = 0;
                     if (trim($date_m[count($date_m) - 1]) == "")
                         $correct = 1;
@@ -236,7 +236,7 @@ class DataImporter extends Handler implements IStatus
                         //mb_substitute_character('long');
                         //$comment = mb_convert_encoding($comment, 'UTF-8', 'UTF-8');
                         
-						//$comment = $par_mass[i]->discipline . "  " . $par_mass[i]->lecturer . "  " . $par_mass[i]->type . "  " . $par_mass[i]->room . "  " . $par_mass[i]->offset . "  " . $par_mass[i]->date . "  " . $par_mass[i]->comment . "  " . $par_mass[i]->group;
+						//$comment = $par_mass[i]->discipline . "  " . $par_mass[i]->lecturer . "  " . $par_mass[i]->type . "  " . $par_mass[i]->room . "  " . $par_mass[i]->offset . "  " . $par_mass[i]->dates . "  " . $par_mass[i]->comment . "  " . $par_mass[i]->group;
 
                         $res = $dbh->prepare("INSERT INTO timetable_stage (id_discipline,id_group,id_lecturer,id_room,`offset`,`date`,`type`,`comment`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                         $row = $res->execute(array($predmet_id, $group_id, $prepod_id, $auditoria_id, $par_mass[$i]->offset, $date_to_write, $type_sabjeckt, $comment));

@@ -8,7 +8,8 @@
 
 class Parser extends Handler implements IStatus
 {
-
+    const MAX_PROBE_DEPTH = 15;
+    const MAX_WIDTH = 120;
     //---------------------------------------------------------------------переменные общего назначения
     private $objPHPExcel;
     // Текущий лист
@@ -57,9 +58,9 @@ class Parser extends Handler implements IStatus
         
         $killed = 0;
         $i = 0;
-        $COL_MAX = 120;
+        
 
-        while($i < $COL_MAX - $killed)
+        while($i < MAX_WIDTH - $killed)
         {
             if($this->PHPExcel->getSheet()->getColumnDimensionByColumn($i)->getVisible() != "") {
                 $i++;
@@ -71,58 +72,95 @@ class Parser extends Handler implements IStatus
         //throw new Exception('removed ' . $killed);
     }
 
-    private function get_typ_raspisania($Sheat)
+    // === Зондировать лист на предмет наличия таблицы
+    // если найдена граница в верхней части листа, возвращает номер строки
+    private function probeTable($sheet)
     {
-        // Здесь начинается лютый, беспросветный полярный лис. Функция перевода имени столбца в индекс не найдена, получить индекс максимального столбца тоже невозможно. Я не виноват!!!!
-        $name_max_col = $this->PHPExcel->getSheet($Sheat)->getHighestColumn();
-        $coll_max = 0;//максимальный заюзанный столбец.
-
-        do {
-            $coll_max++;
-        } while($this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow($coll_max, 1)->getColumn() != $name_max_col);
-
-        $coll_max++;
-        $Row_Max = 1;
-
-        while($this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $Row_Max)->getStyle()->getBorders()->getBottom()->getBorderStyle() === "none"
-           && $this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $Row_Max+1)->getStyle()->getBorders()->getTop()->getBorderStyle()  === "none") {
-            $Row_Max++;
-        }
-
-        $Row_Max++;
-        $matches[0] = false;
-
-        for($i = 1; $i < $Row_Max; $i++)
+        for ( $r = 1; $r < self::MAX_PROBE_DEPTH; $r++ )
         {
-            for($k = 0; $k < $coll_max; $k++)
+            $reachedBottomBorder = $this->hasBottomBorder($sheet, 0, $r);
+            if ( $reachedBottomBorder ) return $r + 1;
+        }
+        return false;
+    }
+    
+    private function getTableType($sheet, $bottomRow)
+    {
+        
+        //const tableTypes = array('Basic', 'BasicTutorials', 'BasicSession', 'PostalTutorials', 'PostalSession');
+        
+        $caption = '';
+        for ( $r = 1; $r < $bottomRow; $r++ )
+            for ( $c = 0; $c < self::MAX_WIDTH; $c++)
+                $caption .= $sheet->getCellByColumnAndRow($c, $r);
+        
+        $caption = preg_replace('/\s/u', '', $caption);
+        $caption = mb_strtolower($caption);
+        
+        $matches = array();
+        $pattern = '/расписание(занятий|консультаций|сессии).*(инженерно|автомеханического|вечернего|заочного)/u';
+        
+        if ( preg_match($pattern, $caption, $matches) )
+        {
+            switch ( $matches[1] )
             {
-                preg_match("/Заочного|Вечернего|Второго|Инженерно|Автомеханического/iu", $this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow($k, $i), $matches);
-
-                if($matches)
-                {
-                    switch($matches[0])
+                case "занятий":
+                    switch ( $matches[2] )
                     {
-                        case "Заочного":          return 2;
-                        case "Вечернего":         return 1;
-                        case "Второго":           return 3;
-                        case "Инженерно":         return 0;
-                        case "Автомеханического": return 0;
-                        default : break;
+                        case 'инженерно':
+                        case 'автомеханического':
+                        case 'вечернего':
+                            return 'Basic';
+                        
+                        default:
+                            return false;
                     }
-                }
+                
+                case "консультаций":
+                    switch ( $matches[2] )
+                    {
+                        case 'инженерно':
+                        case 'автомеханического':
+                        case 'вечернего':
+                            return 'BasicTutorials';
+                        
+                        case 'заочного':
+                            return 'PostalTutorials';
+                        
+                        default:
+                            return false;
+                    }
+                
+                case "сессии":
+                    switch ( $matches[2] )
+                    {
+                        case 'инженерно':
+                        case 'автомеханического':
+                        case 'вечернего':
+                            return 'BasicSession';
+                        
+                        case 'заочного':
+                            return 'PostalSession';
+                        
+                        default:
+                            return false;
+                    } 
+                
+                default: return false;
             }
         }
+        return false;
     }
 
     // === Проверить, есть ли правая граница
-    private function hasRightBorder($sheet, $rx, $cx) {
+    private function hasRightBorder($sheet, $cx, $rx) {
         $currentCellHasRightBorder = $sheet->getCellByColumnAndRow($cx, $rx)->getStyle()->getBorders()->getRight()->getBorderStyle() !== "none";
         $nextCellHasLeftBorder = $sheet->getCellByColumnAndRow($cx + 1, $rx)->getStyle()->getBorders()->getLeft()->getBorderStyle() !== "none";
         return ( $currentCellHasRightBorder || $nextCellHasLeftBorder );
     }
     
     // === Проверить, есть ли нижняя граница
-    private function hasBottomBorder($sheet, $rx, $cx) {
+    private function hasBottomBorder($sheet, $cx, $rx) {
         $currentCellHasBottomBorder = $sheet->getCellByColumnAndRow($cx, $rx)->getStyle()->getBorders()->getBottom()->getBorderStyle() !== "none";
         $nextCellHasTopBorder = $sheet->getCellByColumnAndRow($cx, $rx + 1)->getStyle()->getBorders()->getTop()->getBorderStyle() !== "none";
         return ( $currentCellHasBottomBorder || $nextCellHasTopBorder );
@@ -145,19 +183,19 @@ class Parser extends Handler implements IStatus
         $col = $cx; // начальный столбец
         
         // находим правую границу локации        
-        while ( ! $this->hasRightBorder($sheet, $rx, $col) ) $col++;
+        while ( ! $this->hasRightBorder($sheet, $col, $rx) ) $col++;
         $summary['width'] = $col - $cx + 1;
         // ищем нижнюю границу локации начиная со второй строки
         $row++;
-        while ( ! $this->hasBottomBorder($sheet, $row - 1, $col) ) {
+        while ( ! $this->hasBottomBorder($sheet, $col, $row - 1) ) {
             // в это же время поглядываем на правую границу
-            if ( ! $this->hasRightBorder($sheet, $row, $col) ) {
+            if ( ! $this->hasRightBorder($sheet, $col, $row) ) {
                 // если справа "дырка", то фиксируем это в протокол,
                 // смещаемся до правой границы, корректируем ширину и падаем на дно 
                 $summary['offset'] = $col - $cx + 1;     
-                while ( ! $this->hasRightBorder($sheet, $row, $col) ) $col++;
+                while ( ! $this->hasRightBorder($sheet, $col, $row) ) $col++;
                 $summary['width'] = $col - $cx + 1;
-                while ( ! $this->hasBottomBorder($sheet, $row, $col) ) $row++;             
+                while ( ! $this->hasBottomBorder($sheet, $col, $row) ) $row++;             
                 $summary['height'] = $row - $rx;
                 //$strSummary = var_dump($summary);
                 //throw new Exception( $strSummary . '===' . $rx . ':' . $cx );
@@ -172,7 +210,7 @@ class Parser extends Handler implements IStatus
         // ищем внутренние границы
         for ( $r = $rx; $r <= $row; $r++ ) {
             for ( $c = $cx; $c < $col; $c++ ) {
-                if ( $this->hasRightBorder($sheet, $r, $c) ) {
+                if ( $this->hasRightBorder($sheet, $c, $r) ) {
                     $summary['offset'] = $c - $cx + 1;                
                     return $summary;
                 }
@@ -402,6 +440,9 @@ class Parser extends Handler implements IStatus
     // Определяет границы таблицы, а так же ширину колонки для группы. Устанавливает глобальные переменные
     private function lookupTableGeometry(&$sheet)
     {        
+        //$tableStartsAtRow = $this->probeTable($sheet);
+        //$tableType = $this->getTableType($sheet, $tableStartsAtRow);
+        
         $this->iTableFirstRow = 0;
         // находим начало таблицы (обнаруживаем верхнюю границу)
         do {

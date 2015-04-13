@@ -10,6 +10,16 @@
     require 'TestParser.php';
     require_once $_SERVER['DOCUMENT_ROOT'] . '/app/lib/PHPExcel.php';
 
+/*
+    $inputFileName = $_SERVER['DOCUMENT_ROOT'] . '/examples/fei4_140213.xlsx';
+    $inputFileType = 'Excel2007';
+    $objReader = PHPExcel_IOFactory::createReader($inputFileType);
+    if ( !$objReader->canRead($inputFileName) ) throw new Exception('Unsupported file format');
+    $worksheetData = $objReader->listWorksheetInfo($inputFileName);
+    print_r($worksheetData);
+    exit;
+*/
+
     $parser = new Parser();
     $test = new TestParser($parser);
     try {

@@ -6,9 +6,9 @@
 
 <?
 
-    require_once $_SERVER['DOCUMENT_ROOT'] . '/app/bootstrap.php';
+    require_once $_SERVER['DOCUMENT_ROOT'] . 'app/bootstrap.php';
     require 'TestParser.php';
-    require_once $_SERVER['DOCUMENT_ROOT'] . '/app/lib/PHPExcel.php';
+    require_once $_SERVER['DOCUMENT_ROOT'] . 'app/lib/PHPExcel.php';
 
 /*
     $inputFileName = $_SERVER['DOCUMENT_ROOT'] . '/examples/fei4_140213.xlsx';

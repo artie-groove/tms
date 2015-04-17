@@ -39,37 +39,35 @@ class Parser extends Handler implements IStatus
     private $Section_end;// конец текущей секции
     private $Section_date_start;//начало данных для текущей секции
 
-    // Сносит все невидемые
-    private function Order_66($Sheat)
+    // === Препроцессинг таблицы
+    // удаляет все невидимые строки и столбцы, а также сносит плашки первой и второй недель
+    private function cleanupTable($sheet, $rx, &$w, &$h)
     {
-        /*
-        $name_max_col = $this->PHPExcel->getSheet($Sheat)->getHighestColumn();
+        // избавляемся от пустых столбцов
+        for ( $c = 0; $c < $w; $c++ )
+            if ( ! $sheet->getColumnDimensionByColumn($c)->getVisible() ) {
+                $sheet->removeColumnByIndex($c);
+                $w--;
+            }
+     
+        // избавляемся от пустых строк
+        for ( $r = $rx; $r < $rx + $h; $r++ )
+            if ( ! $sheet->getRowDimension($r)->getVisible() ) {
+                $sheet->removeRow($r);
+                $h--;
+            }
         
-        // Максимальный заюзанный столбец.
-        $coll_max = 0;
-
-        do {
-            $coll_max++;
-        } while($this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow($coll_max, 1)->getColumn() != $name_max_col);
-        
-        
-        $coll_max++;
-        */
-        
-        $killed = 0;
-        $i = 0;
-        
-
-        while($i < MAX_WIDTH - $killed)
+        // сносим плашки первой и второй недель
+        for ( $r = $rx + 1; $r < $rx + $h; $r++ )
         {
-            if($this->PHPExcel->getSheet()->getColumnDimensionByColumn($i)->getVisible() != "") {
-                $i++;
-            } else {
-                $this->PHPExcel->getSheet()->removeColumnByIndex($i);
-                $killed++;                
+            $cellColor = $sheet->getCellByColumnAndRow(1, $r)->getStyle()->getFill()->getStartColor()->getRGB();            
+            $currentCellIsNotWhite = $cellColor !== "FFFFFF";
+            $currentCellIsNotTransparent = $cellColor !== "000000";
+            if ( $currentCellIsNotWhite && $currentCellIsNotTransparent ) {       
+                $sheet->removeRow($r, 1);                
+                $h--;
             }
         }
-        //throw new Exception('removed ' . $killed);
     }
 
     // === Зондировать лист на предмет наличия таблицы
@@ -84,11 +82,9 @@ class Parser extends Handler implements IStatus
         return false;
     }
     
+    // === Определить тип таблицы
     private function getTableType($sheet, $bottomRow)
-    {
-        
-        //const tableTypes = array('Basic', 'BasicTutorials', 'BasicSession', 'PostalTutorials', 'PostalSession');
-        
+    {        
         $caption = '';
         for ( $r = 1; $r < $bottomRow; $r++ )
             for ( $c = 0; $c < self::MAX_WIDTH; $c++)
@@ -172,7 +168,7 @@ class Parser extends Handler implements IStatus
     // если обнаружена "дырка" - ныряем до упора: граница типа B
     // если нет - проходимся по строкам локации в поисках внутренней границы типа А
     // факт существования границы говорит о том, что у локации нарушена целостность
-    private function inspectLocation($sheet, $rx, $cx)
+    private function inspectLocation($sheet, $cx, $rx)
     {        
         $summary = array(               // выходные данные локации:
             'width' => '',              // ширина (в ячейках)
@@ -205,8 +201,6 @@ class Parser extends Handler implements IStatus
         $summary['height'] = $row - $rx;
         if ( ! empty($summary['offset']) ) return $summary;
         
-               
-        
         // ищем внутренние границы
         for ( $r = $rx; $r <= $row; $r++ ) {
             for ( $c = $cx; $c < $col; $c++ ) {
@@ -219,8 +213,8 @@ class Parser extends Handler implements IStatus
         return $summary;
     }
     
-    // Читает ячейку
-    private function extractLocation($sheet, $rx, $h, $cx, $w)
+    // === Читает ячейку
+    private function extractLocation($sheet, $cx, $w, $rx, $h)
     {
         // начальный столбец
         $row = $rx;
@@ -437,102 +431,94 @@ class Parser extends Handler implements IStatus
         return $offset;
     }
     
-    // Определяет границы таблицы, а так же ширину колонки для группы. Устанавливает глобальные переменные
-    private function lookupTableGeometry(&$sheet)
-    {        
-        //$tableStartsAtRow = $this->probeTable($sheet);
-        //$tableType = $this->getTableType($sheet, $tableStartsAtRow);
-        
-        $this->iTableFirstRow = 0;
-        // находим начало таблицы (обнаруживаем верхнюю границу)
-        do {
-            $currentCellHasNoBottomBorder = $sheet->getCellByColumnAndRow(0, $this->iTableFirstRow)->getStyle()->getBorders()->getBottom()->getBorderStyle() === "none";
-            $nextCellHasNoTopBorder = $sheet->getCellByColumnAndRow(0, $this->iTableFirstRow + 1)->getStyle()->getBorders()->getTop()->getBorderStyle() === "none";
-            $this->iTableFirstRow++;
-        }        
-        while ( $currentCellHasNoBottomBorder && $nextCellHasNoTopBorder );
-
-        //$this->iTableFirstRow++; // шагаем внутрь таблицы
-        
-        // ищем строку с датами (должна располагаться начиная со второго столбца)
-        // поиск производится по цвету: белый или бесцветный - это оно
-        $this->iDatesMatrixFirstRow = $this->iTableFirstRow + 1;
-        do { 
-            $currentCellIsNotWhite = $sheet->getCellByColumnAndRow(1, $this->iDatesMatrixFirstRow)->getStyle()->getFill()->getStartColor()->getRGB() !== "FFFFFF";
-            $currentCellIsNotTransparent = $sheet->getCellByColumnAndRow(1, $this->iDatesMatrixFirstRow)->getStyle()->getFill()->getStartColor()->getRGB() !== "000000";
-            $this->iDatesMatrixFirstRow++;
-        }
-        while ( $currentCellIsNotWhite && $currentCellIsNotTransparent );
-        $this->iDatesMatrixFirstRow--;
-
-        // ищем последнюю строку таблицы (обнаруживаем нижнюю границу)
-        // граница ловится на смене цвета фона в первом столбце на белый #FFFFFF или бесцветный #000000
-        $this->iFinalRow = $this->iDatesMatrixFirstRow;
-        do {
-            $currentCellIsNotWhite = $sheet->getCellByColumnAndRow(0, $this->iFinalRow)->getStyle()->getFill()->getStartColor()->getRGB() !== "FFFFFF";
-            $currentCellIsNotTransparent = $sheet->getCellByColumnAndRow(0, $this->iFinalRow)->getStyle()->getFill()->getStartColor()->getRGB() !== "000000";
-                        
-            // находим серую границу между первой и второй неделями и рубим эту строку
-            $nextRightCellIsNotWhite = $sheet->getCellByColumnAndRow(1, $this->iFinalRow + 1)->getStyle()->getFill()->getStartColor()->getRGB() !== "FFFFFF";
-            $nextRightCellIsNotTransparent = $sheet->getCellByColumnAndRow(1, $this->iFinalRow + 1)->getStyle()->getFill()->getStartColor()->getRGB() !== "000000";
-            
-            if ( $nextRightCellIsNotWhite && $nextRightCellIsNotTransparent ) {
-                //throw new Exception("Removed: " . ($this->iFinalRow + 1));
-                $sheet->removeRow($this->iFinalRow + 1, 1);                
-            }
-            else {
-                $this->iFinalRow++;
-            }
-            
-            //$this->iFinalRow++;
-        }
-        while ( $currentCellIsNotWhite && $currentCellIsNotTransparent );
-        $this->iFinalRow--;
-        
-        // ищем название группы в первой попавшейся ячейке
-        $groupTemplate = '/В[А-Я]{1,3}-(\d|\d{3})/u';
-        do {
-            $cellContent = trim($sheet->getCellByColumnAndRow($this->iDataFirstCol, $this->iTableFirstRow));
-            $this->iDataFirstCol++;
-        }
-        while ( !preg_match($groupTemplate, $cellContent) );
-        $this->iDataFirstCol--;
-
-        // рассчитываем ширину на группу по первой ячейке для группы
-        $c = $this->iDataFirstCol;
-        while ( true )
+    private function inspectTableGeometry($sheet, $rx)
+    {
+        $w = 1; // cols
+        $h = 0; // rows
+    
+        while ( $this->hasRightBorder($sheet, $w, $rx)
+             || $this->hasBottomBorder($sheet, $w, $rx)
+             || $this->hasRightBorder($sheet, $w-1, $rx)
+             || $this->hasBottomBorder($sheet, $w, $rx-1))
         {
-            $c++;
-            $this->iGroupWidth++;
-            $cellContent = trim($sheet->getCellByColumnAndRow($c + 1, $this->iTableFirstRow));
-            if ( !empty($cellContent) )
-                break;
+            $w++;    
         }
-
-        // узнаём правую границу таблицы (последний столбец)
-        $this->iTableLastCol = $this->iDataFirstCol;
-        do {
-            /*
-            $currentCellHasLeftBorder = $sheet->getCellByColumnAndRow($this->iTableLastCol, $this->iTableFirstRow)->getStyle()->getBorders()->getLeft()->getBorderStyle() !== "none";
-            $prevCellHasRightBorder = $sheet->getCellByColumnAndRow($this->iTableLastCol + 1, $this->iTableFirstRow)->getStyle()->getBorders()->getRight()->getBorderStyle() !== "none";            
-            */            
-            $currentCellHasRightBorder = $sheet->getCellByColumnAndRow($this->iTableLastCol + $this->iGroupWidth - 1, $this->iTableFirstRow)->getStyle()->getBorders()->getRight()->getBorderStyle() !== "none";            
-            $nextCellHasLeftBorder = $sheet->getCellByColumnAndRow($this->iTableLastCol + $this->iGroupWidth, $this->iTableFirstRow)->getStyle()->getBorders()->getLeft()->getBorderStyle() !== "none";
-            $this->iTableLastCol += $this->iGroupWidth;
+        $w--;
+        
+        $c = $w - 1;
+        while ( $this->hasRightBorder($sheet, $c, $rx+$h)
+             || $this->hasBottomBorder($sheet, $c, $rx+$h)
+             || $this->hasRightBorder($sheet, $c-1, $rx+$h)
+             || $this->hasBottomBorder($sheet, $c, $rx+$h-1))
+        {
+            $h++;
         }
-        while ( $currentCellHasRightBorder || $nextCellHasLeftBorder );
-        $this->iTableLastCol -= $this->iGroupWidth;
+        $h--;
+        return array('width' => $w, 'height' => $h);
     }
     
+    // === Проверить целостность границ таблицы
+    private function validateTable($sheet, $rx, $w, $h)
+    {
+        // проверяем правую границу
+        for ( $r = $rx; $r < $rx + $w; $r++ )
+        {
+            $hasBorder = $this->hasRightBorder($sheet, $w - 1, $r);
+            if ( ! $hasBorder ) return false;
+        }
+        
+        // проверяем нижнюю границу
+        for ( $c = 0; $c < $w; $c++ )
+        {
+            $hasBorder = $this->hasBottomBorder($sheet, $c, $rx + $h - 1);
+            if ( ! $hasBorder ) return false;
+        }
+        
+        return true;
+    }
+    
+    // Определяет границы таблицы, а так же ширину колонки для группы. Устанавливает глобальные переменные
+    private function establishTableParams(&$sheet, $rx)
+    {   
+        list ( $w, $h ) = array_values($this->inspectTableGeometry($sheet, $rx));
+        $valid = $this->validateTable($sheet, $rx, $w, $h);
+        //if ( ! $valid ) throw new Exception('Table is not valid');
+        $this->cleanupTable($sheet, $rx, $w, $h);
+        //throw new Exception('_');
+        // определяем ширину матрицы дат
+        $cdm = 1; // dates matrix first column
+        $dmw = $cdm; // dates matrix width
+        while ( trim($sheet->getCellByColumnAndRow($dmw + 1, $rx)) !== 'Часы' ) $dmw++;
+        
+        $cd = $cdm + $dmw + 1; // first data column
+        
+        // рассчитываем ширину на группу по первой ячейке для группы
+        $gw = 1;
+        $c = $cd;
+        while ( empty(trim($sheet->getCellByColumnAndRow($c + 1, $rx))) ) $c++;
+        $gw = $c - $cd + 1;
+        if ( ($w - $cd) % $gw !== 0 ) throw new Exception('Ширина групп должна быть равной');
+               
+        return array(
+            'width' => $w,
+            'height' => $h,
+            'datesMatrixFirstColumn' => $cdm,
+            'datesMatrixWidth' => $dmw,
+            'firstDataColumn' => $cd,
+            'groupWidth' => $gw
+        );
+    }
+             
+    
     // Распознавание групп. Объявляет глобальные переменные
-    private function group_init_d($Coll_Start, $Coll_End, $Row_Start, $Sheat, $Shirina_na_gruppu)
+    private function group_init_d($sheet, $Coll_Start, $Coll_End, $Row_Start, $Shirina_na_gruppu)
     {
         $gr_cl = 0;
 
         for ( $i = $Coll_Start; $i < $Coll_End; $i += $Shirina_na_gruppu )
         {
             
-            $groupName = trim($this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow($i, $Row_Start));            
+            $groupName = trim($sheet->getCellByColumnAndRow($i, $Row_Start));            
             $groupTemplate = '/В[А-Я]{1,3}-(\d|\d{3})/u';
             if ( !preg_match($groupTemplate, $groupName) )
                 throw new Exception('Incorrect group name: "' . $groupName . '"' . $i . ' ' . $gr_cl . ' ' . $Coll_End);
@@ -553,7 +539,8 @@ class Parser extends Handler implements IStatus
     // Устанавливает грани между днями недели.
     private function lookupDayLimitRowIndexes($sheet, $iDatesMatrixFirstRow, $iFinalRow)
     {        
-        $k = 0;        
+        $dayLimitRowIndexes = array();
+        $k = 0;
         for ( $i = $iDatesMatrixFirstRow; $i < $iFinalRow; $i++ )
         {
             $currentCellHasBottomBorder = $sheet->getCellByColumnAndRow(0, $i)->getStyle()->getBorders()->getBottom()->getBorderStyle() !== "none";
@@ -562,33 +549,37 @@ class Parser extends Handler implements IStatus
             // если наткнулись на границу
             if ( $currentCellHasBottomBorder || $nextCellHasTopBorder )
             {    
-                $this->dayLimitRowIndexes[$k] = $i + 1;
+                $dayLimitRowIndexes[$k] = $i + 1;
                 $k++;
             }
         }
+        return $dayLimitRowIndexes;
         //throw new Exception(implode(',', $this->dayLimitRowIndexes) . ' last row: ' . $this->iFinalRow);
     }
     
-    // Заполняет массив с датами
-    private function gatherDates($sheet, $iDataFirstColumn, $iTableFirstRow, $iDateMatrixFirstRow)
+    // === Заполняет массив с датами
+    // возвращает массив пар "месяц / даты"
+    // причём, даты хранятся в виде строки дат, разделённых вертикальным штрихом
+    private function gatherDates($sheet, $rx, $datesMatrixFirstColumn, $datesMatrixWidth, $dayLimitRowIndexes)
     {
-        for ( $k = 1; $k < $iDataFirstColumn - 1; $k++ )
+        for ( $m = $datesMatrixFirstColumn; $m < $datesMatrixFirstColumn + $datesMatrixWidth; $m++ )
         {
-            $this->dates_massiv[$k-1]["month"] = trim($sheet->getCellByColumnAndRow($k, $iTableFirstRow));
-            $this->dates_massiv[$k-1]["date"] = array();
+            $this->dates_massiv[$m-1]["month"] = trim($sheet->getCellByColumnAndRow($m, $rx));
+            $this->dates_massiv[$m-1]["date"] = array();
 
-            $i = $iDateMatrixFirstRow;
-            $n = count($this->dayLimitRowIndexes);
-            for ( $p = 0; $p < $n; $p++ )
+            $r = $rx + 1; // индекс строки
+            $nDays = count($dayLimitRowIndexes);
+            // для каждого дня недели заполняем соответствующий индекс массива dates
+            for ( $wd = 0; $wd < $nDays; $wd++ )
             {
-                $this->dates_massiv[$k-1]["date"][$p] = "";
-
-                for (; $i < $this->dayLimitRowIndexes[$p]; $i++)
+                $this->dates_massiv[$m-1]["date"][$wd] = "";
+                for (; $r < $dayLimitRowIndexes[$wd]; $r++)
                 {
-                    if (trim($sheet->getCellByColumnAndRow($k, $i)) != "")
-                        $this->dates_massiv[$k-1]["date"][$p] .= trim($sheet->getCellByColumnAndRow($k, $i))."|";
+                    $dateCellData = trim($sheet->getCellByColumnAndRow($m, $r));
+                    if ( empty($dateCellData) ) continue;
+                    $this->dates_massiv[$m-1]["date"][$wd] .= $dateCellData . '|';
                 }
-                $i = $this->dayLimitRowIndexes[$p];                
+                $r = $dayLimitRowIndexes[$wd];
             }
         }
     }
@@ -605,29 +596,35 @@ class Parser extends Handler implements IStatus
             $this->iTableFirstRow = 0;//начало таблицы
             $this->iFinalRow = 0;//за концом таблицы
             $this->iDatesMatrixFirstRow = 0;//начало данных
-            $this->Group = array();//массив с данными.
+            
             $this->iGroupWidth = 1;//Число ячеек, отведённых на одну группу.
             $this->dayLimitRowIndexes = false; //массив хранит границы дней недели
             $this->dates_massiv = false;
             
-            $this->Order_66($s);
-            $this->lookupTableGeometry($sheet);
-            $this->Group_init_d($this->iDataFirstCol, $this->iTableLastCol, $this->iTableFirstRow, $s, $this->iGroupWidth);
-            $this->lookupDayLimitRowIndexes($sheet, $this->iDatesMatrixFirstRow, $this->iFinalRow);
-            $this->gatherDates($sheet, $this->iDataFirstCol, $this->iTableFirstRow, $this->iDatesMatrixFirstRow);
+ 
+            $rx = $this->probeTable($sheet);
+            if ( ! $rx ) break;
+            
+            $this->Group = array();//массив с данными.
+            
+            //$tableType = $this->getTableType($sheet, $tableStartsAtRow);
+            $params = $this->establishTableParams($sheet, $rx);
+            //print_r($params);
+            list ( $width, $height, $datesMatrixFirstColumn, $datesMatrixWidth, $firstDataColumn, $groupWidth ) = array_values($params);
+            $this->Group_init_d($sheet, $firstDataColumn, $width, $rx, $groupWidth);
+            
+            
+            $dayLimitRowIndexes = $this->lookupDayLimitRowIndexes($sheet, $rx + 1, $rx + $height);
+            
+            $this->gatherDates($sheet, $rx, $datesMatrixFirstColumn, $datesMatrixWidth, $dayLimitRowIndexes);
 
-            for ( $i = $this->iDatesMatrixFirstRow; $i < $this->iFinalRow; $i++ )
+            
+            //throw new Exception('.');
+            
+            for ( $i = $rx + 1; $i < $rx + $height; $i++ )
             {
-                // пропускаем скрытые строки
-                if ( !$sheet->getRowDimension($i)->getVisible() )
-                    continue;
-
-                for( $k = $this->iDataFirstCol; $k < $this->iTableLastCol; $k++ )
-                {                        
-                    // пропускаем скрытые столбцы
-                    if ( !$sheet->getColumnDimension($k)->getVisible() )
-                        continue;
-
+                for( $k = $firstDataColumn; $k < $firstDataColumn + $width; $k++ )
+                {
                     $bLeft = $sheet->getCellByColumnAndRow($k, $i)->getStyle()->getBorders()->getLeft()->getBorderStyle() != "none";
                     $bRight = $sheet->getCellByColumnAndRow($k - 1, $i)->getStyle()->getBorders()->getRight()->getBorderStyle()!= "none";
                     $bTop = $sheet->getCellByColumnAndRow($k, $i)->getStyle()->getBorders()->getTop()->getBorderStyle() != "none";
@@ -637,13 +634,13 @@ class Parser extends Handler implements IStatus
                     if ( ( $bLeft || $bRight ) && ( $bTop || $bBottom ) )
                     {
                         if ( $sheet->getCellByColumnAndRow($k, $i) == '' ) continue;
-                        $layout = $this->inspectLocation($sheet, $i, $k);
+                        $layout = $this->inspectLocation($sheet, $k, $i);
                         $meetings = array();
                         if ( $layout['offset'] ) {
                             $w1 = $layout['offset'];
                             $w2 = $layout['width'] - $w1;
-                            $res1 = $this->extractLocation($sheet, $i, $layout['height'], $k, $w1);
-                            $res2 = $this->extractLocation($sheet, $i, $layout['height'], $k + $w1, $w2);
+                            $res1 = $this->extractLocation($sheet, $k, $w1, $i, $layout['height']);
+                            $res2 = $this->extractLocation($sheet, $k + $w1, $w2, $i, $layout['height']);
                             $basis = array('discipline', 'type', 'room', 'lecturer');
                             $areEqual = true;
                             foreach ( $basis as $el )
@@ -652,7 +649,7 @@ class Parser extends Handler implements IStatus
                                 foreach ( $basis as $el )
                                     if ( empty($res1[$el]) ) $res1[$el] = $res2[$el];
                                 $res1['comment'] = trim($res1['comment'] . ' ' . $res2['comment']);
-                                $this->postProcessLocationData($res1, $i);
+                                $this->postProcessLocationData($res1, $i, $dayLimitRowIndexes);
                                 $meetings[] = new Meeting();
                                 $meetings[0]->initFromArray($res1);
                             }
@@ -662,8 +659,8 @@ class Parser extends Handler implements IStatus
                                 echo var_dump($res2);
                                 throw new Exception();
                                 */
-                                $this->postProcessLocationData($res1, $i);
-                                $this->postProcessLocationData($res2, $i);
+                                $this->postProcessLocationData($res1, $i, $dayLimitRowIndexes);
+                                $this->postProcessLocationData($res2, $i, $dayLimitRowIndexes);
                                 $meetings[] = new Meeting();
                                 $meetings[] = new Meeting();
                                 $meetings[0]->initFromArray($res1);
@@ -672,8 +669,8 @@ class Parser extends Handler implements IStatus
                             }
                         }
                         else {
-                            $res = $this->extractLocation($sheet, $i, $layout['height'], $k, $layout['width']);
-                            $this->postProcessLocationData($res, $i);
+                            $res = $this->extractLocation($sheet, $k, $layout['width'], $i, $layout['height']);
+                            $this->postProcessLocationData($res, $i, $dayLimitRowIndexes);
                             $meetings[] = new Meeting();
                             $meetings[0]->initFromArray($res);
                         }
@@ -685,13 +682,13 @@ class Parser extends Handler implements IStatus
                         }
                         
                         // индекс текущей группы в массиве Group
-                        $gid = floor(($k - $this->iDataFirstCol) / $this->iGroupWidth);
+                        $gid = floor(($k - $firstDataColumn) / $groupWidth);
                                        
                         // номер пары
-                        $offset = $this->lookupLocationOffset($sheet, $this->iDataFirstCol, $i);
+                        $offset = $this->lookupLocationOffset($sheet, $firstDataColumn, $i);
 
                         // количество групп, задействованных в занятии
-                        $groupsCount = ceil($layout['width'] / $this->iGroupWidth);
+                        $groupsCount = ceil($layout['width'] / $groupWidth);
                         
                         if ( ! $groupsCount  ) throw new Exception(var_dump($meetings[0]));
 
@@ -750,7 +747,7 @@ class Parser extends Handler implements IStatus
     }
     
     // Пост-обработка данных, полученных из локации
-    private function postProcessLocationData(&$data, $rx) {
+    private function postProcessLocationData(&$data, $rx, $dayLimitRowIndexes) {
         // вырезаем двусмысленные эксплицитные указания времени занятия
         empty($data['comment']) ?: $data['comment'] = preg_replace('/(?:[Сс]\s*)?([012]?\d[.:][0-5]0)(?:\s*-\s*(?-1))?/u', '', $data['comment']);
         // ToDo: распознавать время и учитывать его в позиционировании занятия,
@@ -781,7 +778,7 @@ class Parser extends Handler implements IStatus
                     $f = 0;
 
                     // находим индекс текущего дня в таблице дат
-                    while ( $rx >= $this->dayLimitRowIndexes[$f] )
+                    while ( $rx >= $dayLimitRowIndexes[$f] )
                         $f++;
 
                     // даты для текущего дня
@@ -917,7 +914,7 @@ class Parser extends Handler implements IStatus
             $this->PHPExcel = PHPExcel_IOFactory::load($file_name);
             $this->type_stady = 0;
 
-            switch ($this->type_stady)
+            switch ( $this->type_stady )
             {
                 case 0:  $this->get_day_raspisanie(); break;//расписание дневное - фас!
                 case 1:  $this->get_day_raspisanie(); break;//распсиание вечернее - фас!
@@ -926,7 +923,7 @@ class Parser extends Handler implements IStatus
 
             return true;
         }
-        catch(Exception $e)
+        catch (Exception $e)
         {
             $this->setStatus('error', $e->getLine(), $e->getMessage());
             return false;

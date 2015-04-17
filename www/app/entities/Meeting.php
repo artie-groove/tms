@@ -48,6 +48,6 @@
         {
             $fields = array_keys(get_class_vars(__CLASS__));
             foreach ( $fields as $f )
-                $this->$f = $src[$f];
+                if ( array_key_exists($f, $src) ) $this->$f = $src[$f];
         }
     }

@@ -8,36 +8,21 @@
 
 class Parser extends Handler implements IStatus
 {
-    const MAX_PROBE_DEPTH = 15;
-    const MAX_WIDTH = 120;
+    const MAX_PROBE_DEPTH = 15; // количество строк при "прощупывании" верхней границы таблицы
+    const MAX_WIDTH = 120;      // максимальное количество столбцов, формирующих таблицу
+    
     //---------------------------------------------------------------------переменные общего назначения
-    private $objPHPExcel;
-    // Текущий лист
-    private $Sheat;
-    // Начало таблицы (непосредственно данных)
-    private $Coll_Start;
-    // За концом таблицы
-    private $Coll_End;
-    // Начало таблицы
-    private $Row_Start;
-    // За концом таблицы
-    private $Row_End;
-    // Начало данных
-    private $Row_Start_Date;
+    private $PHPExcel;
+    
     // Массив с данными
     private $Group;
-    // Число ячеек, отведённых на одну группу
-    private $Shirina_na_gruppu;
-    // Массив хранит границы дней недели
-    private $gani;
-    // Сохраняет названия месяцев и соответсвующие им дни
-    private $date_massiv;
-    // Форма обучения. 0 - дневная, 1 - вечерняя, 2-заочная.
-    public $Type_stady;
+   
+    /*
     //-----------------------------------------------------------------------Перемнные заочного распсиания
     private $Section_Start;// ширина текущей секции
     private $Section_end;// конец текущей секции
     private $Section_date_start;//начало данных для текущей секции
+    */
 
     // === Препроцессинг таблицы
     // удаляет все невидимые строки и столбцы, а также сносит плашки первой и второй недель
@@ -558,30 +543,40 @@ class Parser extends Handler implements IStatus
     }
     
     // === Заполняет массив с датами
-    // возвращает массив пар "месяц / даты"
-    // причём, даты хранятся в виде строки дат, разделённых вертикальным штрихом
+    // массив проиндексирован по каждому дню из таблицы
     private function gatherDates($sheet, $rx, $datesMatrixFirstColumn, $datesMatrixWidth, $dayLimitRowIndexes)
-    {
+    {        
+        $months = array(
+            'январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'
+        );
+        
+        $nDays = count($dayLimitRowIndexes);
+        $dates = array_fill(0, $nDays, '');
+        
         for ( $m = $datesMatrixFirstColumn; $m < $datesMatrixFirstColumn + $datesMatrixWidth; $m++ )
         {
-            $this->dates_massiv[$m-1]["month"] = trim($sheet->getCellByColumnAndRow($m, $rx));
-            $this->dates_massiv[$m-1]["date"] = array();
+            // вытащим название месяца строкой
+            $monthName = mb_strtolower(trim($sheet->getCellByColumnAndRow($m, $rx)));
+            // найдём числовое соответствие месяцу и запишем его в формате "ММ"
+            $month = sprintf('%02d', array_search($monthName, $months) + 1);
 
-            $r = $rx + 1; // индекс строки
-            $nDays = count($dayLimitRowIndexes);
+            $r = $rx + 1; // счётчик индекса строки
+            
             // для каждого дня недели заполняем соответствующий индекс массива dates
             for ( $wd = 0; $wd < $nDays; $wd++ )
             {
-                $this->dates_massiv[$m-1]["date"][$wd] = "";
                 for (; $r < $dayLimitRowIndexes[$wd]; $r++)
                 {
                     $dateCellData = trim($sheet->getCellByColumnAndRow($m, $r));
-                    if ( empty($dateCellData) ) continue;
-                    $this->dates_massiv[$m-1]["date"][$wd] .= $dateCellData . '|';
+                    if ( empty($dateCellData) ) continue; // пустые ячейки пропускаем
+                    $dates[$wd] .= "$dateCellData.$month,";
                 }
                 $r = $dayLimitRowIndexes[$wd];
             }
         }
+        // отрезаем запятые в конце каждой строки
+        foreach ( $dates as &$d ) $d = rtrim($d, ',');
+        return $dates;
     }
     
     // Анализирует дневное распсиание
@@ -616,7 +611,7 @@ class Parser extends Handler implements IStatus
             
             $dayLimitRowIndexes = $this->lookupDayLimitRowIndexes($sheet, $rx + 1, $rx + $height);
             
-            $this->gatherDates($sheet, $rx, $datesMatrixFirstColumn, $datesMatrixWidth, $dayLimitRowIndexes);
+            $dates = $this->gatherDates($sheet, $rx, $datesMatrixFirstColumn, $datesMatrixWidth, $dayLimitRowIndexes);
 
             
             //throw new Exception('.');
@@ -649,7 +644,7 @@ class Parser extends Handler implements IStatus
                                 foreach ( $basis as $el )
                                     if ( empty($res1[$el]) ) $res1[$el] = $res2[$el];
                                 $res1['comment'] = trim($res1['comment'] . ' ' . $res2['comment']);
-                                $this->postProcessLocationData($res1, $i, $dayLimitRowIndexes);
+                                $this->postProcessLocationData($res1, $i, $dayLimitRowIndexes, $dates);
                                 $meetings[] = new Meeting();
                                 $meetings[0]->initFromArray($res1);
                             }
@@ -659,8 +654,8 @@ class Parser extends Handler implements IStatus
                                 echo var_dump($res2);
                                 throw new Exception();
                                 */
-                                $this->postProcessLocationData($res1, $i, $dayLimitRowIndexes);
-                                $this->postProcessLocationData($res2, $i, $dayLimitRowIndexes);
+                                $this->postProcessLocationData($res1, $i, $dayLimitRowIndexes, $dates);
+                                $this->postProcessLocationData($res2, $i, $dayLimitRowIndexes, $dates);
                                 $meetings[] = new Meeting();
                                 $meetings[] = new Meeting();
                                 $meetings[0]->initFromArray($res1);
@@ -670,7 +665,7 @@ class Parser extends Handler implements IStatus
                         }
                         else {
                             $res = $this->extractLocation($sheet, $k, $layout['width'], $i, $layout['height']);
-                            $this->postProcessLocationData($res, $i, $dayLimitRowIndexes);
+                            $this->postProcessLocationData($res, $i, $dayLimitRowIndexes, $dates);
                             $meetings[] = new Meeting();
                             $meetings[0]->initFromArray($res);
                         }
@@ -709,37 +704,7 @@ class Parser extends Handler implements IStatus
                                 }
                         }                        
                      
-                        $k += $layout['width'] - 1;
-                        
-                        /*
-                            // если это вторая подгруппа
-                            if ( $groupsCount == 0
-                                && !is_int( ($k - $this->iDataFirstCol + $this->iGroupWidth) / $this->iGroupWidth) )
-                            {
-                                // Иногда случается так, что преподаватель, аудитория и тип занятия одинаковы
-                                // для двух подгрупп и указаны в самом низу половинчатой клетки в строке.
-                                // Эта строка занимает клетку по ширине полностью. Поэтому, вначале разбирается
-                                // одна часть клетки: дисциплина, даты + преподаватель и аудитория. Затем
-                                // другая: дисциплина, даты + тип занятия. После чего недостающие данные
-                                // взаимно переливаются из смежных занятий
-                                // 
-                                // Пример:
-                                // Математика        | Физика
-                                // 25.03, 14.04     | 18.03, 3.04
-                                //                  |
-                                // Габдулхакова        Б-401    пр.
-                                // 
-                                $n = count($this->Group[$gid]["Para"]) - 1;
-                                $prevMeeting = $this->Group[$gid]["Para"][$n];                           
-                                if ( $prevMeeting->offset >= $meeting->offset )
-                                    $this->crossFillItems($meeting, $prevMeeting);
-                                // но, опять же, если в предыдущем записана физ-ра (что тоже маловероятно, то функция захуярит туда тип занятия и аудиторию)       
-                            }
-                            if ( $groupsCount == 0 )
-                                    $groupsCount = 1;
-                            */
-
-                        
+                        $k += $layout['width'] - 1;                        
                     }
                 }
             }
@@ -747,7 +712,8 @@ class Parser extends Handler implements IStatus
     }
     
     // Пост-обработка данных, полученных из локации
-    private function postProcessLocationData(&$data, $rx, $dayLimitRowIndexes) {
+    private function postProcessLocationData(&$data, $rx, $dayLimitRowIndexes, $dates)
+    {
         // вырезаем двусмысленные эксплицитные указания времени занятия
         empty($data['comment']) ?: $data['comment'] = preg_replace('/(?:[Сс]\s*)?([012]?\d[.:][0-5]0)(?:\s*-\s*(?-1))?/u', '', $data['comment']);
         // ToDo: распознавать время и учитывать его в позиционировании занятия,
@@ -756,7 +722,6 @@ class Parser extends Handler implements IStatus
         // проверяем даты
         if ( empty($data['dates']) )
         {
-
             // анализируем даты, попавшие в комментарий
             $mc = array();                                
             // определяем цепочку с датами, если встречаются цифры, разделённые запятыми,
@@ -771,23 +736,14 @@ class Parser extends Handler implements IStatus
                 $data['dates'] = preg_replace('/\s/u', '', $mc[0][0]);
             }
             else // берём их из массива дат в самой таблице
-            {                
-                for ( $d = 0; $d < count($this->dates_massiv); $d++ )
-                {
-                    $moun = $this->Mesac_to_chislo($this->dates_massiv[$d]["month"]);
-                    $f = 0;
-
-                    // находим индекс текущего дня в таблице дат
-                    while ( $rx >= $dayLimitRowIndexes[$f] )
-                        $f++;
-
-                    // даты для текущего дня
-                    $dart = $this->dates_massiv[$d]["date"][$f];
-                    $dart = explode("|", $dart);
-
-                    for ( $l = 0; $l < count($dart) - 1; $l++ )
-                        $data['dates'] .= $dart[$l] . "." . $moun . ",";
-                }    
+            {         
+                $wd = 0;
+                
+                // находим индекс текущего дня в таблице дат
+                while ( $rx >= $dayLimitRowIndexes[$wd] )
+                    $wd++;
+                
+                $data['dates'] = $dates[$wd];                
             }
         }
     }
@@ -804,7 +760,9 @@ class Parser extends Handler implements IStatus
         $m2->comment = $comment;      
     }
     
-    //----------------------------------------------------------------------//Функции для заочного распсиания
+    /*
+    //----------------------------------------------------------------------
+    ////Функции для заочного распсиания
     private   function get_orientirs_z($Sheat)//определяет границы таблицы, а так же ширину колонки для группы.Устанавливает глобальные переменные.
     {
         $this->PHPExcel;
@@ -906,7 +864,7 @@ class Parser extends Handler implements IStatus
             }
         }
     }
-    
+    */
     ///////////////////////////////////////////
     public function parsing($file_name)
     {

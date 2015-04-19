@@ -1,31 +1,16 @@
 <?
-/*
- * Немного о коде - функцции с постфиксом _d подходят для работы с дневным и вечерним расписанием.
- * Многие функции используют глобальные переменные. Есл ифункция инициализирует глобальную переменную - 
- * то ряддом с её объявлением стоит соответсвующий коментарий.
- * 
- */
 
 class Parser extends Handler implements IStatus
 {
     const MAX_PROBE_DEPTH = 15; // количество строк при "прощупывании" верхней границы таблицы
     const MAX_WIDTH = 120;      // максимальное количество столбцов, формирующих таблицу
     
-    //---------------------------------------------------------------------переменные общего назначения
     private $PHPExcel;
     
-    // Массив с данными
-    private $Group;
-   
-    /*
-    //-----------------------------------------------------------------------Перемнные заочного распсиания
-    private $Section_Start;// ширина текущей секции
-    private $Section_end;// конец текущей секции
-    private $Section_date_start;//начало данных для текущей секции
-    */
 
     // === Препроцессинг таблицы
     // удаляет все невидимые строки и столбцы, а также сносит плашки первой и второй недель
+    
     private function cleanupTable($sheet, $rx, &$w, &$h)
     {
         // избавляемся от пустых столбцов
@@ -57,6 +42,7 @@ class Parser extends Handler implements IStatus
 
     // === Зондировать лист на предмет наличия таблицы
     // если найдена граница в верхней части листа, возвращает номер строки
+    
     private function probeTable($sheet)
     {
         for ( $r = 1; $r < self::MAX_PROBE_DEPTH; $r++ )
@@ -134,16 +120,28 @@ class Parser extends Handler implements IStatus
     }
 
     // === Проверить, есть ли правая граница
-    private function hasRightBorder($sheet, $cx, $rx) {
-        $currentCellHasRightBorder = $sheet->getCellByColumnAndRow($cx, $rx)->getStyle()->getBorders()->getRight()->getBorderStyle() !== "none";
-        $nextCellHasLeftBorder = $sheet->getCellByColumnAndRow($cx + 1, $rx)->getStyle()->getBorders()->getLeft()->getBorderStyle() !== "none";
+    
+    private function hasRightBorder($sheet, $cx, $rx)
+    {
+        $currentCellHasRightBorder = $sheet->getCellByColumnAndRow($cx, $rx)
+            ->getStyle()->getBorders()->getRight()->getBorderStyle() !== "none";
+        
+        $nextCellHasLeftBorder = $sheet->getCellByColumnAndRow($cx + 1, $rx)
+            ->getStyle()->getBorders()->getLeft()->getBorderStyle() !== "none";
+        
         return ( $currentCellHasRightBorder || $nextCellHasLeftBorder );
     }
     
     // === Проверить, есть ли нижняя граница
-    private function hasBottomBorder($sheet, $cx, $rx) {
-        $currentCellHasBottomBorder = $sheet->getCellByColumnAndRow($cx, $rx)->getStyle()->getBorders()->getBottom()->getBorderStyle() !== "none";
-        $nextCellHasTopBorder = $sheet->getCellByColumnAndRow($cx, $rx + 1)->getStyle()->getBorders()->getTop()->getBorderStyle() !== "none";
+    
+    private function hasBottomBorder($sheet, $cx, $rx)
+    {
+        $currentCellHasBottomBorder = $sheet->getCellByColumnAndRow($cx, $rx)
+            ->getStyle()->getBorders()->getBottom()->getBorderStyle() !== "none";
+        
+        $nextCellHasTopBorder = $sheet->getCellByColumnAndRow($cx, $rx + 1)
+            ->getStyle()->getBorders()->getTop()->getBorderStyle() !== "none";
+        
         return ( $currentCellHasBottomBorder || $nextCellHasTopBorder );
     }
     
@@ -153,6 +151,7 @@ class Parser extends Handler implements IStatus
     // если обнаружена "дырка" - ныряем до упора: граница типа B
     // если нет - проходимся по строкам локации в поисках внутренней границы типа А
     // факт существования границы говорит о том, что у локации нарушена целостность
+    
     private function inspectLocation($sheet, $cx, $rx)
     {        
         $summary = array(               // выходные данные локации:
@@ -177,9 +176,7 @@ class Parser extends Handler implements IStatus
                 while ( ! $this->hasRightBorder($sheet, $col, $row) ) $col++;
                 $summary['width'] = $col - $cx + 1;
                 while ( ! $this->hasBottomBorder($sheet, $col, $row) ) $row++;             
-                $summary['height'] = $row - $rx;
-                //$strSummary = var_dump($summary);
-                //throw new Exception( $strSummary . '===' . $rx . ':' . $cx );
+                $summary['height'] = $row - $rx; 
             }     
             $row++;
         }  
@@ -198,7 +195,9 @@ class Parser extends Handler implements IStatus
         return $summary;
     }
     
-    // === Читает ячейку
+    // === Прочесать локацию
+    // извлекает данные из локации и возвращает массивом 
+    
     private function extractLocation($sheet, $cx, $w, $rx, $h)
     {
         // начальный столбец
@@ -217,37 +216,27 @@ class Parser extends Handler implements IStatus
             'comment' => ''
         );
         
-        //throw new Exception("$rx:$cx:$w:$h");
-                
-        //$row = $rx - 1;
-        // Цикл по строкам
+        
         for ( $r = $rx; $r < $rx + $h; $r++ )
         {
-            //$row++;
-            //$col = $cx - 1;
-            // Цикл по столбцам
             for ( $c = $cx; $c < $cx + $w; $c++ )
             {
-                //$col++;
-                // Если ячейка не пуста
-                if ( trim($sheet->getCellByColumnAndRow($c, $r)) != "" )
-                {
-                    // Записываем значение ячейки
-                    $str = trim($sheet->getCellByColumnAndRow($c, $r));
+                $str = trim($sheet->getCellByColumnAndRow($c, $r));
+           
+                if ( ! empty($str) ) {
                     
                     // если текст помечен жирным, то это название дисциплины
-                    if ( $sheet->getCellByColumnAndRow($c, $r)->getStyle()->getFont()->getBold() == 1)
+                    if ( $sheet->getCellByColumnAndRow($c, $r)->getStyle()->getFont()->getBold() == 1 )
                     {
                         // кроме названия дисциплины в строке могут находиться и другие сведения
                         $matches = array();
-                        //if ( preg_match('@[А-я\s.,/()-]+@u', $str, $matches) !== false )
                         if ( preg_match('/((?:[А-я]+[\s.,\/-]{0,3})+)(?:\((?1)\))?/u', $str, $matches) !== false )
                         {   
                             // конкатенация для тех случаев, когда название дисциплины
                             // продолжается в следующей ячейке
                             $result['discipline'] .= $matches[0] . ' ';
                             $str = mb_substr($str, mb_strlen($matches[0]));
-                            $result['comment'] .= ' ' . $str;                            
+                            $result['comment'] .= ' ' . $str;                 
                         }                        
                     }
                     else
@@ -256,33 +245,27 @@ class Parser extends Handler implements IStatus
                         if ( preg_match("/(?:^|\s)((?:лаб|лек|пр)\s*\.?)/u", $str, $matches) )
                         {
                             $result['type'] = $matches[1];
-                            $str = str_replace($matches[1], "", $str);
-                            $str = trim($str);
+                            $str = str_replace($matches[1], '', $str);
                         }
                         
                         // ищем временные диапазоны (типа коментариев: с 18:30 или 13:00-16:00)
-                        // если этого не сделать, то эти данные могут быть интерпретированы как даты
-                        
+                        // если этого не сделать, то эти данные могут быть интерпретированы как даты                        
                         if ( preg_match("/(?:с\s+)?\d{1,2}\.\d\d\s*-\s*\d{1,2}\.\d\d/i", $str, $matches) )
                         {
-                            $result['comment'] .= " " . $matches[0];
-                            $str = str_replace($matches[0], "", $str);
-                            $str = trim($str);
+                            $result['comment'] .= ' ' . $matches[0];
+                            $str = str_replace($matches[0], '', $str);                           
                         }
                         
+                        /*
                         // поиск аудитории                        
                         if ( preg_match_all("/(?:(?:[АБВД]|БЛК)-\d{2,3}|ВПЗ|Гараж\s№\s?3)/u", $str, $matches, PREG_PATTERN_ORDER) )
                         {
-                            // Если совпадений больше 1
-                            if(count($matches[0]) > 1)
+                            // если совпадений больше единицы
+                            if ( count($matches[0]) > 1 )
                             {
                                 $result['room'] = $matches[0][0];
                                 $str = str_replace($matches[0][0], "", $str);
                                 $result['room'] = str_replace(" ", "", $result['room']);
-                                /* если больше одного дефиса
-                                preg_match("/-+/", $str, $mac);
-                                $result['room'] = str_replace($mac[0], "-", $result['room']);
-                                */
                                                                 
                                 // всё остальное - в комментарий
                                 for($i = 1; $i < count($matches[0]); $i++)
@@ -294,23 +277,26 @@ class Parser extends Handler implements IStatus
                             else
                             {
                                 $result['room'] = $matches[0][0];
-                                $result['room'] = str_replace(" ", "", $result['room']);
-                                /* если больше одного дефиса 
-                                preg_match("/-+/", $str, $mac);
-                                $result['room'] = str_replace($mac[0], "-", $result['room']);
-                                */
-                                $str = str_replace($matches[0][0], "", $str);
+                                $result['room'] = str_replace(" ", '', $result['room']);                                
+                                $str = str_replace($matches[0][0], '', $str);
                             }
                             $str = trim($str);
+                        }
+                        */
+                        
+                        // поиск аудитории                        
+                        if ( preg_match("/(?:(?:[АБВД]|БЛК)-\d{2,3}|ВПЗ|Гараж\s№\s?3)/u", $str, $matches) )
+                        {   
+                            $result['room'] = $matches[0];
+                            $str = str_replace($matches[0], '', $str);
                         }
                         
                         // поиск эксплицитных дат
                         //if ( preg_match('/(\d{1,2}\.\d{2}(?:,\s?|$))+/u', $str, $matches) )
                         if ( preg_match('/(?:([1-3]?\d\.[01]\d)(?:\s?(?=,),\s*|(?:(?!\1)|(?!))))+/u', $str, $matches) )
-                        {
-                            $result['dates'] = $matches[0];
+                        {   
+                            $result['dates'] = preg_replace('/\s/i', '', $matches[0]);
                             $str = str_replace($matches[0], "", $str);
-                            $str = trim($str);
                         }                                               
                         
                         // поиск преподавателя                        
@@ -318,59 +304,21 @@ class Parser extends Handler implements IStatus
                         {                            
                             $result['lecturer'] = $matches[0];
                             $str= str_replace($matches[0], '', $str);
-                            $str=trim($str);
                         }
-                        if(trim($str) != "")
-                            $result['comment'] .= $str . " ";
+                        
+                        $str = trim($str);
+                        if ( !empty($str) ) $result['comment'] .= $str . " ";
                     }
                 }
-            }
-            //while ($col < $cx + $width);
+            }        
         }
-        //while( !($sheet->getCellByColumnAndRow($col, $row)->getStyle()->getBorders()->getBottom()->getBorderStyle() != "none"
-            // || $sheet->getCellByColumnAndRow($col, $row + 1)->getStyle()->getBorders()->getTop()->getBorderStyle()  != "none"));
-        
-        //$result[6] = $row - $rx + 1;
-        //$result[7] = $col - $cx + 1;
-        //throw new Exception(var_dump($result));
         $result['comment'] = trim($result['comment']);
         $result['discipline'] = trim($result['discipline']);
         return $result;
     }
     
-    // Определяет, что за месяц передан в строке и возвращает его номер
-    private function Mesac_to_chislo($str)
-    {
-        $str = strtr($str, array("a" => "а",
-                                 "A" => "А",
-                                 "c" => "с",
-                                 "C" => "С",
-                                 "e" => "е",
-                                 "E" => "Е",
-                                 "o" => "о",
-                                 "O" => "О"));
-
-        $str = trim($str);
-        $str = mb_strtolower($str);
-
-        switch ($str)
-        {
-            case "январь":   return "1";
-            case "февраль":  return "2";
-            case "март":     return "3";
-            case "апрель":   return "4";
-            case "май":      return "5";
-            case "июнь":     return "6";
-            case "июль":     return "7";
-            case "август":   return "8";
-            case "сентябрь": return "9";
-            case "октябрь":  return "10";
-            case "ноябрь":   return "11";
-            case "декабрь":  return "12";
-        }
-    }
-    
     // === Получить номер пары
+    
     private function lookupLocationOffset($sheet, $cx, $rx)
     {
         $k = 0;
@@ -416,25 +364,25 @@ class Parser extends Handler implements IStatus
         return $offset;
     }
     
+    // === Определить размеры таблицы (ширину и высоту)
+    // таблица просматривается поячеечно вправо и вниз
+    // до тех пор, пока не встретится ячейка, лишённая границ
+    
     private function inspectTableGeometry($sheet, $rx)
     {
         $w = 1; // cols
         $h = 0; // rows
     
-        while ( $this->hasRightBorder($sheet, $w, $rx)
-             || $this->hasBottomBorder($sheet, $w, $rx)
-             || $this->hasRightBorder($sheet, $w-1, $rx)
-             || $this->hasBottomBorder($sheet, $w, $rx-1))
+        while ( $this->hasRightBorder($sheet, $w, $rx)      || $this->hasBottomBorder($sheet, $w, $rx) 
+             || $this->hasRightBorder($sheet, $w-1, $rx)    || $this->hasBottomBorder($sheet, $w, $rx-1))
         {
             $w++;    
         }
         $w--;
         
         $c = $w - 1;
-        while ( $this->hasRightBorder($sheet, $c, $rx+$h)
-             || $this->hasBottomBorder($sheet, $c, $rx+$h)
-             || $this->hasRightBorder($sheet, $c-1, $rx+$h)
-             || $this->hasBottomBorder($sheet, $c, $rx+$h-1))
+        while ( $this->hasRightBorder($sheet, $c, $rx+$h)   || $this->hasBottomBorder($sheet, $c, $rx+$h)
+             || $this->hasRightBorder($sheet, $c-1, $rx+$h) || $this->hasBottomBorder($sheet, $c, $rx+$h-1))
         {
             $h++;
         }
@@ -443,33 +391,33 @@ class Parser extends Handler implements IStatus
     }
     
     // === Проверить целостность границ таблицы
-    private function validateTable($sheet, $rx, $w, $h)
+
+    private function validateTableBorders($sheet, $rx, $w, $h)
     {
         // проверяем правую границу
-        for ( $r = $rx; $r < $rx + $w; $r++ )
-        {
-            $hasBorder = $this->hasRightBorder($sheet, $w - 1, $r);
-            if ( ! $hasBorder ) return false;
-        }
-        
+        for ( $r = $rx; $r < $rx + $w; $r++ )  
+            if ( ! $this->hasRightBorder($sheet, $w - 1, $r) )            
+                //throw new Exception('Нарушена целостность правой границы');   
+                return false;
+            
         // проверяем нижнюю границу
         for ( $c = 0; $c < $w; $c++ )
-        {
-            $hasBorder = $this->hasBottomBorder($sheet, $c, $rx + $h - 1);
-            if ( ! $hasBorder ) return false;
-        }
+            if ( ! $this->hasBottomBorder($sheet, $c, $rx + $h - 1) )
+                //throw new Exception('Нарушена целостность нижней границы');   
+                return false;
         
         return true;
     }
     
-    // Определяет границы таблицы, а так же ширину колонки для группы. Устанавливает глобальные переменные
+    // === Определить основные параметры таблицы
+    
     private function establishTableParams(&$sheet, $rx)
     {   
         list ( $w, $h ) = array_values($this->inspectTableGeometry($sheet, $rx));
-        $valid = $this->validateTable($sheet, $rx, $w, $h);
+        $valid = $this->validateTableBorders($sheet, $rx, $w, $h);
         //if ( ! $valid ) throw new Exception('Table is not valid');
         $this->cleanupTable($sheet, $rx, $w, $h);
-        //throw new Exception('_');
+        
         // определяем ширину матрицы дат
         $cdm = 1; // dates matrix first column
         $dmw = $cdm; // dates matrix width
@@ -495,55 +443,44 @@ class Parser extends Handler implements IStatus
     }
              
     
-    // Распознавание групп. Объявляет глобальные переменные
-    private function group_init_d($sheet, $Coll_Start, $Coll_End, $Row_Start, $Shirina_na_gruppu)
+    // === Распознать группы
+    
+    private function exploreGroups($sheet, $cx, $tableWidth, $rx, $groupWidth)
     {
-        $gr_cl = 0;
-
-        for ( $i = $Coll_Start; $i < $Coll_End; $i += $Shirina_na_gruppu )
-        {
+        $groups = array();
+        
+        for ( $c = $cx; $c < $tableWidth; $c += $groupWidth )
+        {   
+            $groupName = trim($sheet->getCellByColumnAndRow($c, $rx));            
             
-            $groupName = trim($sheet->getCellByColumnAndRow($i, $Row_Start));            
-            $groupTemplate = '/В[А-Я]{1,3}-(\d|\d{3})/u';
-            if ( !preg_match($groupTemplate, $groupName) )
-                throw new Exception('Incorrect group name: "' . $groupName . '"' . $i . ' ' . $gr_cl . ' ' . $Coll_End);
+            if ( !preg_match('/В[А-Я]{1,3}-(\d|\d{3})/u', $groupName) )
+                throw new Exception('Неверное название группы: "' . $groupName . '"');
             
-            $this->Group[$gr_cl]["NameGroup"] = $groupName;
-            /*
-            $this->Group[$gr_cl]["NameGroup"] = str_replace(" ", "", $this->Group[$gr_cl]["NameGroup"]);
-            preg_match("/-+/ui", $this->Group[$gr_cl]["NameGroup"], $matches);
-
-            if(count($matches) > 0)
-                $this->Group[$gr_cl]["NameGroup"] =  str_replace($matches[0], "-", $this->Group[$gr_cl]["NameGroup"]);
-            */
-            $this->Group[$gr_cl]["Para"] = array();
-            $gr_cl++;
-        }
+            $groups[] = $groupName;   
+        }        
+        return $groups;
     }
     
-    // Устанавливает грани между днями недели.
+    // === Определить индексы разделителей дней недели
+    
     private function lookupDayLimitRowIndexes($sheet, $iDatesMatrixFirstRow, $iFinalRow)
     {        
         $dayLimitRowIndexes = array();
         $k = 0;
         for ( $i = $iDatesMatrixFirstRow; $i < $iFinalRow; $i++ )
-        {
-            $currentCellHasBottomBorder = $sheet->getCellByColumnAndRow(0, $i)->getStyle()->getBorders()->getBottom()->getBorderStyle() !== "none";
-            $nextCellHasTopBorder = $sheet->getCellByColumnAndRow(0, $i + 1)->getStyle()->getBorders()->getTop()->getBorderStyle() !== "none";
-            
+        {   
             // если наткнулись на границу
-            if ( $currentCellHasBottomBorder || $nextCellHasTopBorder )
-            {    
+            if ( $this->hasBottomBorder($sheet, 0, $i) ) {    
                 $dayLimitRowIndexes[$k] = $i + 1;
                 $k++;
             }
         }
         return $dayLimitRowIndexes;
-        //throw new Exception(implode(',', $this->dayLimitRowIndexes) . ' last row: ' . $this->iFinalRow);
     }
     
-    // === Заполняет массив с датами
+    // === Заполнить массив с датами
     // массив проиндексирован по каждому дню из таблицы
+    
     private function gatherDates($sheet, $rx, $datesMatrixFirstColumn, $datesMatrixWidth, $dayLimitRowIndexes)
     {        
         $months = array(
@@ -582,39 +519,22 @@ class Parser extends Handler implements IStatus
     // Анализирует дневное распсиание
     private function get_day_raspisanie()
     {        
+        $storage = array();
         $sheetsTotal = $this->PHPExcel->getSheetCount();
         for ( $s = 0; $s < $sheetsTotal; $s++ )
         {
             $sheet = $this->PHPExcel->getSheet($s);
-            $this->iDataFirstCol = 1;//начало таблицы (непосредственно данных)
-            $this->iTableLastCol = 1;//за концом таблицы
-            $this->iTableFirstRow = 0;//начало таблицы
-            $this->iFinalRow = 0;//за концом таблицы
-            $this->iDatesMatrixFirstRow = 0;//начало данных
-            
-            $this->iGroupWidth = 1;//Число ячеек, отведённых на одну группу.
-            $this->dayLimitRowIndexes = false; //массив хранит границы дней недели
-            $this->dates_massiv = false;
-            
  
             $rx = $this->probeTable($sheet);
             if ( ! $rx ) break;
             
-            $this->Group = array();//массив с данными.
-            
             //$tableType = $this->getTableType($sheet, $tableStartsAtRow);
             $params = $this->establishTableParams($sheet, $rx);
-            //print_r($params);
-            list ( $width, $height, $datesMatrixFirstColumn, $datesMatrixWidth, $firstDataColumn, $groupWidth ) = array_values($params);
-            $this->Group_init_d($sheet, $firstDataColumn, $width, $rx, $groupWidth);
-            
-            
-            $dayLimitRowIndexes = $this->lookupDayLimitRowIndexes($sheet, $rx + 1, $rx + $height);
-            
-            $dates = $this->gatherDates($sheet, $rx, $datesMatrixFirstColumn, $datesMatrixWidth, $dayLimitRowIndexes);
 
-            
-            //throw new Exception('.');
+            list ( $width, $height, $datesMatrixFirstColumn, $datesMatrixWidth, $firstDataColumn, $groupWidth ) = array_values($params);
+            $groups = $this->exploreGroups($sheet, $firstDataColumn, $width, $rx, $groupWidth);            
+            $dayLimitRowIndexes = $this->lookupDayLimitRowIndexes($sheet, $rx + 1, $rx + $height);            
+            $dates = $this->gatherDates($sheet, $rx, $datesMatrixFirstColumn, $datesMatrixWidth, $dayLimitRowIndexes);
             
             for ( $i = $rx + 1; $i < $rx + $height; $i++ )
             {
@@ -648,12 +568,7 @@ class Parser extends Handler implements IStatus
                                 $meetings[] = new Meeting();
                                 $meetings[0]->initFromArray($res1);
                             }
-                            else {
-                                /*
-                                echo var_dump($res1);
-                                echo var_dump($res2);
-                                throw new Exception();
-                                */
+                            else {                                
                                 $this->postProcessLocationData($res1, $i, $dayLimitRowIndexes, $dates);
                                 $this->postProcessLocationData($res2, $i, $dayLimitRowIndexes, $dates);
                                 $meetings[] = new Meeting();
@@ -669,7 +584,6 @@ class Parser extends Handler implements IStatus
                             $meetings[] = new Meeting();
                             $meetings[0]->initFromArray($res);
                         }
-                        
                         
                         if ( empty($meetings[0]->discipline) ) {
                             $k += $layout['width'] - 1;
@@ -699,8 +613,8 @@ class Parser extends Handler implements IStatus
                                     $m = new Meeting();
                                     $m->copyFrom($meeting);
                                     $m->offset += $z;
-                                    $m->group = $this->Group[$gid + $g]["NameGroup"];
-                                    array_push($this->Group[$gid + $g]["Para"], $m);
+                                    $m->group = $groups[$gid + $g];
+                                    $storage[] = $m;
                                 }
                         }                        
                      
@@ -709,6 +623,7 @@ class Parser extends Handler implements IStatus
                 }
             }
         }
+        return $storage;
     }
     
     // Пост-обработка данных, полученных из локации
@@ -760,156 +675,17 @@ class Parser extends Handler implements IStatus
         $m2->comment = $comment;      
     }
     
-    /*
-    //----------------------------------------------------------------------
-    ////Функции для заочного распсиания
-    private   function get_orientirs_z($Sheat)//определяет границы таблицы, а так же ширину колонки для группы.Устанавливает глобальные переменные.
-    {
-        $this->PHPExcel;
-        $this->iDataFirstCol;//начало таблицы (непосредственно данных)//инициализирует
-        $this->iTableLastCol;//за концом таблицы//инициализирует
-        $this->iTableFirstRow;//начало таблицы//инициализирует
-        $this->iFinalRow;//за концом таблицы//инициализирует
-        $this->iDatesMatrixFirstRow;//начало данных//инициализирует
-        $this->iGroupWidth;//инициализирует
-
-        while($this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $this->iTableFirstRow)->getStyle()->getBorders()->getBottom()->getBorderStyle() === "none"
-           && $this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $this->iTableFirstRow+1)->getStyle()->getBorders()->getTop()->getBorderStyle()  === "none") {
-            $this->iTableFirstRow++;
-        }
-
-        $this->iTableFirstRow++;
-        $this->iDatesMatrixFirstRow = $this->iTableFirstRow + 1;
-
-        while($this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $this->iDatesMatrixFirstRow)->getStyle()->getFill()->getStartColor()->getRGB() !== "FFFFFF"
-           && $this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow(1, $this->iDatesMatrixFirstRow)->getStyle()->getFill()->getStartColor()->getRGB() !== "000000") {
-            $this->iDatesMatrixFirstRow++;
-        }
-
-        $this->iFinalRow = $this->iDatesMatrixFirstRow;
-
-        while($this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $this->iFinalRow)->getStyle()->getFill()->getStartColor()->getRGB() !== "FFFFFF"
-           && $this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow(0, $this->iFinalRow)->getStyle()->getFill()->getStartColor()->getRGB() !== "000000") {
-            $this->iFinalRow++;
-        }
-
-        while (!preg_match("/[А-Яа-я]+( )*-( )*\d\d\d/", trim($this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow($this->iDataFirstCol, $this->iTableFirstRow)))) {
-            $this->iDataFirstCol++;
-        }
-
-        $count_z = 0;
-        $coll = $this->iDataFirstCol;
-
-        while($count_z < 1)//рассчитываем ширину на группу по первой ячейке для группы.
-        {
-            $coll++;
-            $this->iGroupWidth++;
-            if(trim($this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow($coll+1, $this->iTableFirstRow)) != "")
-                $count_z++;
-        }
-
-        $this->iTableLastCol = $this->iDataFirstCol;
-        while($this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow($this->iTableLastCol, $this->iTableFirstRow+1)->getStyle()->getFill()->getStartColor()->getRGB() !== "FFFFFF"
-           && $this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow($this->iTableLastCol, $this->iTableFirstRow+1)->getStyle()->getFill()->getStartColor()->getRGB() !== "000000") {
-            $this->iTableLastCol++;
-        }
-    }
-
-    private   function get_section_end($Sheat, $old_end)// находит границу секции. Принимает последнюю обнаруженную границу
-    {
-        $this->PHPExcel;
-        $this->iTableFirstRow;
-        $this->iTableLastCol;
-        $this->Section_Start;//Утсанавливает значение
-        $this->Section_end;//устанавливает значение
-        $this->Section_date_start;//устанавливается значение
-        $this->Section_Start = $old_end;
-        $this->Section_end = $old_end + 1;
-
-        while(preg_match("/дни/iu", $this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow($this->Section_end, $this->iTableFirstRow)) == 0
-            &&($this->Section_end<$this->iTableLastCol)) {
-            $this->Section_end++;
-        }
-
-        $this->Section_date_start = $this->Section_Start;
-
-        while (!preg_match("/[А-Яа-я]+( )*-( )*\d\d\d/", trim($this->PHPExcel->getSheet($Sheat)->getCellByColumnAndRow($this->Section_date_start, $this->iTableFirstRow)))) {
-            $this->Section_date_start++;
-        }
-    }
-    
-    private   function get_mounday_z($Row_Start_Date, $Section_Start, $Row_End, $Sheet)
-    {
-        $this->dates_massiv;//инициализируется, предварительно обнуляется.
-        $this->dayLimitRowIndexes;
-        $this->PHPExcel;
-        $this->dates_massiv = false;
-        $this->dates_massiv[0]["month"] = false;
-        for($i = $Row_Start_Date; $i < $Row_End; $i++)
-        {
-            if(trim($this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($Section_Start+1, $i)) != "")
-            {
-                $k=-1;
-                for($k = 0; $k < count($this->dayLimitRowIndexes); $k++)
-                {
-                    if($this->dayLimitRowIndexes[$k] > $i)
-                        break;
-                }
-
-                if(isset($this->dates_massiv[0]["month"][$k])) {
-                    $this->dates_massiv[0]["month"][$k] .= trim($this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($Section_Start+1, $i));
-                } else {
-                    $this->dates_massiv[0]["date"][$k] = trim($this->PHPExcel->getSheet($Sheet)->getCellByColumnAndRow($Section_Start+1, $i));
-                }
-            }
-        }
-    }
-    */
-    ///////////////////////////////////////////
-    public function parsing($file_name)
+    public function parse($file_name)
     {
         try {
             $this->PHPExcel = PHPExcel_IOFactory::load($file_name);
-            $this->type_stady = 0;
-
-            switch ( $this->type_stady )
-            {
-                case 0:  $this->get_day_raspisanie(); break;//расписание дневное - фас!
-                case 1:  $this->get_day_raspisanie(); break;//распсиание вечернее - фас!
-                default: return false;
-            }
-
-            return true;
+            return $this->get_day_raspisanie();
         }
         catch (Exception $e)
         {
             $this->setStatus('error', $e->getLine(), $e->getMessage());
             return false;
         }
-
     }
     
-    public function getParseData()
-    {
-        try {
-            $par_date = array();
-
-            for ($i = 0; $i < count($this->Group); $i++) {
-                //foreach ( $this->Group[$i]["Para"] as $m ) if ( ($m->lecturer === "Хаирова") && ($m->offset === 1) ) throw new Exception(implode('&bull;', (array)$m));
-              
-                
-                $par_date = array_merge($par_date, $this->Group[$i]["Para"]);
-            }
-
-            $this->setStatus("OK", "Парсинг прошёл успешно.");
-            return $par_date;
-        }
-        catch (Exception $e)
-        {
-            throw $e;
-            $this->setStatus("Error", "Парсинг провалился: что-то пошло не так.");
-            return false;
-        }
-    }
 }
-?>

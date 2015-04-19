@@ -25,7 +25,7 @@
     try {
         $allTestsPassed = $test->run();
     }
-    catch(Exception $e)
+    catch ( Exception $e )
     {
         respond('error', $e->getMessage());
     }

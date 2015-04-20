@@ -15,11 +15,13 @@ class Parser extends Handler implements IStatus
     {
         // избавляемся от пустых столбцов
         for ( $c = 0; $c < $w; $c++ )
+        {
             if ( ! $sheet->getColumnDimensionByColumn($c)->getVisible() ) {
                 $sheet->removeColumnByIndex($c);
                 $w--;
             }
-     
+        }
+        
         // избавляемся от пустых строк
         for ( $r = $rx; $r < $rx + $h; $r++ )
             if ( ! $sheet->getRowDimension($r)->getVisible() ) {
@@ -182,10 +184,11 @@ class Parser extends Handler implements IStatus
         }  
         $summary['height'] = $row - $rx;
         if ( ! empty($summary['offset']) ) return $summary;
+        if ( $summary['height'] === 1 ) throw new Exception("Некорректная локация близ ячейки $col:$row");
         
         // ищем внутренние границы
-        for ( $r = $rx; $r <= $row; $r++ ) {
-            for ( $c = $cx; $c < $col; $c++ ) {
+        for ( $r = $rx + 1; $r <= $row; $r++ ) {
+            for ( $c = $cx; $c < $col; $c++ ) {                
                 if ( $this->hasRightBorder($sheet, $c, $r) ) {
                     $summary['offset'] = $c - $cx + 1;                
                     return $summary;
@@ -230,7 +233,7 @@ class Parser extends Handler implements IStatus
                     {
                         // кроме названия дисциплины в строке могут находиться и другие сведения
                         $matches = array();
-                        if ( preg_match('/((?:[А-я]+[\s.,\/-]{0,3})+)(?:\((?1)\))?/u', $str, $matches) !== false )
+                        if ( preg_match('/((?:[А-яA-Z]+[\s.,\/-]{0,3})+)(?:\((?1)\))?/u', $str, $matches) !== false )
                         {   
                             // конкатенация для тех случаев, когда название дисциплины
                             // продолжается в следующей ячейке
@@ -285,9 +288,9 @@ class Parser extends Handler implements IStatus
                         */
                         
                         // поиск аудитории                        
-                        if ( preg_match("/(?:(?:[АБВД]|БЛК)-\d{2,3}|ВПЗ|Гараж\s№\s?3)/u", $str, $matches) )
+                        if ( preg_match("/((?:[АБВД]|БЛК)-\d{2,3}|ВПЗ|Гараж\s№3)(?:\s|$|,)/u", $str, $matches) )
                         {   
-                            $result['room'] = $matches[0];
+                            $result['room'] = $matches[1];
                             $str = str_replace($matches[0], '', $str);
                         }
                         
@@ -423,6 +426,8 @@ class Parser extends Handler implements IStatus
         $dmw = $cdm; // dates matrix width
         while ( trim($sheet->getCellByColumnAndRow($dmw + 1, $rx)) !== 'Часы' ) $dmw++;
         
+        if ( $dmw > 5 ) throw new Exception("Некорректное количество столбцов в календаре. Удалите все скрытые столбцы");
+        
         $cd = $cdm + $dmw + 1; // first data column
         
         // рассчитываем ширину на группу по первой ячейке для группы
@@ -525,12 +530,13 @@ class Parser extends Handler implements IStatus
         {
             $sheet = $this->PHPExcel->getSheet($s);
  
-            $rx = $this->probeTable($sheet);
+            $rx = $this->probeTable($sheet);            
             if ( ! $rx ) break;
+            
             
             //$tableType = $this->getTableType($sheet, $tableStartsAtRow);
             $params = $this->establishTableParams($sheet, $rx);
-
+            
             list ( $width, $height, $datesMatrixFirstColumn, $datesMatrixWidth, $firstDataColumn, $groupWidth ) = array_values($params);
             $groups = $this->exploreGroups($sheet, $firstDataColumn, $width, $rx, $groupWidth);            
             $dayLimitRowIndexes = $this->lookupDayLimitRowIndexes($sheet, $rx + 1, $rx + $height);            
@@ -677,15 +683,19 @@ class Parser extends Handler implements IStatus
     
     public function parse($file_name)
     {
+        $this->PHPExcel = PHPExcel_IOFactory::load($file_name);
+        return $this->get_day_raspisanie();
+        /*
         try {
             $this->PHPExcel = PHPExcel_IOFactory::load($file_name);
             return $this->get_day_raspisanie();
         }
         catch (Exception $e)
         {
-            $this->setStatus('error', $e->getLine(), $e->getMessage());
+            $this->setStatus('error', $e->getLine(), $e);
             return false;
         }
+        */
     }
     
 }

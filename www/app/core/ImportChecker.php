@@ -39,6 +39,7 @@ class ImportChecker extends Handler implements IStatus {
                 OR t.id_discipline IS NULL
                 OR t.id_room IS NULL
                 OR t.id_lecturer IS NULL
+                OR t.type IS NULL
             GROUP BY t.id_discipline, t.id_group, t.id_lecturer, t.id_room, t.offset, t.type 
             ORDER BY t.`date`";
         

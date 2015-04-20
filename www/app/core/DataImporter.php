@@ -2,7 +2,7 @@
 
 class DataImporter extends Handler implements IStatus
 {
-    public function import($par_mass, $Type_stady, $DisciplineMatcher)//Запись в базу данных массива
+    public function import($par_mass, $DisciplineMatcher)//Запись в базу данных массива
     {
         try
         {
@@ -15,12 +15,10 @@ class DataImporter extends Handler implements IStatus
             $insert = 0;
             
             $logfile = $_SERVER['DOCUMENT_ROOT'] . '/punctuation.log';
-            unlink($logfile);      
+            if ( file_exists($logfile) ) unlink($logfile);      
             
             for($i = 0; $i < count($par_mass); $i++)
             {
-                //if ( ($par_mass[$i]->lecturer === "Хаирова") && ( strpos($par_mass[$i]->comment, '10.00-') !== false) && ($par_mass[$i]->offset === 1)) throw new Exception("Fuck! " . implode("&bull;", (array)$par_mass[$i]) . ' and ' . implode("&bull;", (array)$par_mass[$i-1]));
-                
                 $group_id = 0;
                 if (trim($par_mass[$i]->group) != "")
                 {
@@ -32,6 +30,8 @@ class DataImporter extends Handler implements IStatus
                     {
                         preg_match("/\d/", $par_mass[$i]->group, $mach);
                         $form_stady = "";
+                        $form_stady = "FULLTIME";
+                        /*
                         switch ($Type_stady)
                         {
                             case 0: $form_stady = "FULLTIME";   break;
@@ -39,6 +39,7 @@ class DataImporter extends Handler implements IStatus
                             case 2: $form_stady = "EXTRAMURAL"; break;
                             case 3: $form_stady = "SECOND";     break;
                         }
+                        */
 
                         $res = $dbh->prepare("INSERT INTO groups (name,year,form) VALUES (?, ?, ?)");
                         $res->execute(array($par_mass[$i]->group, $mach[0], $form_stady));
@@ -54,17 +55,15 @@ class DataImporter extends Handler implements IStatus
                 $par_mass[$i]->lecturer=trim($par_mass[$i]->lecturer);
                 if($par_mass[$i]->lecturer != "")
                 {
-                    //if ( (strpos($par_mass[$i]->lecturer, 'Перевалова') !== false) && ( $par_mass[$i]->room === 'Б-207' ) ) throw new Exception('Fuck: ' . implode('&bull;', (array)$par_mass[$i]) . '  id => ' . $prepod_id);
-                    $inicial = array();
-                    if (preg_match_all("/[А-Я]\./u", $par_mass[$i]->lecturer, $matches, PREG_PATTERN_ORDER) > 0)
+                    $inicial = array_fill(0, 2, '');
+                    if ( preg_match_all("/[А-Я]\./u", $par_mass[$i]->lecturer, $matches, PREG_PATTERN_ORDER) )
                     {
                         $surname = $par_mass[$i]->lecturer;
-                        for ( $l = 0; $l < count($matches[0]); $l++ )
-                        {                            
-                            $inicial[$l] = trim(rtrim($matches[0][$l], '.'));                            
-                            $surname = trim(str_replace($matches[0][$l], "", $surname));
+                        $n = count($matches[0]); // один или два инициала                        
+                        for ( $l = 0; $l < $n; $l++ ) {                            
+                            $inicial[$l] = rtrim($matches[0][$l], '.');
+                            $surname = trim(str_replace($matches[0][$l], '', $surname));
                         }
-                        
 
                         $query = "
                             SELECT id, surname, name, patronymic
@@ -94,8 +93,7 @@ class DataImporter extends Handler implements IStatus
                 if($par_mass[$i]->discipline != "")
                 {
 					$par_mass[$i]->discipline = trim($par_mass[$i]->discipline);
-					//$par_mass[$i]->discipline = str_replace('ё', 'е', $par_mass[$i]->discipline);
-                    $par_mass[$i]->discipline = str_replace('/', '.', $par_mass[$i]->discipline);
+                    //$par_mass[$i]->discipline = str_replace('/', '.', $par_mass[$i]->discipline);
                     
 // 					preg_match("/\S/ui", $par_mass[$i]->discipline, $mc);
                     
@@ -124,13 +122,16 @@ class DataImporter extends Handler implements IStatus
                             // корректируем типографику
                             $mc = preg_replace('/(\.|\.?,)(?![\s-,)]|$)/u', '$1 ', $mc);
                             
-                            // вставляем подстановочный знак % вместо точек и дефисов
-                            $mc = preg_replace('/[\.-]/u', '%', $mc);
+                            // вставляем подстановочный знак % вместо точек, дефисов и слэшей
+                            $mc = preg_replace('/[\.\/-]/u', '%', $mc);
                             
                             // разбиваем аббервиатуры
-                            $mc = preg_replace('/([А-Я])(?=[А-Я,\s]|$)/u', '$1%', $mc);
+                            $mc = preg_replace('/([A-ZА-Я])(?=[A-ZА-Я,\s]|$)/u', '$1%', $mc);
                             
-                            $query = "SELECT id, name FROM disciplines WHERE name LIKE '" . $mc . "'";
+                            // вычленяем союзы из аббревиатур (например, союз "и" в аббревиатуре "ИСПиУ")
+                            $mc = preg_replace('/(?<=[А-Я])([а-я])(?=[А-Я])/u', '% $1 ', $mc);
+                            
+                            $query = "SELECT id, name FROM disciplines WHERE name LIKE '" . $mc . "' ORDER BY CHAR_LENGTH(name) ASC";
                             $res = $dbh->query($query);                 
 							$data = $res->fetch(PDO::FETCH_ASSOC);
                             

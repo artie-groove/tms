@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Хост: localhost
--- Время создания: Апр 03 2015 г., 13:32
+-- Время создания: Апр 20 2015 г., 17:12
 -- Версия сервера: 5.0.77-community-nt
 -- Версия PHP: 5.4.34
 
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS `corp_members` (
   `uptm` varchar(30) character set cp1251 collate cp1251_bin default NULL,
   PRIMARY KEY  (`member_id`),
   KEY `login` (`login`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=556 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=560 ;
 
 --
 -- Дамп данных таблицы `corp_members`
@@ -420,7 +420,11 @@ INSERT INTO `corp_members` (`member_id`, `login`, `password`, `subdivision_id`, 
 (552, 'KrutikovaAnastasiyaAlekseevna', '9132baf2fcf77071c0a626a6556f1d91', 21, 'Крутикова', 'Анастасия', 'Алексеевна', 'ассистент', '', 0, 0, '0', '', '', '', 'н/д', '', 'н/д', '', '@volpi.ru', 238585840, '1427895946', '1427895946'),
 (553, 'TihankinGennadijAleksandrovich', '624773e186fa054195cbcf77e23ccf4e', 21, 'Тиханкин', 'Геннадий', 'Александрович', 'доцент', '', 0, 0, '0', '', '', '', 'н/д', '', 'н/д', '', '@volpi.ru', 238585840, '1427898217', '1427898217'),
 (554, 'FedotovEvgenijVladimirovich', '59f2caf90b3990b776eee19752daf1aa', 21, 'Федотов', 'Евгений', 'Владимирович', 'доцент', '', 0, 0, '0', '', '', '', 'н/д', '', 'н/д', '', '@volpi.ru', 238585840, '1427898253', '1427898253'),
-(555, 'CHebotarevBorisNikolaevich', 'c9c1a4491de03e83b1b2aaeda80c582d', 17, 'Чеботарёв', 'Борис', 'Николаевич', 'доцент', '', 0, 0, '0', '', '', '', 'н/д', '', 'н/д', '', '@volpi.ru', 238585840, '1428057133', '1428057133');
+(555, 'CHebotarevBorisNikolaevich', 'c9c1a4491de03e83b1b2aaeda80c582d', 17, 'Чеботарёв', 'Борис', 'Николаевич', 'доцент', '', 0, 0, '0', '', '', '', 'н/д', '', 'н/д', '', '@volpi.ru', 238585840, '1428057133', '1428057133'),
+(556, 'StepuroAnatolijVladimirovich', '0fe519511e5ada5a95091df2ac7d14e3', 21, 'Степуро', 'Анатолий', 'Владимирович', 'доцент', '', 0, 0, '0', '', '', '', 'н/д', '', 'н/д', '', '@volpi.ru', 238585840, '1429535316', '1429535316'),
+(557, 'TregubovAleksandrViktorovich', '94ec86e6f270da6d1d2719ab000ac09b', 21, 'Трегубов', 'Александр', 'Викторович', 'доцент', '', 0, 0, '0', '', '', '', 'н/д', '', 'н/д', '', '@volpi.ru', 238585840, '1429535394', '1429535394'),
+(558, 'MireckijIgorYUrevich', 'd1b8325d18fdde4037f9fd6719b02445', 15, 'Мирецкий', 'Игорь', 'Юрьевич', 'профессор', '', 0, 0, '0', '', '', '', 'н/д', '', 'н/д', '', '@volpi.ru', 238585840, '1429535960', '1429535960'),
+(559, 'ProvotorovaDaryaAndreevna', 'b1b3c17092f65897a3602b6f79120b75', 13, 'Провоторова', 'Дарья', 'Андреевна', 'доцент', '', 0, 0, '0', '', '', '', 'н/д', '', 'н/д', '', '@volpi.ru', 238585840, '1429539136', '1429539136');
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

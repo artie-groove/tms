@@ -15,7 +15,7 @@
         require_once dirname(__FILE__) . '/../app/lib/PHPExcel.php';
 
         $parser = new Parser();
-        $data = $parser->parse($fileToParse);
+        $data = $parser->run($fileToParse);
         if ( !$data ) {
             respond_from_object($parser);
             unlink($fileToParse);

@@ -47,7 +47,8 @@ class TestParser {
             return false;
         }
         */
-        $this->data = $this->parser->parse($fileToParse);
+        $data = $this->parser->run($fileToParse);
+        $this->data = $data[0];
         $this->report($title, true);
         return true;
     }

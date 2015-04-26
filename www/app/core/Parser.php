@@ -216,6 +216,7 @@ class Parser extends Handler implements IStatus
             'room' => '',
             'lecturer' => '',
             'dates' => '',
+            'time' => '',
             'comment' => ''
         );
         
@@ -225,93 +226,85 @@ class Parser extends Handler implements IStatus
             for ( $c = $cx; $c < $cx + $w; $c++ )
             {
                 $str = trim($sheet->getCellByColumnAndRow($c, $r));
-           
-                if ( ! empty($str) ) {
+                if ( ! empty($str) )
+                {
+                    $matches = array();
                     
                     // если текст помечен жирным, то это название дисциплины
                     if ( $sheet->getCellByColumnAndRow($c, $r)->getStyle()->getFont()->getBold() == 1 )
                     {
                         // кроме названия дисциплины в строке могут находиться и другие сведения
-                        $matches = array();
                         if ( preg_match('/((?:[А-яA-Z]+[\s.,\/-]{0,3})+)(?:\((?1)\))?/u', $str, $matches) !== false )
                         {   
                             // конкатенация для тех случаев, когда название дисциплины
                             // продолжается в следующей ячейке
                             $result['discipline'] .= $matches[0] . ' ';
-                            $str = mb_substr($str, mb_strlen($matches[0]));
-                            $result['comment'] .= ' ' . $str;                 
+                            $str = str_replace($matches[0], '', $str);
+                            //$str = mb_substr($str, mb_strlen($matches[0]));
+                            //$result['comment'] .= ' ' . $str;                 
                         }                        
                     }
-                    else
+                    
+                    // поиск типа занятия                        
+                    if ( preg_match("/(?:^|\s)((?:лаб|лек|пр)\s*\.?)/u", $str, $matches) )
                     {
-                        // поиск типа занятия                        
-                        if ( preg_match("/(?:^|\s)((?:лаб|лек|пр)\s*\.?)/u", $str, $matches) )
-                        {
-                            $result['type'] = $matches[1];
-                            $str = str_replace($matches[1], '', $str);
-                        }
-                        
-                        // ищем временные диапазоны (типа коментариев: с 18:30 или 13:00-16:00)
+                        $result['type'] = $matches[1];
+                        $str = str_replace($matches[1], '', $str);
+                    }
+
+                    // ищем временные диапазоны (типа коментариев: с 18:30 или 13:00-16:00)
+
+                    /*
                         // если этого не сделать, то эти данные могут быть интерпретированы как даты                        
                         if ( preg_match("/(?:с\s+)?\d{1,2}\.\d\d\s*-\s*\d{1,2}\.\d\d/i", $str, $matches) )
                         {
                             $result['comment'] .= ' ' . $matches[0];
                             $str = str_replace($matches[0], '', $str);                           
                         }
-                        
-                        /*
-                        // поиск аудитории                        
-                        if ( preg_match_all("/(?:(?:[АБВД]|БЛК)-\d{2,3}|ВПЗ|Гараж\s№\s?3)/u", $str, $matches, PREG_PATTERN_ORDER) )
-                        {
-                            // если совпадений больше единицы
-                            if ( count($matches[0]) > 1 )
-                            {
-                                $result['room'] = $matches[0][0];
-                                $str = str_replace($matches[0][0], "", $str);
-                                $result['room'] = str_replace(" ", "", $result['room']);
-                                                                
-                                // всё остальное - в комментарий
-                                for($i = 1; $i < count($matches[0]); $i++)
-                                {
-                                    $result['comment'] .= $matches[0][$i];
-                                    $str = str_replace($matches[0][$i], "", $str);
-                                }
-                            }
-                            else
-                            {
-                                $result['room'] = $matches[0][0];
-                                $result['room'] = str_replace(" ", '', $result['room']);                                
-                                $str = str_replace($matches[0][0], '', $str);
-                            }
-                            $str = trim($str);
-                        }
                         */
-                        
-                        // поиск аудитории                        
-                        if ( preg_match("/((?:[АБВД]|БЛК)-\d{2,3}|ВПЗ|Гараж\s№3)(?:\s|$|,)/u", $str, $matches) )
-                        {   
-                            $result['room'] = $matches[1];
-                            $str = str_replace($matches[0], '', $str);
-                        }
-                        
-                        // поиск эксплицитных дат
-                        //if ( preg_match('/(\d{1,2}\.\d{2}(?:,\s?|$))+/u', $str, $matches) )
-                        if ( preg_match('/(?:([1-3]?\d\.[01]\d)(?:\s?(?=,),\s*|(?:(?!\1)|(?!))))+/u', $str, $matches) )
-                        {   
-                            $result['dates'] = preg_replace('/\s/i', '', $matches[0]);
-                            $str = str_replace($matches[0], "", $str);
-                        }                                               
-                        
-                        // поиск преподавателя                        
-                        if ( preg_match("/[А-Я][а-я]+(?:\s*[А-Я]\.){0,2}/u", $str, $matches) )
-                        {                            
-                            $result['lecturer'] = $matches[0];
-                            $str= str_replace($matches[0], '', $str);
-                        }
-                        
-                        $str = trim($str);
-                        if ( !empty($str) ) $result['comment'] .= $str . " ";
+
+                    if ( preg_match('/(?:[СCсc]\s*)?([012]?\d:[0-5]0)(?:\s*-\s*(?-1))?/u', $str, $matches) )
+                    {
+                        $result['time'] = $matches[1];
+                        $result['comment'] .= ' ' . $matches[0];
+                        $str = str_replace($matches[0], '', $str);
+                        //if ( $matches[1] == "11:50" ) throw new Exception($matches[0] . '/' . $str);
                     }
+
+                    // поиск аудитории                        
+                    if ( preg_match("/((?:[АБВД]|БЛК)-\d{2,3}|ВПЗ|гараж\s№3)(?:\s|$|,)/u", $str, $matches) )
+                    {   
+                        $result['room'] = $matches[1];
+                        $str = str_replace($matches[0], '', $str);
+                    }
+
+                    // поиск эксплицитных дат
+                    //if ( preg_match('/(\d{1,2}\.\d{2}(?:,\s?|$))+/u', $str, $matches) )
+                    if ( preg_match('/(?:([1-3]?\d\.[01]\d)(?:\s?(?=,),\s*|(?:(?!\1)|(?!))))+/u', $str, $matches) )
+                    {   
+                        $result['dates'] = preg_replace('/\s/u', '', $matches[0]);
+                        $str = str_replace($matches[0], "", $str);
+                    }
+                    
+                    /*
+                        // вырезаем подстроку с датами из комментария
+                        $posFrom = $mc[0][1];
+                        $posTo = $posFrom + mb_strlen($mc[0][0]);
+                        $data['comment'] = mb_substr($data['comment'], 0, $posFrom) . mb_substr($data['comment'], $posTo);
+                        // вырезаем все пробелы из строки с датами                                    
+                        $data['dates'] = preg_replace('/\s/u', '', $mc[0][0]);
+                    */
+
+                    // поиск преподавателя                        
+                    if ( preg_match('/[А-Я][а-я]+(?:\s*[А-Я]\.){0,2}/u', $str, $matches) )
+                    {                            
+                        $result['lecturer'] = $matches[0];
+                        $str= str_replace($matches[0], '', $str);
+                    }
+
+                    // оставшийся кусок строки цепляем к комментарию
+                    $str = trim($str);
+                    if ( !empty($str) ) $result['comment'] .= $str . " ";                    
                 }
             }        
         }
@@ -320,52 +313,51 @@ class Parser extends Handler implements IStatus
         return $result;
     }
     
-    // === Получить номер пары
     
-    private function lookupLocationOffset($sheet, $cx, $rx)
+    // === Получить время начала занятия
+    
+    private function lookupTimeByRow($rx, $r, $dayLimitRowIndexes)
     {
-        $k = 0;
-
-        do
-        {
-            $str = $sheet->getCellByColumnAndRow($cx - 1, $rx + $k);
-            $str = trim($str);
-            str_replace(" ", "", $str);
-            $k++;
-        }
-        while ($str == "");
-
-        $matches[0] = false;
-        preg_match("/-+/iu", $str, $matches);
+        array_unshift($dayLimitRowIndexes, $rx + 1);
+        for ( $i = 1; $r >= $dayLimitRowIndexes[$i]; $i++ );
+        $offset = ( $r - $dayLimitRowIndexes[$i-1] ) / 2;
+        $timetable = array('8:00', '9:40', '11:20', '13:00', '14:40', '16:20', '18:00', '19:30');
+        $time = $timetable[$offset];
         
-        if(count($matches) > 0)
-            $str = str_replace($matches[0], "-", $str);
-
-        $offset = -2;
-        
-        switch ($str)
-        {
-            case "1-2":   $offset = 0;                           break;
-            case "3-4":   $offset = 1;                           break;
-            case "5-6":   $offset = 2;                           break;
-            case "7-8":   $offset = 3;                           break;
-            case "9-10":  $offset = 4;                           break;
-            case "11-12": $offset = 5;                           break;
-            case "13-14": $offset = 6;                           break;
-            case "15-16": $offset = 7;                           break;
-            case "8-00":  $offset = 0;  break;
-            case "9-40":  $offset = 1;   break;
-            case "11-20": $offset = 2;  break;
-            case "13-00": $offset = 3;  break;
-            case "14-40": $offset = 4;   break;
-            case "16-20": $offset = 5;   break;
-            case "18-00": $offset = 6;   break;
-            case "19-30": $offset = 7;   break;
-            default:      $offset = -1;                          break;
-        }
-        
-        return $offset;
+        return $time;
     }
+    
+    // === Получить смещение занятия относительно 8:00 в минутах
+    
+    private function lookupOffsetByRow($rx, $r, $dayLimitRowIndexes)
+    {
+        array_unshift($dayLimitRowIndexes, $rx + 1);
+        for ( $i = 1; $r >= $dayLimitRowIndexes[$i]; $i++ );
+        return ( $r - $dayLimitRowIndexes[$i-1] ) / 2 * 100;        
+    }
+    
+    // === преобразовать смещение в строку времени формата "HH:MM"
+    
+    private function convertOffsetToTime($offset)
+    {
+        $h = floor($offset / 60) + 8;
+        $m = sprintf('%02d', $offset % 60);
+        return "$h:$m";
+    }
+    
+    // === преобразовать строку времени формата "HH:MM" в смещение (в минутах)
+    
+    private function convertTimeToOffset($time)
+    {
+        list ( $h, $m ) = explode(':', $time);        
+        return ($h - 8) * 60 + $m;
+    }
+    
+    // === Получить время текущего занятия на основе предыдущего
+    
+    //private function lookupMeetingTimeBasedOnPrevMeeting($prevTime, $rx, $r)
+    
+    
     
     // === Определить размеры таблицы (ширину и высоту)
     // таблица просматривается поячеечно вправо и вниз
@@ -377,7 +369,7 @@ class Parser extends Handler implements IStatus
         $h = 0; // rows
     
         while ( $this->hasRightBorder($sheet, $w, $rx)      || $this->hasBottomBorder($sheet, $w, $rx) 
-             || $this->hasRightBorder($sheet, $w-1, $rx)    || $this->hasBottomBorder($sheet, $w, $rx-1))
+             || $this->hasRightBorder($sheet, $w-1, $rx)    || $this->hasBottomBorder($sheet, $w, $rx-1) )
         {
             $w++;    
         }
@@ -398,16 +390,16 @@ class Parser extends Handler implements IStatus
     private function validateTableBorders($sheet, $rx, $w, $h)
     {
         // проверяем правую границу
-        for ( $r = $rx; $r < $rx + $w; $r++ )  
+        for ( $r = $rx; $r < $rx + $h; $r++ )  
             if ( ! $this->hasRightBorder($sheet, $w - 1, $r) )            
-                //throw new Exception('Нарушена целостность правой границы');   
-                return false;
+                throw new Exception("Нарушена целостность правой границы на строке $r");   
+                //return false;
             
         // проверяем нижнюю границу
         for ( $c = 0; $c < $w; $c++ )
             if ( ! $this->hasBottomBorder($sheet, $c, $rx + $h - 1) )
-                //throw new Exception('Нарушена целостность нижней границы');   
-                return false;
+                throw new Exception("Нарушена целостность нижней границы в столбце $c");  
+                //return false;            
         
         return true;
     }
@@ -538,140 +530,165 @@ class Parser extends Handler implements IStatus
             $params = $this->establishTableParams($sheet, $rx);
             
             list ( $width, $height, $datesMatrixFirstColumn, $datesMatrixWidth, $firstDataColumn, $groupWidth ) = array_values($params);
-            $groups = $this->exploreGroups($sheet, $firstDataColumn, $width, $rx, $groupWidth);            
+            $groups = $this->exploreGroups($sheet, $firstDataColumn, $width, $rx, $groupWidth);       
             $dayLimitRowIndexes = $this->lookupDayLimitRowIndexes($sheet, $rx + 1, $rx + $height);            
             $dates = $this->gatherDates($sheet, $rx, $datesMatrixFirstColumn, $datesMatrixWidth, $dayLimitRowIndexes);
             
-            for ( $i = $rx + 1; $i < $rx + $height; $i++ )
+            // проходим по дням недели
+            // индекс первой строки $i инициализируется здесь на основании первой строки таблицы данных
+            // здесь же он инкрементируется по таблице индексов $dayLimitRowIndexes в конце каждого цикла
+            for ( $i = $rx + 1, $d = 0; $d < count($dayLimitRowIndexes); $i = $dayLimitRowIndexes[$d], $d++ )
             {
-                for( $k = $firstDataColumn; $k < $firstDataColumn + $width; $k++ )
+                // регистр эксплицитных сеточных и внесеточных смещений времени
+                $timeshift = array_fill(0, count($groups), 0); // сбрасывается в начале каждого дня недели
+                for (; $i < $dayLimitRowIndexes[$d]; $i++ )
                 {
-                    $bLeft = $sheet->getCellByColumnAndRow($k, $i)->getStyle()->getBorders()->getLeft()->getBorderStyle() != "none";
-                    $bRight = $sheet->getCellByColumnAndRow($k - 1, $i)->getStyle()->getBorders()->getRight()->getBorderStyle()!= "none";
-                    $bTop = $sheet->getCellByColumnAndRow($k, $i)->getStyle()->getBorders()->getTop()->getBorderStyle() != "none";
-                    $bBottom = $sheet->getCellByColumnAndRow($k, $i - 1)->getStyle()->getBorders()->getBottom()->getBorderStyle() != "none";
-                    // эксплорим занятие (спускаемся в клетку)
-                    // если в текущей ячейке точно есть левая и верхняя границы
-                    if ( ( $bLeft || $bRight ) && ( $bTop || $bBottom ) )
+                    for( $k = $firstDataColumn; $k < $firstDataColumn + $width; $k++ )
                     {
-                        if ( $sheet->getCellByColumnAndRow($k, $i) == '' ) continue;
-                        $layout = $this->inspectLocation($sheet, $k, $i);
-                        $meetings = array();
-                        if ( $layout['offset'] ) {
-                            $w1 = $layout['offset'];
-                            $w2 = $layout['width'] - $w1;
-                            $res1 = $this->extractLocation($sheet, $k, $w1, $i, $layout['height']);
-                            $res2 = $this->extractLocation($sheet, $k + $w1, $w2, $i, $layout['height']);
-                            $basis = array('discipline', 'type', 'room', 'lecturer');
-                            $areEqual = true;
-                            foreach ( $basis as $el )
-                                $areEqual &= empty($res1[$el]) ^ empty($res2[$el]);
-                            if ( $areEqual ) {
+                        $cellData = $sheet->getCellByColumnAndRow($k, $i);
+                        $bLeft = $this->hasRightBorder($sheet, $k - 1, $i);
+                        $bTop = $this->hasBottomBorder($sheet, $k, $i - 1);
+                        // эксплорим занятие (спускаемся в клетку)
+                        // если в текущей ячейке точно есть левая и верхняя границы
+                        if ( $bLeft && $bTop )
+                        {
+                            if ( empty($cellData) ) continue;
+                            $layout = $this->inspectLocation($sheet, $k, $i);
+                            $meetings = array();
+                            if ( $layout['offset'] ) {
+                                $w1 = $layout['offset'];
+                                $w2 = $layout['width'] - $w1;
+                                $res1 = $this->extractLocation($sheet, $k, $w1, $i, $layout['height']);
+                                $res2 = $this->extractLocation($sheet, $k + $w1, $w2, $i, $layout['height']);
+                                $basis = array('discipline', 'type', 'room', 'lecturer');
+                                $areEqual = true;
                                 foreach ( $basis as $el )
-                                    if ( empty($res1[$el]) ) $res1[$el] = $res2[$el];
-                                $res1['comment'] = trim($res1['comment'] . ' ' . $res2['comment']);
-                                $this->postProcessLocationData($res1, $i, $dayLimitRowIndexes, $dates);
-                                $meetings[] = new Meeting();
-                                $meetings[0]->initFromArray($res1);
-                            }
-                            else {                                
-                                $this->postProcessLocationData($res1, $i, $dayLimitRowIndexes, $dates);
-                                $this->postProcessLocationData($res2, $i, $dayLimitRowIndexes, $dates);
-                                $meetings[] = new Meeting();
-                                $meetings[] = new Meeting();
-                                $meetings[0]->initFromArray($res1);
-                                $meetings[1]->initFromArray($res2);
-                                $this->crossFillItems($meetings[0], $meetings[1]);
-                            }
-                        }
-                        else {
-                            $res = $this->extractLocation($sheet, $k, $layout['width'], $i, $layout['height']);
-                            $this->postProcessLocationData($res, $i, $dayLimitRowIndexes, $dates);
-                            $meetings[] = new Meeting();
-                            $meetings[0]->initFromArray($res);
-                        }
-                        
-                        if ( empty($meetings[0]->discipline) ) {
-                            $k += $layout['width'] - 1;
-                            continue;
-                        }
-                        
-                        // индекс текущей группы в массиве Group
-                        $gid = floor(($k - $firstDataColumn) / $groupWidth);
-                                       
-                        // номер пары
-                        $offset = $this->lookupLocationOffset($sheet, $firstDataColumn, $i);
-
-                        // количество групп, задействованных в занятии
-                        $groupsCount = ceil($layout['width'] / $groupWidth);
-                        
-                        if ( ! $groupsCount  ) throw new Exception(var_dump($meetings[0]));
-
-                        // количество занятий
-                        $meetingsCount = floor($layout['height'] / 2); // Todo: на основе размера ячейки с указанием номера пары (то есть вместо "двойки" определить количество строк, фактически занимаемых парой)
-
-                        foreach ( $meetings as $meeting ) {
-                            $meeting->offset = $offset;
-                            // множим занятия (по группам и по академическим часам)
-                            for ( $g = 0; $g < $groupsCount; $g++ )
-                                for ( $z = 0; $z < $meetingsCount; $z++ )
-                                {
-                                    $m = new Meeting();
-                                    $m->copyFrom($meeting);
-                                    $m->offset += $z;
-                                    $m->group = $groups[$gid + $g];
-                                    $storage[] = $m;
+                                    $areEqual &= empty($res1[$el]) ^ empty($res2[$el]);
+                                if ( $areEqual ) {
+                                    foreach ( $basis as $el )
+                                        if ( empty($res1[$el]) ) $res1[$el] = $res2[$el];
+                                    $res1['comment'] = trim($res1['comment'] . ' ' . $res2['comment']);
+                                    if ( empty($res1['dates']) )
+                                        $res1['dates'] = $this->getDatesByRow($i, $dayLimitRowIndexes, $dates);
+                                    $meetings[] = new Meeting();
+                                    $meetings[0]->initFromArray($res1);
                                 }
-                        }                        
-                     
-                        $k += $layout['width'] - 1;                        
+                                else {
+                                    foreach ( array($res1, $res2) as $res )
+                                        if ( empty($res['dates']) )
+                                            $res['dates'] = $this->getDatesByRow($i, $dayLimitRowIndexes, $dates);
+                                    $meetings[] = new Meeting();
+                                    $meetings[] = new Meeting();
+                                    $meetings[0]->initFromArray($res1);
+                                    $meetings[1]->initFromArray($res2);
+                                    $this->crossFillItems($meetings[0], $meetings[1]);
+                                }
+                            }
+                            else {
+                                $res = $this->extractLocation($sheet, $k, $layout['width'], $i, $layout['height']);
+                                if ( empty($res['dates']) )
+                                        $res['dates'] = $this->getDatesByRow($i, $dayLimitRowIndexes, $dates);
+                                $meetings[] = new Meeting();
+                                $meetings[0]->initFromArray($res);
+                            }
+
+                            if ( empty($meetings[0]->discipline) ) {
+                                $k += $layout['width'] - 1;
+                                continue;
+                            }
+
+                            // индекс текущей группы в массиве Group
+                            $gid = floor(($k - $firstDataColumn) / $groupWidth);
+
+                            // количество групп, задействованных в занятии
+                            $groupsCount = ceil($layout['width'] / $groupWidth);
+
+                            if ( ! $groupsCount  ) throw new Exception(var_dump($meetings[0]));
+
+                            // количество занятий
+                            $meetingsCount = floor($layout['height'] / 2);
+
+                            // обнаруживаем эксплицитное время и фиксируем его в регистре
+                            foreach ( $meetings as $meeting ) {
+                                if ( !empty($meeting->time) ) {
+                                    $shift = $this->convertTimeToOffset($meeting->time);                          
+                                    for ( $g = 0; $g < $groupsCount; $g++ )
+                                        $timeshift[$gid + $g] = $shift;
+                                    break;
+                                }
+                            }
+                            
+                            // сохраняем базовое смещение времени для всех групп
+                            // это нужно, когда встречается деление по подгруппам
+                            // потому что в этом случае каждое занятие подгруппы инкрементирует $timeshift[$g]
+                            for ( $g = 0; $g < $groupsCount; $g++ )
+                                $basetimeshift[$gid + $g] = $timeshift[$gid + $g];
+                            
+                            foreach ( $meetings as $meeting ) {
+                                // множим занятия (по группам и по академическим часам)
+                                for ( $g = $gid; $g < $groupsCount + $gid; $g++ ) {
+                                    // восстанавливаем базовое смещение в начале каждого цикла
+                                    $timeshift[$g] = $basetimeshift[$g]; 
+                                    for ( $z = 0; $z < $meetingsCount; $z++ ) {
+                                        $m = new Meeting();
+                                        $m->copyFrom($meeting);                                      
+                                        if ( empty($timeshift[$g]) )
+                                            $m->time = $this->lookupTimeByRow($rx, $i + $z * 2, $dayLimitRowIndexes);
+                                        else {
+                                            if ( $z > 0 || empty($meeting->time) ) {
+                                                $gridOffset = $this->lookupOffsetByRow($rx, $i + $z * 2, $dayLimitRowIndexes);
+                                                if ( $gridOffset >= $timeshift[$g] ) { // всё ок, идём по сетке
+                                                    $m->time = $this->convertOffsetToTime($gridOffset);
+                                                    $timeshift[$g] = $gridOffset + 100;
+                                                }
+                                                else { // смещение подпирает, отталкиваемся от него и инкрементируем до сеточного значения
+                                                    $m->time = $this->convertOffsetToTime($timeshift[$g]);
+                                                    $timeshift[$g] += 100 - ($timeshift[$g] % 100);
+                                                }
+                                            }
+                                            else // для первой встречи просто инкрементируем значение в регистре
+                                                $timeshift[$g] += 100 - ($timeshift[$g] % 100);                         
+                                        }
+                                        $m->group = $groups[$g];
+                                        $storage[] = $m;
+                                    }
+                                }
+                            }
+                            // двигаем указатель столбца на ширину текущей локации
+                            $k += $layout['width'] - 1;                        
+                        }
+                        else { // ищем указатели смещения времени
+                            if ( preg_match('/[СCсc]\s(1?\d:[0-5]0)/u', $cellData, $matches) ) {
+                                // индекс текущей группы в массиве Group
+                                $gid = floor(($k - $firstDataColumn) / $groupWidth);
+                                $shift = $this->convertTimeToOffset($matches[1]);
+                                if ( $timeshift[$gid] < $shift ) {
+                                    // фиксируем смещение в регистре, если оно больше уже установленного
+                                    $timeshift[$gid] = $shift;
+                                }
+                            }                            
+                        }
                     }
                 }
-            }
+            }       
         }
         return $storage;
     }
     
     // Пост-обработка данных, полученных из локации
-    private function postProcessLocationData(&$data, $rx, $dayLimitRowIndexes, $dates)
+    private function getDatesByRow($rx, $dayLimitRowIndexes, $dates)
     {
-        // вырезаем двусмысленные эксплицитные указания времени занятия
-        empty($data['comment']) ?: $data['comment'] = preg_replace('/(?:[Сс]\s*)?([012]?\d[.:][0-5]0)(?:\s*-\s*(?-1))?/u', '', $data['comment']);
-        // ToDo: распознавать время и учитывать его в позиционировании занятия,
-        // а также реструктурировать базу данных
+        $wd = 0; // week day
 
-        // проверяем даты
-        if ( empty($data['dates']) )
-        {
-            // анализируем даты, попавшие в комментарий
-            $mc = array();                                
-            // определяем цепочку с датами, если встречаются цифры, разделённые запятыми,
-            // возможно, с пробелами до и после запятых
-            if ( !empty($data['comment']) && preg_match('/(?:([1-3]?\d\.[01]\d)(?:\s?(?=,),\s*|(?:(?!\1)|(?!))))+/u', $data['comment'], $mc, PREG_OFFSET_CAPTURE) )
-            {
-                // вырезаем подстроку с датами из коментария
-                $posFrom = $mc[0][1];
-                $posTo = $posFrom + mb_strlen($mc[0][0]);
-                $data['comment'] = mb_substr($data['comment'], 0, $posFrom) . mb_substr($data['comment'], $posTo);
-                // вырезаем все пробелы из строки с датами                                    
-                $data['dates'] = preg_replace('/\s/u', '', $mc[0][0]);
-            }
-            else // берём их из массива дат в самой таблице
-            {         
-                $wd = 0;
-                
-                // находим индекс текущего дня в таблице дат
-                while ( $rx >= $dayLimitRowIndexes[$wd] )
-                    $wd++;
-                
-                $data['dates'] = $dates[$wd];                
-            }
-        }
+        // находим индекс текущего дня в таблице дат
+        while ( $rx >= $dayLimitRowIndexes[$wd] ) $wd++;
+
+        return $dates[$wd];                
     }
     
     // Взаимодополнить поля двух занятий
     private function crossFillItems($m1, $m2) {
-        $basis = array('discipline', 'type', 'room', 'lecturer', 'dates');
+        $basis = array('discipline', 'type', 'room', 'lecturer', 'dates', 'time');
         foreach ( $basis as $el ) {
             if ( empty($m1->$el) ) $m1->$el = $m2->$el;
             else if ( empty($m2->$el) ) $m2->$el = $m1->$el;

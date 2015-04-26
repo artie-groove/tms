@@ -52,9 +52,9 @@
             return '<span class="badge">' + v + '</span>';
         }
         highlight = function(obj) {
-            var fields = obj.comment.split('|');
+            var fields = obj.debug.split('|');
             var dates = fields.shift();
-            var properties = ['offset', 'discipline', 'type', 'group', 'room', 'lecturer'];
+            var properties = ['time', 'discipline', 'type', 'group', 'room', 'lecturer'];
             var str = '';
             var nf = false;
             for ( var i = 0; i < properties.length; i++ ) {
@@ -65,13 +65,15 @@
             }
             if ( !nf ) dates = wrap(dates);
             str = dates + '<br />' + str;
-            str += fields.pop();
+            //str += fields.pop();
             return str;
         }
+        /*
         totime = function(v) {
             var map = [ '8:00', '9:40', '11:20', '13:00', '14:40', '16:20', '18:00', '19:30' ];
             return elt(map[v]);
         }
+        */
     </script>
 
     <script type="text/x-tmpl" id="tmpl-corrupted-list">
@@ -90,11 +92,11 @@
                             <li class="group">{%#o.group%}</li>
                             <li class="room">{%#elt(o.room)%}</li>
                             <li class="type">{%#dtype(o.type)%}</li>
-                            <!--
+                            
                             {%#comment(o.comment)%}
-                            -->
+                            
                             <br />
-                            <li class="date"><span class="glyphicon glyphicon-time"></span> {%#totime(o.offset)%}</li>
+                            <li class="date"><span class="glyphicon glyphicon-time"></span> {%#o.time%}</li>
                             <li class="lecturer">{%#elt(o.lecturer)%}</li>
                         </ol>
                     </td>

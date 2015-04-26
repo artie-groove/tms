@@ -186,7 +186,7 @@ class DataImporter extends Handler implements IStatus
                     
                 }
                     
-                //if ( ($par_mass[$i]->lecturer === "Хаирова") && ( strpos($par_mass[$i]->comment, '10.00-') !== false) && ($par_mass[$i]->offset === 1)) throw new Exception("Fuck! " . implode("&bull;", (array)$par_mass[$i]) . ' and disciplineId = ' . $predmet_id);
+                //if ( ($par_mass[$i]->lecturer === "Хаирова") && ( strpos($par_mass[$i]->comment, '10.00-') !== false) && ($par_mass[$i]->time === 1)) throw new Exception("Fuck! " . implode("&bull;", (array)$par_mass[$i]) . ' and disciplineId = ' . $predmet_id);
                 
                 if ( $par_mass[$i]->room != "" )
                 {
@@ -222,7 +222,10 @@ class DataImporter extends Handler implements IStatus
                     }                    
 
                     $nay_year = date('Y'); // обратить внимание!
-
+                    
+                    $time = $par_mass[$i]->time;
+                    $comment = $par_mass[$i]->comment;
+                    
                     for ($in = 0; $in < count($date_m) - $correct; $in++)
                     {
                         $d_m_c = explode(".", trim($date_m[$in]));                        
@@ -231,16 +234,12 @@ class DataImporter extends Handler implements IStatus
                         $date_to_write = $nay_year . "-" . $d_m_c[1] . "-" . $d_m_c[0];
                         if ( $d_m_c[0] === '00' || $d_m_c[1] === '00' ) $date_to_write = null;
 						$el = $par_mass[$i];
-						$comment = implode('&bull; | &bull;', (array)($par_mass[$i]));
-                        $comment = rtrim($comment, "&bull;");
+                        unset($par_mass[$i]->comment);
+						$debug = implode('&bull; | &bull;', (array)($par_mass[$i]));
+                        $debug .= "&bull;";
                         
-                        //mb_substitute_character('long');
-                        //$comment = mb_convert_encoding($comment, 'UTF-8', 'UTF-8');
-                        
-						//$comment = $par_mass[i]->discipline . "  " . $par_mass[i]->lecturer . "  " . $par_mass[i]->type . "  " . $par_mass[i]->room . "  " . $par_mass[i]->offset . "  " . $par_mass[i]->dates . "  " . $par_mass[i]->comment . "  " . $par_mass[i]->group;
-
-                        $res = $dbh->prepare("INSERT INTO timetable_stage (id_discipline,id_group,id_lecturer,id_room,`offset`,`date`,`type`,`comment`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        $row = $res->execute(array($predmet_id, $group_id, $prepod_id, $auditoria_id, $par_mass[$i]->offset, $date_to_write, $type_sabjeckt, $comment));
+                        $res = $dbh->prepare("INSERT INTO timetable_stage (id_discipline,id_group,id_lecturer,id_room,`time`,`date`,`type`,`comment`, `debug`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        $row = $res->execute(array($predmet_id, $group_id, $prepod_id, $auditoria_id, $time, $date_to_write, $type_sabjeckt, $comment, $debug));
 
                         if ($row)
                             $insert++;

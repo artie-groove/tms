@@ -43,8 +43,8 @@ class TableMerger extends Handler implements IStatus {
         }
         
         $query = "
-            INSERT INTO timetable (id_discipline, id_group, id_lecturer, id_room, `offset`, `date`, `type`, `comment`)
-            SELECT id_discipline, id_group, id_lecturer, id_room, `offset`, `date`, `type`, `comment`
+            INSERT INTO timetable (id_discipline, id_group, id_lecturer, id_room, `time`, `date`, `type`, `comment`)
+            SELECT id_discipline, id_group, id_lecturer, id_room, `time`, `date`, `type`, `comment`
             FROM timetable_stage";
                                  
         if ( $this->pdo->exec($query) === FALSE )

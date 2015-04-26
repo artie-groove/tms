@@ -28,7 +28,7 @@ class ImportChecker extends Handler implements IStatus {
             SELECT DISTINCT
                 COUNT(*) AS n, g.name AS `group`, d.name AS discipline, r.name AS room,
                 CONCAT(l.surname, ' ', SUBSTR(l.name, 1, 1), '. ', SUBSTR(l.patronymic, 1, 1), '.') AS lecturer,
-                t.offset, t.type, t.comment
+                TIME_FORMAT(t.`time`, '%k:%i') AS time, t.type, t.comment, t.debug
             FROM timetable_stage AS t
             LEFT JOIN groups AS g ON t.id_group = g.id
             LEFT JOIN disciplines AS d ON t.id_discipline = d.id
@@ -40,7 +40,8 @@ class ImportChecker extends Handler implements IStatus {
                 OR t.id_room IS NULL
                 OR t.id_lecturer IS NULL
                 OR t.type IS NULL
-            GROUP BY t.id_discipline, t.id_group, t.id_lecturer, t.id_room, t.offset, t.type 
+                OR t.time IS NULL
+            GROUP BY t.id_discipline, t.id_group, t.id_lecturer, t.id_room, t.`time`, t.type 
             ORDER BY t.`date`";
         
         
@@ -49,7 +50,7 @@ class ImportChecker extends Handler implements IStatus {
             SELECT
                 DATE_FORMAT(t.date,'%d.%m') AS date, g.name AS `group`, d.name AS discipline, r.name AS room,
                 CONCAT(l.surname, ' ', SUBSTR(l.name, 1, 1), '. ', SUBSTR(l.patronymic, 1, 1), '.') AS lecturer,
-                t.offset, t.type, t.comment
+                t.time, t.type, t.comment
             FROM timetable_stage AS t
             LEFT JOIN groups AS g ON t.id_group = g.id
             LEFT JOIN disciplines AS d ON t.id_discipline = d.id

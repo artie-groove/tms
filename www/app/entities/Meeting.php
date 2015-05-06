@@ -12,18 +12,17 @@ class Meeting
     public $comment;
     public $offset;
 
-    public function __construct($dates = '', $time = '', $room = '',
-                                $discipline = '', $type = '', $lecturer = '', $group = '', $comment = '') {
-        //$fields = array_keys(get_class_vars(__CLASS__));
-        $fields = array( 'dates', 'time', 'discipline', 'type', 'group', 'room', 'lecturer', 'comment' ); 
-        foreach ( $fields as $f )
-            $this->$f = $$f;
+    public function __construct($params = null) {
+        if ( !is_array($params) || count($params) === 0 ) return;
+        $fields = array( 'dates', 'time', 'room', 'discipline', 'type', 'lecturer', 'group', 'comment' );
+        foreach ( $fields as $i => $f )
+            $this->$f = isset($params[$i]) ? $params[$i] : null;
     }
 
     public function copyFrom($original)
     {
         //$fields = array_keys(get_class_vars(__CLASS__));
-        $fields = array( 'dates', 'time', 'discipline', 'type', 'group', 'room', 'lecturer', 'comment' ); 
+        $fields = array( 'dates', 'time', 'room', 'discipline', 'type', 'lecturer', 'group', 'comment' ); 
         foreach ( $fields as $f )
             $this->$f = $original->$f;
     }

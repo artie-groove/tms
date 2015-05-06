@@ -7,6 +7,8 @@
 
 class HarvesterFulltime extends HarvesterBasic
 {
+    protected $calendarType = 'Basic';
+    
     public function run()
     {
         $harvest = array();
@@ -16,20 +18,26 @@ class HarvesterFulltime extends HarvesterBasic
         
         $params = $this->establishTableParams($sheet, $rx);
         list ( $width, $height, $datesMatrixFirstColumn, $datesMatrixWidth, $firstDataColumn, $groupWidth ) = array_values($params);
-        $groups = $this->exploreGroups($sheet, $firstDataColumn, $width, $rx, $groupWidth);       
-        $dayLimitRowIndexes = $this->lookupDayLimitRowIndexes($sheet, $rx + 1, $rx + $height);            
-        $dates = $this->gatherDates($sheet, $rx, $datesMatrixFirstColumn, $datesMatrixWidth, $dayLimitRowIndexes);
-
+        $groups = $this->exploreGroups($sheet, $firstDataColumn, $width, $rx, $groupWidth);
+        
+        $calendarClass = 'Calendar' . $this->calendarType;
+        $calendar = new $calendarClass($sheet, $datesMatrixFirstColumn, $datesMatrixWidth, $rx + 1, $height - 1);
+        
+        return $this->harvestSection($sheet, $rx, $firstDataColumn, $width, $groupWidth, $groups, $calendar);
+    }
+    
+    protected function harvestSection($sheet, $rx, $firstDataColumn, $width, $groupWidth, $groups, $calendar)
+    {
         // проходим по дням недели
         // индекс первой строки $i инициализируется здесь на основании первой строки таблицы данных
         // здесь же он инкрементируется по таблице индексов $dayLimitRowIndexes в конце каждого цикла
-        for ( $i = $rx + 1, $d = 0; $d < count($dayLimitRowIndexes); $i = $dayLimitRowIndexes[$d], $d++ )
+        for ( $i = $rx + 1, $d = 0; $d < count($calendar->dayLimitRowIndexes); $i = $calendar->dayLimitRowIndexes[$d], $d++ )
         {
             // регистр эксплицитных сеточных и внесеточных смещений времени
             $timeshift = array_fill(0, count($groups), 0); // сбрасывается в начале каждого дня недели
-            for (; $i < $dayLimitRowIndexes[$d]; $i++ )
+            for (; $i < $calendar->dayLimitRowIndexes[$d]; $i++ )
             {
-                for( $k = $firstDataColumn; $k < $firstDataColumn + $width; $k++ )
+                for( $k = $firstDataColumn; $k < $width; $k++ )
                 {
                     $cellData = $sheet->getCellByColumnAndRow($k, $i);
                     $bLeft = $this->hasRightBorder($sheet, $k - 1, $i);
@@ -55,14 +63,14 @@ class HarvesterFulltime extends HarvesterBasic
                                     if ( empty($res1[$el]) ) $res1[$el] = $res2[$el];
                                     $res1['comment'] = trim($res1['comment'] . ' ' . $res2['comment']);
                                 if ( empty($res1['dates']) )
-                                    $res1['dates'] = $this->getDatesByRow($i, $dayLimitRowIndexes, $dates);
+                                    $res1['dates'] = $calendar->getDatesByRow($i);
                                 $meetings[] = new Meeting();
                                 $meetings[0]->initFromArray($res1);
                             }
                             else {
                                 foreach ( array($res1, $res2) as $res )
                                     if ( empty($res['dates']) )
-                                    $res['dates'] = $this->getDatesByRow($i, $dayLimitRowIndexes, $dates);
+                                    $res['dates'] = $calendar->getDatesByRow($i);
                                     $meetings[] = new Meeting();
                                 $meetings[] = new Meeting();
                                 $meetings[0]->initFromArray($res1);
@@ -73,7 +81,7 @@ class HarvesterFulltime extends HarvesterBasic
                         else {
                             $res = $this->extractLocation($sheet, $k, $layout['width'], $i, $layout['height']);
                             if ( empty($res['dates']) )
-                                $res['dates'] = $this->getDatesByRow($i, $dayLimitRowIndexes, $dates);
+                                $res['dates'] = $calendar->getDatesByRow($i);
                             $meetings[] = new Meeting();
                             $meetings[0]->initFromArray($res);
                         }
@@ -97,7 +105,7 @@ class HarvesterFulltime extends HarvesterBasic
                         // обнаруживаем эксплицитное время и фиксируем его в регистре
                         foreach ( $meetings as $meeting ) {
                             if ( !empty($meeting->time) ) {
-                                $shift = $this->convertTimeToOffset($meeting->time);                          
+                                $shift = $calendar->convertTimeToOffset($meeting->time);                          
                                 for ( $g = 0; $g < $groupsCount; $g++ )
                                     $timeshift[$gid + $g] = $shift;
                                 break;
@@ -119,16 +127,16 @@ class HarvesterFulltime extends HarvesterBasic
                                     $m = new Meeting();
                                     $m->copyFrom($meeting);                                      
                                     if ( empty($timeshift[$g]) )
-                                        $m->time = $this->lookupTimeByRow($rx, $i + $z * 2, $dayLimitRowIndexes);
+                                        $m->time = $calendar->lookupTimeByRow($i + $z * 2);
                                     else {
                                         if ( $z > 0 || empty($meeting->time) ) {
-                                            $gridOffset = $this->lookupOffsetByRow($rx, $i + $z * 2, $dayLimitRowIndexes);
+                                            $gridOffset = $calendar->lookupOffsetByRow($i + $z * 2);
                                             if ( $gridOffset >= $timeshift[$g] ) { // всё ок, идём по сетке
-                                                $m->time = $this->convertOffsetToTime($gridOffset);
+                                                $m->time = $calendar->convertOffsetToTime($gridOffset);
                                                 $timeshift[$g] = $gridOffset + 100;
                                             }
                                             else { // смещение подпирает, отталкиваемся от него и инкрементируем до сеточного значения
-                                                $m->time = $this->convertOffsetToTime($timeshift[$g]);
+                                                $m->time = $calendar->convertOffsetToTime($timeshift[$g]);
                                                 $timeshift[$g] += 100 - ($timeshift[$g] % 100);
                                             }
                                         }
@@ -147,12 +155,12 @@ class HarvesterFulltime extends HarvesterBasic
                         if ( preg_match('/[СCсc]\s(1?\d:[0-5]0)/u', $cellData, $matches) ) {
                             // индекс текущей группы в массиве Group
                             $gid = floor(($k - $firstDataColumn) / $groupWidth);
-                            $shift = $this->convertTimeToOffset($matches[1]);
+                            $shift = $calendar->convertTimeToOffset($matches[1]);
                             if ( $timeshift[$gid] < $shift ) {
                                 // фиксируем смещение в регистре, если оно больше уже установленного
                                 $timeshift[$gid] = $shift;
                             }
-                        }                            
+                        }                        
                     }
                 }
             }
@@ -166,7 +174,7 @@ class HarvesterFulltime extends HarvesterBasic
     {   
         list ( $w, $h ) = array_values($this->inspectTableGeometry($sheet, $rx));
         $valid = $this->validateTableBorders($sheet, $rx, $w, $h);
-        //if ( ! $valid ) throw new Exception('Table is not valid');
+        if ( ! $valid ) throw new Exception('Нарушена целостность правой и/или нижней границ таблицы');
         $this->cleanupTable($sheet, $rx, $w, $h);
         
         // определяем ширину матрицы дат
@@ -195,42 +203,6 @@ class HarvesterFulltime extends HarvesterBasic
         );
     }
     
-    // === Заполнить массив с датами
-    // массив проиндексирован по каждому дню из таблицы
     
-    private function gatherDates($sheet, $rx, $datesMatrixFirstColumn, $datesMatrixWidth, $dayLimitRowIndexes)
-    {        
-        $months = array(
-            'январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'
-        );
-        
-        $nDays = count($dayLimitRowIndexes);
-        $dates = array_fill(0, $nDays, '');
-        
-        for ( $m = $datesMatrixFirstColumn; $m < $datesMatrixFirstColumn + $datesMatrixWidth; $m++ )
-        {
-            // вытащим название месяца строкой
-            $monthName = mb_strtolower(trim($sheet->getCellByColumnAndRow($m, $rx)));
-            // найдём числовое соответствие месяцу и запишем его в формате "ММ"
-            $month = sprintf('%02d', array_search($monthName, $months) + 1);
-
-            $r = $rx + 1; // счётчик индекса строки
-            
-            // для каждого дня недели заполняем соответствующий индекс массива dates
-            for ( $wd = 0; $wd < $nDays; $wd++ )
-            {
-                for (; $r < $dayLimitRowIndexes[$wd]; $r++)
-                {
-                    $dateCellData = trim($sheet->getCellByColumnAndRow($m, $r));
-                    if ( empty($dateCellData) ) continue; // пустые ячейки пропускаем
-                    $dates[$wd] .= "$dateCellData.$month,";
-                }
-                $r = $dayLimitRowIndexes[$wd];
-            }
-        }
-        // отрезаем запятые в конце каждой строки
-        foreach ( $dates as &$d ) $d = rtrim($d, ',');
-        return $dates;
-    }
     
 }

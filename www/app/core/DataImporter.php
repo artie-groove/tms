@@ -2,8 +2,9 @@
 
 class DataImporter extends Handler implements IStatus
 {
-    public function import($par_mass, $DisciplineMatcher)//Запись в базу данных массива
+    public function import($storage, $DisciplineMatcher)//Запись в базу данных массива
     {
+        list ( $type, $par_mass ) = array_values($storage[0]); // ToDo: implement a cycle
         try
         {
             $dbh = new PDO("mysql:host=localhost;dbname=tms", "root", "", array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION));
@@ -17,7 +18,7 @@ class DataImporter extends Handler implements IStatus
             $logfile = $_SERVER['DOCUMENT_ROOT'] . '/punctuation.log';
             if ( file_exists($logfile) ) unlink($logfile);      
             
-            for($i = 0; $i < count($par_mass); $i++)
+            for ( $i = 0; $i < count($par_mass); $i++ )
             {
                 $group_id = 0;
                 if (trim($par_mass[$i]->group) != "")

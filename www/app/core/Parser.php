@@ -21,6 +21,7 @@ class Parser extends TableHandler
         return false;
     }
     
+    
     // === Определить тип таблицы
     private function getTableType($sheet, $bottomRow)
     {        
@@ -107,7 +108,8 @@ class Parser extends TableHandler
             $tableType = $this->getTableType($sheet, $rx);
             $harvesterClass = 'Harvester' . $tableType;
             $harvester = new $harvesterClass($sheet, $rx);
-            $storage[] = $harvester->run();
+            $data = $harvester->run();
+            $storage[] = array('type' => $tableType, 'data' => $data);
         }
         return $storage;
     }

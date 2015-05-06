@@ -1,6 +1,6 @@
 <?php
 
-class HarvesterBasic extends TableHandler
+abstract class HarvesterBasic extends TableHandler
 {
     protected $sheet;
     protected $firstRow;
@@ -10,6 +10,10 @@ class HarvesterBasic extends TableHandler
         $this->sheet = $sheet;
         $this->firstRow = $firstRow;
     }
+    
+    
+    // === Запустить сбор данных
+    abstract public function run();
     
     
     // === Прочесать локацию
@@ -281,37 +285,6 @@ class HarvesterBasic extends TableHandler
     }
     
     
-    // === Определить индексы разделителей дней недели
-    
-    protected function lookupDayLimitRowIndexes($sheet, $iDatesMatrixFirstRow, $iFinalRow)
-    {        
-        $dayLimitRowIndexes = array();
-        $k = 0;
-        for ( $i = $iDatesMatrixFirstRow; $i < $iFinalRow; $i++ )
-        {   
-            // если наткнулись на границу
-            if ( $this->hasBottomBorder($sheet, 0, $i) ) {    
-                $dayLimitRowIndexes[$k] = $i + 1;
-                $k++;
-            }
-        }
-        return $dayLimitRowIndexes;
-    }
-    
-    
-    // === Определить даты по строке
-
-    protected function getDatesByRow($rx, $dayLimitRowIndexes, $dates)
-    {
-        $wd = 0; // week day
-
-        // находим индекс текущего дня в таблице дат
-        while ( $rx >= $dayLimitRowIndexes[$wd] ) $wd++;
-
-        return $dates[$wd];                
-    }
-    
-    
     // === Взаимодополнить поля двух занятий
    
     protected function crossFillItems($m1, $m2) {
@@ -326,46 +299,6 @@ class HarvesterBasic extends TableHandler
     }
     
     
-    // === Получить время начала занятия по номеру строки
     
-    protected function lookupTimeByRow($rx, $r, $dayLimitRowIndexes)
-    {
-        array_unshift($dayLimitRowIndexes, $rx + 1);
-        for ( $i = 1; $r >= $dayLimitRowIndexes[$i]; $i++ );
-        $offset = ( $r - $dayLimitRowIndexes[$i-1] ) / 2;
-        $timetable = array('8:00', '9:40', '11:20', '13:00', '14:40', '16:20', '18:00', '19:30');
-        $time = $timetable[$offset];
-        
-        return $time;
-    }
-    
-    
-    // === Получить смещение занятия относительно 8:00 в минутах
-    
-    protected function lookupOffsetByRow($rx, $r, $dayLimitRowIndexes)
-    {
-        array_unshift($dayLimitRowIndexes, $rx + 1);
-        for ( $i = 1; $r >= $dayLimitRowIndexes[$i]; $i++ );
-        return ( $r - $dayLimitRowIndexes[$i-1] ) / 2 * 100;        
-    }
-    
-    
-    // === Преобразовать смещение в строку времени формата "HH:MM"
-    
-    protected function convertOffsetToTime($offset)
-    {
-        $h = floor($offset / 60) + 8;
-        $m = sprintf('%02d', $offset % 60);
-        return "$h:$m";
-    }
-    
-    
-    // === Преобразовать строку времени формата "HH:MM" в смещение (в минутах)
-    
-    protected function convertTimeToOffset($time)
-    {
-        list ( $h, $m ) = explode(':', $time);        
-        return ($h - 8) * 60 + $m;
-    }
     
 }

@@ -37,7 +37,8 @@ class ImportChecker extends Handler implements IStatus {
             WHERE t.date IS NULL
                 OR t.id_group IS NULL
                 OR t.id_discipline IS NULL
-                OR t.id_room IS NULL
+                OR ( t.id_room IS NULL AND t.comment NOT LIKE '%@%' )
+                /* OR t.id_room IS NULL */
                 OR t.id_lecturer IS NULL
                 OR t.type IS NULL
                 OR t.time IS NULL

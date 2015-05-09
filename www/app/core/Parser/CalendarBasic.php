@@ -1,24 +1,23 @@
 <?php
 
 
-class CalendarBasic extends TableHandler {
-    
-//     protected $sheet;
-//     protected $firstRow;
-//     protected $finalRow;
-//     protected $width;
+class CalendarBasic extends TableHandler
+{
     
     public $dayLimitRowIndexes = array();
     protected $dayLimitRowIndexesPre = array(); // здесь нулевым индексом вставлен индекс первой строки таблицы
     protected $dates = array();
     protected $timetable = array('8:00', '9:40', '11:20', '13:00', '14:40', '16:20', '18:00', '19:40');
     
-    public function __construct($sheet, $firstCol, $width, $firstRow, $height)
+    public $timeshift;
+    
+    public function __construct($sheet, $firstCol, $width, $firstRow, $height, $timeshift = null)
     {
         $this->dayLimitRowIndexes = $this->lookupDayLimitRowIndexes($sheet, $firstRow, $firstRow + $height);
         $this->dayLimitRowIndexesPre = $this->dayLimitRowIndexes;
         array_unshift($this->dayLimitRowIndexesPre, $firstRow);
         $this->dates = $this->gatherDates($sheet, $firstRow - 1, $firstCol, $width, $this->dayLimitRowIndexes);
+        $this->timeshift = $timeshift;
     }
     
     
@@ -131,6 +130,6 @@ class CalendarBasic extends TableHandler {
         list ( $h, $m ) = explode(':', $time);        
         return ($h - 8) * 60 + $m;
     }
-    
+
 }
 

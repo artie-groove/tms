@@ -21,7 +21,7 @@
 */
 
     $parser = new Parser();
-    $testSet = array('Fulltime', 'Evening');
+    $testSet = array('Fulltime', 'Evening', 'PostalTutorials');
 
     foreach ( $testSet as $type )
     {

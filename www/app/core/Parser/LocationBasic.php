@@ -1,6 +1,6 @@
 <?php
 
-class Location extends TableHandler
+class LocationBasic extends TableHandler
 {    
     protected $height;              // высота (в ячейках)
     protected $width;               // ширина (в ячейках)
@@ -21,6 +21,12 @@ class Location extends TableHandler
         
         $retrieverAlgorithm = $innerBorderPosition ? 'retrieveMeetingsSplit' : 'retrieveMeeting';
         $meetings = $this->$retrieverAlgorithm($sheet, $calendar, $cx, $width, $rx, $height, $innerBorderPosition);
+        
+//         if ( $cx === 11 && $rx === 16 && $meetings[0]->dates == '3.03,31.03,28.04,26.05' ) throw new Exception(var_export(array($meetings, $width, $height, $innerBorderPosition, $cx, $rx)));
+        
+//         if ( $cx === 11 && $rx === 46 && $meetings[0]->dates == '6.04,4.05' ) throw new Exception(var_export(array($meetings, $width, $height, $innerBorderPosition, $cx, $rx, $groups)));
+        
+        
         
         if ( empty($meetings[0]->discipline) )
             return false;
@@ -54,7 +60,7 @@ class Location extends TableHandler
         $this->width = $col - $cx + 1;
         // ищем нижнюю границу локации начиная со второй строки
         $row++;
-        while ( ! $this->hasBottomBorder($sheet, $col, $row - 1) ) {
+        while ( ! $this->hasBottomBorder($sheet, $col, $row - 1) ) { // хитрое условие: пока нет нижней границы предыдущей ячейки
             // в это же время поглядываем на правую границу
             if ( ! $this->hasRightBorder($sheet, $col, $row) ) {
                 // если справа "дырка", то фиксируем это в протокол,
@@ -68,14 +74,17 @@ class Location extends TableHandler
             $row++;
         }  
         $this->height = $row - $rx;
+        
         if ( ! empty($this->innerBorderPosition) ) return;
         if ( $this->height === 1 ) throw new Exception("Некорректная локация близ ячейки $col:$row");
         
         // ищем внутренние границы
-        for ( $r = $rx + 1; $r <= $row; $r++ ) {
+        for ( $r = $rx + 1; $r < $row; $r++ ) {
             for ( $c = $cx; $c < $col; $c++ ) {                
                 if ( $this->hasRightBorder($sheet, $c, $r) ) {
                     $this->innerBorderPosition = $c - $cx + 1;
+//                     if ( $cx === 11 && $rx === 46 && get_class($this) === 'LocationSingle' ) throw new Exception(var_export(array($rx, $r, $row, $cx, $c, $col, $this->innerBorderPosition))); 
+                    //if ( $cx === 11 && $rx === 46 ) throw new Exception(var_export(array($this->innerBorderPosition)));
                     return;
                 }
             }

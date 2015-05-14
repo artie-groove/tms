@@ -15,6 +15,8 @@ abstract class HarvesterBasic extends TableHandler
     // === Запустить сбор данных
     abstract public function run();
     
+    // === Постобработка собранных данных
+    abstract protected function postProcess(&$harvest);
     
     
     
@@ -111,10 +113,10 @@ abstract class HarvesterBasic extends TableHandler
         {   
             $groupName = trim($sheet->getCellByColumnAndRow($c, $rx));            
             
-            if ( !preg_match('/В[А-Я]{1,3}-(\d|\d{3})/u', $groupName) )
+            if ( !preg_match('/В[А-Я]{1,3}-(?:\d|\d{3}[ам]?)/u', $groupName) )
                 throw new Exception('Неверное название группы: "' . $groupName . '"');
             
-            $groups[] = $groupName;   
+            $groups[] = $groupName;
         }        
         return $groups;
     }

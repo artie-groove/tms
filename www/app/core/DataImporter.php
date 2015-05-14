@@ -29,8 +29,8 @@ class DataImporter extends Handler implements IStatus
                         $group_id = $row['id'];
                     else
                     {
-                        preg_match("/\d/", $par_mass[$i]->group, $mach);
-                        $form_stady = "";
+                        preg_match('/\d/', $par_mass[$i]->group, $mach);
+                 
                         $form_stady = "FULLTIME";
                         /*
                         switch ($Type_stady)
@@ -49,6 +49,8 @@ class DataImporter extends Handler implements IStatus
 
                         if ($row = $res->fetch(PDO::FETCH_ASSOC))
                             $group_id = $row['id'];
+                        else
+                            throw new Exception('Не удалось получить идентификатор группы ' . $par_mass[$i]->group);
                     }
                 }
 
@@ -216,10 +218,13 @@ class DataImporter extends Handler implements IStatus
 
                     switch ($par_mass[$i]->type)
                     {
-                        case "лаб": $type_sabjeckt = "LAB";      break;
-                        case "лек": $type_sabjeckt = "LECTURE";  break;
-                        case "пр":  $type_sabjeckt = "WORKSHOP"; break;
-                        default:    $type_sabjeckt = 0;          break;
+                        case "лаб":     $type_sabjeckt = "LAB";         break;
+                        case "лек":     $type_sabjeckt = "LECTURE";     break;
+                        case "пр":      $type_sabjeckt = "WORKSHOP";    break;
+                        case "конс":    $type_sabjeckt = "TUTORIAL";    break;
+                        case "зач":     $type_sabjeckt = "QUIZ";        break;
+                        case "экз":     $type_sabjeckt = "EXAMINATION"; break;
+                        default:        $type_sabjeckt = 0;             break;
                     }                    
 
                     $nay_year = date('Y'); // обратить внимание!

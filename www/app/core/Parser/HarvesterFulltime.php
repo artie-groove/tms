@@ -8,6 +8,7 @@
 class HarvesterFulltime extends HarvesterBasic
 {
     protected $calendarType = 'Basic';
+    protected $locationType = 'Basic';
     
     public function run()
     {
@@ -24,9 +25,13 @@ class HarvesterFulltime extends HarvesterBasic
         $calendarClass = 'Calendar' . $this->calendarType;
         $calendar = new $calendarClass($sheet, $datesMatrixFirstColumn, $datesMatrixWidth, $rx + 1, $height - 1, $timeshift);
         
-        return $this->harvestSection($sheet, $rx, $firstDataColumn, $width, $groupWidth, $groups, $calendar);
+        $harvest = $this->harvestSection($sheet, $rx, $firstDataColumn, $width, $groupWidth, $groups, $calendar);
+        return $this->postProcess($harvest);
     }
     
+    protected function postProcess(&$harvest) {
+        return $harvest;
+    }
     
     // === Собрать данные с секции
         
@@ -52,11 +57,12 @@ class HarvesterFulltime extends HarvesterBasic
                     
                     // эксплорим занятие (спускаемся в клетку) если под курсором локация
                     if ( $this->isLocationEntryPoint($sheet, $c, $r) ) {
-                        $location = new Location();
+                        $locationType = 'Location' . $this->locationType;
+                        $location = new $locationType();
                         $chunk = $location->collect($sheet, $calendar, $c, $r, $groups, $groupWidth, $gid);
                         
                         if ( ! empty($chunk) )
-                            $harvest = array_merge($harvest, $chunk);    
+                            $harvest = array_merge($harvest, $chunk);
 
                         $c += $location->getWidth() - 1;
                     }

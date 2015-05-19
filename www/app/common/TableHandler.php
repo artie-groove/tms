@@ -3,8 +3,7 @@
 class TableHandler
 {
     
-    // === Проверить, есть ли правая граница
-    
+    // === Проверить, есть ли правая граница    
     protected function hasRightBorder($sheet, $cx, $rx)
     {
         $currentCellHasRightBorder = $sheet->getCellByColumnAndRow($cx, $rx)
@@ -16,8 +15,7 @@ class TableHandler
         return ( $currentCellHasRightBorder || $nextCellHasLeftBorder );
     }
     
-    // === Проверить, есть ли нижняя граница
-    
+    // === Проверить, есть ли нижняя граница    
     protected function hasBottomBorder($sheet, $cx, $rx)
     {
         $currentCellHasBottomBorder = $sheet->getCellByColumnAndRow($cx, $rx)
@@ -27,6 +25,18 @@ class TableHandler
             ->getStyle()->getBorders()->getTop()->getBorderStyle() !== "none";
         
         return ( $currentCellHasBottomBorder || $nextCellHasTopBorder );
+    }
+    
+    // === Проверить, есть ли левая граница    
+    protected function hasLeftBorder($sheet, $cx, $rx)
+    {
+        return $this->hasRightBorder($sheet, $cx-1, $rx);
+    }
+    
+    // === Проверить, есть ли верхняя граница    
+    protected function hasTopBorder($sheet, $cx, $rx)
+    {
+        return $this->hasBottomBorder($sheet, $cx, $rx-1);
     }
     
 }

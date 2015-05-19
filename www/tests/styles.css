@@ -13,3 +13,7 @@
 .fail {
     background-color: #500;
 }
+
+span {
+    float: right;
+}

@@ -42,7 +42,7 @@ class CalendarBasic extends TableHandler
     // === Заполнить массив с датами
     // массив проиндексирован по каждому дню из таблицы
     
-    private function gatherDates($sheet, $rx, $firstCol, $width, $dayLimitRowIndexes)
+    protected function gatherDates($sheet, $rx, $firstCol, $width, $dayLimitRowIndexes)
     {        
         $months = array(
             'январь', 'февраль', 'март', 'апрель', 'май', 'июнь',

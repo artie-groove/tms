@@ -15,17 +15,23 @@ class HarvesterFulltime extends HarvesterBasic
         $harvest = array();
         
         $sheet = $this->sheet;
+        $cx = $this->firstColumn;
         $rx = $this->firstRow;
         
+        $table = new Table($sheet, $cx, $rx);
+        $table->init($this->calendarType);
+        
+        /*
         $params = $this->establishTableParams($sheet, $rx);
         list ( $width, $height, $datesMatrixFirstColumn, $datesMatrixWidth, $firstDataColumn, $groupWidth ) = array_values($params);
         $groups = $this->exploreGroups($sheet, $firstDataColumn, $width, $rx, $groupWidth);
-        $timeshift = new Timeshift(count($groups));
+        */
         
-        $calendarClass = 'Calendar' . $this->calendarType;
-        $calendar = new $calendarClass($sheet, $datesMatrixFirstColumn, $datesMatrixWidth, $rx + 1, $height - 1, $timeshift);
+        foreach ( $table->sections as $section ) {
+            $chunk = $this->harvestSection($section, $this->calendarType);
+            $harvest = array_merge($harvest, $chunk);
+        }
         
-        $harvest = $this->harvestSection($sheet, $rx, $firstDataColumn, $width, $groupWidth, $groups, $calendar);
         return $this->postProcess($harvest);
     }
     
@@ -35,9 +41,18 @@ class HarvesterFulltime extends HarvesterBasic
     
     // === Собрать данные с секции
         
-    protected function harvestSection($sheet, $rx, $firstDataColumn, $width, $groupWidth, $groups, $calendar)
+    protected function harvestSection($section)
     {
-        $harvest = array(); // массив встреч
+        $harvest = array(); // массив занятий
+        
+        $sheet = $section->sheet;
+        $cx = $section->cx;
+        $rx = $section->rx;
+        $width = $section->width;
+        $firstDataColumn = $section->firstDataColumn;
+        $groupWidth = $section->groupWidth;
+        $groups = $section->groups;
+        $calendar = $section->calendar;
         
         // проходим по дням недели
         // индекс первой строки $i инициализируется здесь на основании первой строки таблицы данных
@@ -47,9 +62,9 @@ class HarvesterFulltime extends HarvesterBasic
             $calendar->timeshift->reset();
             for (; $r < $calendar->dayLimitRowIndexes[$d]; $r++ )
             {
-                for ( $c = $firstDataColumn; $c < $width; $c++ )
+                for ( $c = $firstDataColumn; $c < $cx + $width; $c++ )
                 {
-                    $cellData = $sheet->getCellByColumnAndRow($c, $r);
+                    $cellData = $sheet->getCellByColumnAndRow($c, $r)->getValue();
                     if ( empty($cellData) ) continue;
                     
                     // индекс текущей группы в массиве Group
@@ -108,40 +123,7 @@ class HarvesterFulltime extends HarvesterBasic
     }
     
     
-    // === Определить основные параметры таблицы
     
-    private function establishTableParams(&$sheet, $rx)
-    {   
-        list ( $w, $h ) = array_values($this->inspectTableGeometry($sheet, $rx));
-        $valid = $this->validateTableBorders($sheet, $rx, $w, $h);
-        if ( ! $valid ) throw new Exception('Нарушена целостность правой и/или нижней границ таблицы');
-        $this->cleanupTable($sheet, $rx, $w, $h);
-        
-        // определяем ширину матрицы дат
-        $cdm = 1; // dates matrix first column
-        $dmw = $cdm; // dates matrix width
-        while ( trim($sheet->getCellByColumnAndRow($dmw + 1, $rx)) !== 'Часы' ) $dmw++;
-        
-        if ( $dmw > 5 ) throw new Exception("Некорректное количество столбцов в календаре. Удалите все скрытые столбцы");
-        
-        $cd = $cdm + $dmw + 1; // first data column
-        
-        // рассчитываем ширину на группу по первой ячейке для группы
-        $gw = 1;
-        $c = $cd;
-        while ( empty(trim($sheet->getCellByColumnAndRow($c + 1, $rx))) ) $c++;
-        $gw = $c - $cd + 1;
-        if ( ($w - $cd) % $gw !== 0 ) throw new Exception('Ширина групп должна быть равной');
-               
-        return array(
-            'width' => $w,
-            'height' => $h,
-            'datesMatrixFirstColumn' => $cdm,
-            'datesMatrixWidth' => $dmw,
-            'firstDataColumn' => $cd,
-            'groupWidth' => $gw
-        );
-    }
     
     
     

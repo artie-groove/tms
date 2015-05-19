@@ -27,7 +27,6 @@ class TestHarvester {
         $storage = $this->parser->run($testFile);
         $this->harvest = $storage[0]['data'];
         if ( empty($this->harvest) ) return false;
-        
         $this->loadDataFromCsv();
 
         $allTestsPassed = true;

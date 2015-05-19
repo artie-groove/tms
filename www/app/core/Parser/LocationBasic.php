@@ -76,7 +76,9 @@ class LocationBasic extends TableHandler
         $this->height = $row - $rx;
         
         if ( ! empty($this->innerBorderPosition) ) return;
-        if ( $this->height === 1 ) throw new Exception("Некорректная локация близ ячейки $col:$row");
+        if ( $this->height === 1 ) {
+            throw new Exception("Некорректная локация близ ячейки (C$col:R$row)");
+        } 
         
         // ищем внутренние границы
         for ( $r = $rx + 1; $r < $row; $r++ ) {
@@ -176,14 +178,12 @@ class LocationBasic extends TableHandler
                             // конкатенация для тех случаев, когда название дисциплины
                             // продолжается в следующей ячейке
                             $result['discipline'] .= $matches[0] . ' ';
-                            $str = str_replace($matches[0], '', $str);
-                            //$str = mb_substr($str, mb_strlen($matches[0]));
-                            //$result['comment'] .= ' ' . $str;                 
+                            $str = str_replace($matches[0], '', $str);                                   
                         }                        
                     }
                     
                     // поиск типа занятия                        
-                    if ( preg_match("/(?:^|\s)((?:лаб|лек|пр)\s*\.?)/u", $str, $matches) )
+                    if ( preg_match("/(?:^|\s)((?:лаб|лек|пр|зач(?:ет)?|экз(?:амен)?)\s*\.?)/u", $str, $matches) )
                     {
                         $result['type'] = $matches[1];
                         $str = str_replace($matches[1], '', $str);

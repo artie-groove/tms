@@ -222,8 +222,10 @@ class DataImporter extends Handler implements IStatus
                         case "лек":     $type_sabjeckt = "LECTURE";     break;
                         case "пр":      $type_sabjeckt = "WORKSHOP";    break;
                         case "конс":    $type_sabjeckt = "TUTORIAL";    break;
-                        case "зач":     $type_sabjeckt = "QUIZ";        break;
-                        case "экз":     $type_sabjeckt = "EXAMINATION"; break;
+                        case "зач":
+                        case "зачет":   $type_sabjeckt = "QUIZ";        break;
+                        case "экз":
+                        case "экзамен": $type_sabjeckt = "EXAMINATION"; break;
                         default:        $type_sabjeckt = 0;             break;
                     }                    
 

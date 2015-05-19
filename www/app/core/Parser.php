@@ -3,6 +3,7 @@
 class Parser extends TableHandler
 {
     const MAX_PROBE_DEPTH = 15; // количество строк при "прощупывании" верхней границы таблицы
+    const MAX_PROBE_WIDTH = 5;  // количество столбцов при "прощупывании" левой границы таблицы
     const MAX_WIDTH = 120;      // максимальное количество столбцов, формирующих таблицу
     
     private $PHPExcel;
@@ -13,11 +14,26 @@ class Parser extends TableHandler
     
     private function probeTable($sheet)
     {
-        for ( $r = 1; $r < self::MAX_PROBE_DEPTH; $r++ )
-        {
+        $c = 0;
+        for ( $r = 1; $r < self::MAX_PROBE_DEPTH; $r++ ) {
             $reachedBottomBorder = $this->hasBottomBorder($sheet, 0, $r);
-            if ( $reachedBottomBorder ) return $r + 1;
+            if ( $reachedBottomBorder ) return array($c, $r+1); 
         }
+        
+        for ( $c = 0; $c < self::MAX_PROBE_WIDTH; $c++ ) {
+            $reachedLeftBorder = $this->hasRightBorder($sheet, $c, $r);
+            if ( $reachedLeftBorder ) {
+                while ( $r >= 1 ) {
+                    $r--;
+                    $rightBorderIsLost = !$this->hasRightBorder($sheet, $c, $r);
+                    if ( $rightBorderIsLost && $this->hasBottomBorder($sheet, $c+1, $w) ) {
+                        return array($c+1, $r+1);
+                    }
+                }
+                break;
+            }
+        }
+        
         return false;
     }
     
@@ -95,20 +111,31 @@ class Parser extends TableHandler
     
     public function run($filename)
     {        
-        $this->PHPExcel = PHPExcel_IOFactory::load($filename);
+        /**  Identify the type of $filename  **/
+        $inputFileType = PHPExcel_IOFactory::identify($filename);
+        /**  Create a new Reader of the type that has been identified  **/
+        $objReader = PHPExcel_IOFactory::createReader($inputFileType);
+        /**  Load $inputFileName to a PHPExcel Object  **/
+        $this->PHPExcel = $objReader->load($filename);
+
+        
+//         $this->PHPExcel = PHPExcel_IOFactory::load($filename);
         $storage = array();
         $sheetsTotal = $this->PHPExcel->getSheetCount();
         for ( $s = 0; $s < $sheetsTotal; $s++ )
         {
             $sheet = $this->PHPExcel->getSheet($s);
             
-            $rx = $this->probeTable($sheet);           
-            if ( ! $rx ) break;
+            $coords = $this->probeTable($sheet);           
+            if ( ! $coords ) break;
+            list ( $cx, $rx ) = $coords;
             
             $tableType = $this->getTableType($sheet, $rx);
+            
             $harvesterClass = 'Harvester' . $tableType;
-            $harvester = new $harvesterClass($sheet, $rx);
+            $harvester = new $harvesterClass($sheet, $cx, $rx);
             $data = $harvester->run();
+          
             $storage[] = array('type' => $tableType, 'data' => $data);
         }
         return $storage;

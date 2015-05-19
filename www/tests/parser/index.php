@@ -21,7 +21,7 @@
 */
 
     $parser = new Parser();
-    $testSet = array('Fulltime', 'Evening', 'PostalTutorials');
+    $testSet = array('Fulltime', 'Evening', 'PostalTutorials', 'PostalSession');
 
     foreach ( $testSet as $type )
     {
@@ -42,12 +42,12 @@
 <?
     function printTestResults($tester, $allTestsPassed)
     {
-        echo '<table width="100%">';
+        echo '<table width="100%"><col width="50" />';
         foreach ( $tester->results as $res )
         {    
             $isTestPassed = $res['result'];
             $label = $isTestPassed ? 'pass' : 'fail';
-            echo "<tr><td>${res['test']}</td><td><span class='${label}'>${label}</span></td></tr>";
+            echo "<tr><td><span class='${label}'>${label}</span></td><td>${res['test']}</td></tr>";
             if ( !$isTestPassed ) {
                 echo "<tr><td colspan='2'>{$res['description']}</td></tr>";
             }

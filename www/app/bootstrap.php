@@ -27,7 +27,7 @@
             'description' => $description,
             'details' => $details
         );
-        echo json_encode($response);
+        echo json_encode($response, JSON_HEX_TAG);
     }
 
     function respond_from_object(IStatus $obj)
@@ -56,18 +56,18 @@
     error_reporting(E_ALL);
     
     function exception_handler(Exception $e) {
-        $msg = $e->getFile() . ':' . $e->getLine() . '<br />';
-        $msg .= '<strong>' . $e->getMessage() . '</strong><br /><br /><br />';
+        $msg = $e->getFile() . ':' . $e->getLine() . '<br>';
+        $msg .= '<strong>' . $e->getMessage() . '</strong><br><br><br>';
         foreach ( $e->getTrace() as $trace ) {
-            $msg .= $trace['file'] . ':' . $trace['line'] . '<br />';
+            $msg .= $trace['file'] . ':' . $trace['line'] . '<br>';
             $args = array();
             foreach ( $trace['args'] as $argument )
                 $args[] = ( is_numeric($argument) || is_string($argument) ) ? $argument : gettype($argument);
             
-            $msg .= $trace['function'] . '(' . implode(',', $args) . ')' . '<br /><br />';
+            $msg .= $trace['function'] . '(' . implode(',', $args) . ')' . '<br><br>';
         }
-        echo $msg;
-        //respond('error', "Ба-бац!", $msg);
+        //echo $msg;
+        respond('error', "Ба-бац!", $msg);
     }
 
     set_exception_handler('exception_handler');

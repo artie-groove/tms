@@ -56,15 +56,20 @@ class TableSection extends TableHandler
         // проверяем правую границу
         for ( $r = $rx; $r < $rx + $h; $r++ ) {
             $c = $cx + $w - 1;
-            if ( ! $this->hasRightBorder($sheet, $c, $r) )            
-                throw new Exception("Нарушена целостность правой границы близ ячейки (C$c:R$r)");  
-        }             
-            
+            if ( ! $this->hasRightBorder($sheet, $c, $r) )
+            {
+                $c++;
+                throw new Exception("Нарушена целостность правой границы близ ячейки (лист &laquo;{$sheet->getTitle()}&raquo;, столбец $c, строка $r)");  
+            }             
+        }
         // проверяем нижнюю границу
         for ( $c = $cx; $c < $cx + $w; $c++ ) {
             $r = $rx + $h - 1;
             if ( ! $this->hasBottomBorder($sheet, $c, $r) )
-                throw new Exception("Нарушена целостность нижней границы близ ячейки (C$c:R$r), $cx, $w");  
+            {
+                $c++;
+                throw new Exception("Нарушена целостность нижней границы близ ячейки (лист &laquo;{$sheet->getTitle()}&raquo;, столбец $c, строка $r)");  
+            }
         }
         
         return true;
@@ -74,11 +79,14 @@ class TableSection extends TableHandler
     protected function fetchDatesMatrixWidth($sheet, $datesMatrixFirstColumn, $rx)
     {
         $datesMatrixWidth = 0;
-        while ( ! in_array(trim($sheet->getCellByColumnAndRow($datesMatrixFirstColumn + $datesMatrixWidth, $rx)), array('Часы', 'Время')) ) $datesMatrixWidth++;
+        while ( ! in_array(trim($sheet->getCellByColumnAndRow($datesMatrixFirstColumn + $datesMatrixWidth, $rx)), array('Часы', 'Время'))
+              && $datesMatrixWidth <= 10 ) $datesMatrixWidth++;
         
-//         if ( $datesMatrixWidth === 0 ) throw new Exception(var_export($datesMatrixWidth));
         
-        if ( $datesMatrixWidth > 5 ) throw new Exception("Некорректное количество столбцов в календаре. Удалите все скрытые столбцы");
+       if ( $datesMatrixWidth >= 10 )
+           throw new Exception("Не удаётся обнаружить столбец времени занятий (&laquo;Часы&raquo; или &laquo;Время&raquo;) на&nbsp;листе &laquo;{$sheet->getTitle()}&raquo;");
+        
+        if ( $datesMatrixWidth > 5 ) throw new Exception("Некорректное количество столбцов в календаре. Удалите все скрытые столбцы (&laquo;{$sheet->getTitle()}&raquo;)");
         
         return $datesMatrixWidth;
     }
@@ -112,7 +120,7 @@ class TableSection extends TableHandler
             $groupName = trim($sheet->getCellByColumnAndRow($c, $rx));            
             
             if ( !preg_match('/В[А-Я]{1,3}-(?:\d|\d{3}[ам]?)/u', $groupName) )
-                throw new Exception('Неверное название группы: "' . $groupName . '"');
+                throw new Exception("Неверное название группы: &laquo;$groupName&raquo; (&laquo;{$sheet->getTitle()}&raquo;). Приведите названия групп в соответствие с утверждённым форматом. Возможно, есть скрытые столбцы в календаре.");
             
             $groups[] = $groupName;
         }        

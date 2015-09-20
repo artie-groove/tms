@@ -8,11 +8,13 @@ class CalendarBasic extends TableHandler
     protected $dayLimitRowIndexesPre = array(); // здесь нулевым индексом вставлен индекс первой строки таблицы
     protected $dates = array();
     protected $timetable = array('8:00', '9:40', '11:20', '13:00', '14:40', '16:20', '18:00', '19:40');
+    protected $sheet; // для доступа к текущему листу при генерации исключений
     
     public $timeshift;
     
     public function __construct($sheet, $firstCol, $width, $firstRow, $height, $timeshift = null)
     {
+        $this->sheet = $sheet;
         $this->dayLimitRowIndexes = $this->lookupDayLimitRowIndexes($sheet, $firstRow, $firstRow + $height);
         $this->dayLimitRowIndexesPre = $this->dayLimitRowIndexes;
         array_unshift($this->dayLimitRowIndexesPre, $firstRow);
@@ -30,7 +32,7 @@ class CalendarBasic extends TableHandler
         for ( $i = $firstRow; $i < $finalRow; $i++ )
         {   
             // если наткнулись на границу
-            if ( $this->hasBottomBorder($sheet, 0, $i) ) {  
+            if ( $this->hasBottomBorder($sheet, 0, $i) && $this->hasRightBorder($sheet, 0, $i) ) {  
                 $dayLimitRowIndexes[$k] = $i + 1;
                 $k++;
             }
@@ -98,6 +100,11 @@ class CalendarBasic extends TableHandler
     {
         for ( $i = 1; $r >= $this->dayLimitRowIndexesPre[$i]; $i++ );
         $offset = ( $r - $this->dayLimitRowIndexesPre[$i-1] ) / 2;
+        if ( $offset >= count($this->timetable) )
+        {
+            $limitsDump = implode(',', $this->dayLimitRowIndexesPre);
+            throw new Exception("Нарушение целостности сетки (календарь, лист: '{$this->sheet->getTitle()}', строка: $r, limits: $limitsDump)");
+        }
         return $this->timetable[$offset];
     }
     

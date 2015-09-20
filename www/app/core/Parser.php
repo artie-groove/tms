@@ -126,7 +126,7 @@ class Parser extends TableHandler
         {
             $sheet = $this->PHPExcel->getSheet($s);
             
-            $coords = $this->probeTable($sheet);           
+            $coords = $this->probeTable($sheet);
             if ( ! $coords ) break;
             list ( $cx, $rx ) = $coords;
             
@@ -135,7 +135,7 @@ class Parser extends TableHandler
             $harvesterClass = 'Harvester' . $tableType;
             $harvester = new $harvesterClass($sheet, $cx, $rx);
             $data = $harvester->run();
-          
+           
             $storage[] = array('type' => $tableType, 'data' => $data);
         }
         return $storage;

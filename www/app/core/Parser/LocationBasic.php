@@ -77,7 +77,8 @@ class LocationBasic extends TableHandler
         
         if ( ! empty($this->innerBorderPosition) ) return;
         if ( $this->height === 1 ) {
-            throw new Exception("Некорректная локация близ ячейки (C$col:R$row)");
+            $row--;
+            throw new Exception("Некорректная локация близ ячейки C$col:R$row [высота меньше единицы] ({$sheet->getTitle()})");
         } 
         
         // ищем внутренние границы

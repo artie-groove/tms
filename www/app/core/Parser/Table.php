@@ -97,7 +97,7 @@ class Table extends TableHandler
             }
         */
         
-        
+        /*
         // сносим плашки первой и второй недель
         for ( $r = $rx + 1; $r < $rx + $h; $r++ )
         {
@@ -108,6 +108,18 @@ class Table extends TableHandler
                 $sheet->removeRow($r, 1);              
                 $h--;
             }
+        }
+        */
+        
+        // вычищаем от текста плашку второй недели
+        for ( $r = $rx + 1; $r < $rx + $h; $r++ )
+        {
+            $cellColor = $sheet->getCellByColumnAndRow($cx + 1, $r)->getStyle()->getFill()->getStartColor()->getRGB();            
+            $currentCellIsNotWhite = $cellColor !== "FFFFFF";
+            $currentCellIsNotTransparent = $cellColor !== "000000";
+            if ( $currentCellIsNotWhite && $currentCellIsNotTransparent )
+                for ( $c = 0; $c < $w; $c++ )
+                    $sheet->getCellByColumnAndRow($c, $r)->setValue();
         }
         
         // расклеиваем все диапазоны по отдельным ячейкам

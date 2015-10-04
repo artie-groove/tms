@@ -13,6 +13,7 @@ class DataImporter extends Handler implements IStatus
             for ( $s = 0; $s < count($storage); $s++ )
             {
                 list ( $type, $par_mass ) = array_values($storage[$s]);
+                
 
                     $positive = 0;
                     $negative = 0;
@@ -23,10 +24,12 @@ class DataImporter extends Handler implements IStatus
 
                     for ( $i = 0; $i < count($par_mass); $i++ )
                     {
-                        $group_id = 0;
-                        if (trim($par_mass[$i]->group) != "")
+                        foreach ( $par_mass[$i] as &$m ) $m = trim($m);
+                        
+                        $group_id = null;
+                        if ( !empty($par_mass[$i]->group) )
                         {
-                            $res = $dbh->query("SELECT id, name FROM groups WHERE name='" . $par_mass[$i]->group . "'");
+                            $res = $dbh->query("SELECT id, name FROM groups WHERE name = '" . $par_mass[$i]->group . "'");
 
                             if ($row = $res->fetch(PDO::FETCH_ASSOC))
                                 $group_id = $row['id'];
@@ -53,14 +56,18 @@ class DataImporter extends Handler implements IStatus
                                 if ($row = $res->fetch(PDO::FETCH_ASSOC))
                                     $group_id = $row['id'];
                                 else
-                                    throw new Exception('Не удалось получить идентификатор группы ' . $par_mass[$i]->group);
+                                    throw new Exception('Не удалось получить идентификатор группы &laquo;' . $par_mass[$i]->group . '&raquo;');
                             }
                         }
 
-                        $prepod_id=0;
-                        $par_mass[$i]->lecturer=trim($par_mass[$i]->lecturer);
-                        if($par_mass[$i]->lecturer != "")
+                        // если в поле lecturer пустая строка (то есть, парсер не распознал паттерн преподавателя)
+                        // записываем в базу "0", который значит, что преподаватель не указан (его может не быть намеренно)
+                        // в противном - случае мы либо находим его в справочнике, либо записываем в базу NULL
+                        
+                        if ( empty($par_mass[$i]->lecturer) ) $prepod_id = 0;
+                        else
                         {
+                            $prepod_id = null;
                             $inicial = array_fill(0, 2, '');
                             if ( preg_match_all("/[А-Я]\./u", $par_mass[$i]->lecturer, $matches, PREG_PATTERN_ORDER) )
                             {
@@ -95,9 +102,11 @@ class DataImporter extends Handler implements IStatus
                             }
                         }
 
-                        $predmet_id=0;
-                        if($par_mass[$i]->discipline != "")
+                        
+                        $predmet_id = null;
+                        if ( !empty($par_mass[$i]->discipline) )
                         {
+                            
                             $par_mass[$i]->discipline = trim($par_mass[$i]->discipline);
                             //$par_mass[$i]->discipline = str_replace('/', '.', $par_mass[$i]->discipline);
 
@@ -118,7 +127,7 @@ class DataImporter extends Handler implements IStatus
                                 }
 
                                 // если не нашли, включаем основной алгоритм поиска
-                                if ( $predmet_id == 0 )
+                                if ( is_null($predmet_id) )
                                 {
                                     $mc = $par_mass[$i]->discipline;
 
@@ -127,16 +136,20 @@ class DataImporter extends Handler implements IStatus
 
                                     // корректируем типографику
                                     $mc = preg_replace('/(\.|\.?,)(?![\s-,)]|$)/u', '$1 ', $mc);
+                                    
+                                    // отбиваем скобку пробелом
+                                    $mc = preg_replace('/(?<!\s)\(/u', ' (', $mc);
 
                                     // вставляем подстановочный знак % вместо точек, дефисов и слэшей
                                     $mc = preg_replace('/[\.\/-]/u', '%', $mc);
 
                                     // разбиваем аббервиатуры
-                                    $mc = preg_replace('/([A-ZА-Я])(?=[A-ZА-Я,\s]|$)/u', '$1%', $mc);
+                                    $mc = preg_replace('/([A-ZА-Я])(?=(?1)|[,\s)]|$)/u', '$1%', $mc);
 
                                     // вычленяем союзы из аббревиатур (например, союз "и" в аббревиатуре "ИСПиУ")
                                     $mc = preg_replace('/(?<=[А-Я])([а-я])(?=[А-Я])/u', '% $1 ', $mc);
 
+                                    
                                     $query = "SELECT id, name FROM disciplines WHERE name LIKE '" . $mc . "' ORDER BY CHAR_LENGTH(name) ASC";
                                     $res = $dbh->query($query);                 
                                     $data = $res->fetch(PDO::FETCH_ASSOC);
@@ -182,8 +195,7 @@ class DataImporter extends Handler implements IStatus
         //                     }
                         }
 
-                        $auditoria_id=0;
-
+                        
                         $special_list = array(631, 717); // Физическая культура
                         if ( in_array($predmet_id, $special_list) )
                         {
@@ -194,28 +206,31 @@ class DataImporter extends Handler implements IStatus
                                 $par_mass[$i]->type = 'пр';
                         }
 
-                        //if ( ($par_mass[$i]->lecturer === "Хаирова") && ( strpos($par_mass[$i]->comment, '10.00-') !== false) && ($par_mass[$i]->time === 1)) throw new Exception("Fuck! " . implode("&bull;", (array)$par_mass[$i]) . ' and disciplineId = ' . $predmet_id);
-
-                        if ( $par_mass[$i]->room != "" )
+                        
+                        // если в поле room пустая строка (то есть, парсер не распознал паттерн аудитории)
+                        // записываем в базу "0", который значит, что аудитория не указана (её может не быть намеренно)
+                        // в противном - случае мы либо находим её в словаре, либо записываем в базу NULL
+                        if ( empty($par_mass[$i]->room) ) $auditoria_id = 0;
+                        else
                         {
+                            $auditoria_id = null;
                             $res = $dbh->query("SELECT id, name FROM rooms WHERE name='" . $par_mass[$i]->room . "'");
 
                             if ($row = $res->fetch(PDO::FETCH_ASSOC))
                                 $auditoria_id = $row['id'];
                         }
 
-                        if($par_mass[$i]->dates!="")
+                        if ( empty($par_mass[$i]->dates) ) throw new Exception("Не указана дата занятия " . var_export($par_mass[$i]));
                         {
                             $date_m = explode(",", $par_mass[$i]->dates);
                             $correct = 0;
                             if (trim($date_m[count($date_m) - 1]) == "")
                                 $correct = 1;
 
-                            $type_sabjeckt = "";
                             //$par_mass[$i]->type = str_replace(".", "", $par_mass[$i]->type);
                             ///* Установка внутренней кодировки в UTF-8 */
                             //mb_internal_encoding("UTF-8");
-                            $par_mass[$i]->type = trim($par_mass[$i]->type, " .\t");
+                            $par_mass[$i]->type = rtrim($par_mass[$i]->type, '.');
                             $par_mass[$i]->type = mb_strtolower($par_mass[$i]->type);
                             //$par_mass[$i]->type = mb_check_encoding($par_mass[$i]->type, 'UTF-8') ? $par_mass[$i]->type : utf8_encode($par_mass[$i]->type);
                             //$par_mass[$i]->type = mb_convert_encoding($par_mass[$i]->type, 'UTF-8', 'cp1251');
@@ -231,14 +246,17 @@ class DataImporter extends Handler implements IStatus
                                 case "зачет":   $type_sabjeckt = "QUIZ";        break;
                                 case "экз":
                                 case "экзамен": $type_sabjeckt = "EXAMINATION"; break;
-                                default:        $type_sabjeckt = 0;             break;
+                                default:        $type_sabjeckt = null;             break;
                             }                    
 
                             $nay_year = date('Y'); // обратить внимание!
 
                             $time = $par_mass[$i]->time;
+                            if ( empty($time) ) $time = null;
+                            
                             $comment = $par_mass[$i]->comment;
-
+                            if ( empty($comment) ) $comment = null;
+                            
                             for ($in = 0; $in < count($date_m) - $correct; $in++)
                             {
                                 $d_m_c = explode(".", trim($date_m[$in]));                        

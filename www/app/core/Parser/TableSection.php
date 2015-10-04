@@ -38,15 +38,16 @@ class TableSection extends TableHandler
         // определяем ширину матрицы дат
         $this->datesMatrixFirstColumn = $cx + 1;       
         
-        $this->datesMatrixWidth = $this->fetchDatesMatrixWidth($sheet, $this->datesMatrixFirstColumn, $rx);
+        $this->datesMatrixWidth = $this->fetchDatesMatrixWidth($sheet, $this->datesMatrixFirstColumn, $rx);        
         $this->firstDataColumn = $this->establishFirstDataColumn();
-        $this->groupWidth = $this->getGroupWidth($sheet, $this->firstDataColumn, $rx, $width);
+        $dataWidth = $this->cx + $width - $this->firstDataColumn;
+        $this->groupWidth = $this->getGroupWidth($sheet, $this->firstDataColumn, $rx, $dataWidth);
         $this->groups = $this->exploreGroups($sheet, $cx, $rx, $this->firstDataColumn, $width, $this->groupWidth);
         
         $timeshift = new Timeshift(count($this->groups));
         $calendarClass = 'Calendar' . $calendarType;
         $this->calendar = new $calendarClass($sheet, $this->datesMatrixFirstColumn, $this->datesMatrixWidth, $rx + 1, $height - 1, $timeshift);
-        
+        //throw new Exception(var_export($this->calendar->dates));        
     }
     
     
@@ -79,7 +80,7 @@ class TableSection extends TableHandler
     protected function fetchDatesMatrixWidth($sheet, $datesMatrixFirstColumn, $rx)
     {
         $datesMatrixWidth = 0;
-        while ( ! in_array(trim($sheet->getCellByColumnAndRow($datesMatrixFirstColumn + $datesMatrixWidth, $rx)), array('Часы', 'Время'))
+        while ( ! in_array(trim($sheet->getCellByColumnAndRow($datesMatrixFirstColumn + $datesMatrixWidth, $rx)), array('Часы', 'часы', 'Время', 'время'))
               && $datesMatrixWidth <= 10 ) $datesMatrixWidth++;
         
         
@@ -99,13 +100,13 @@ class TableSection extends TableHandler
     
     
     // рассчитываем ширину на группу по первой ячейке для группы
-    protected function getGroupWidth($sheet, $firstDataColumn, $rx, $width)
+    protected function getGroupWidth($sheet, $firstDataColumn, $rx, $dataWidth)
     {
         $groupWidth = 1;
         $c = $firstDataColumn;
         while ( empty(trim($sheet->getCellByColumnAndRow($c + 1, $rx))) ) $c++;
         $groupWidth = $c - $firstDataColumn + 1;
-        if ( ($width - $firstDataColumn) % $groupWidth !== 0 ) throw new Exception('Ширина групп должна быть равной');
+        if ( $dataWidth % $groupWidth !== 0 ) throw new Exception("Ширина групп должна быть равной (лист &laquo;{$sheet->getTitle()}&raquo;)");
         return $groupWidth;
     }
     
@@ -118,11 +119,11 @@ class TableSection extends TableHandler
         for ( $c = $firstDataColumn; $c < $cx + $width; $c += $groupWidth )
         {   
             $groupName = trim($sheet->getCellByColumnAndRow($c, $rx));            
-            
-            if ( !preg_match('/В[А-Я]{1,3}-(?:\d|\d{3}[ам]?)/u', $groupName) )
+            $groupNameRecognized = array();
+            if ( !preg_match('/(В[А-Я]{1,3}-(?:\d{3}|\d)[ам]?)/u', $groupName, $groupNameRecognized) )
                 throw new Exception("Неверное название группы: &laquo;$groupName&raquo; (&laquo;{$sheet->getTitle()}&raquo;). Приведите названия групп в соответствие с утверждённым форматом. Возможно, есть скрытые столбцы в календаре.");
             
-            $groups[] = $groupName;
+            $groups[] = $groupNameRecognized[1];
         }        
         return $groups;
     }

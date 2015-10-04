@@ -29,21 +29,32 @@
     <script src="/js/tmpl.min.js"></script>
 
     <script>
-        elt = function(v){
-            if (v === null) return '<span class="glyphicon glyphicon-exclamation-sign text-danger"></span>';
+        elt = function(v, label){
+            if (v === null) return '<span class="glyphicon glyphicon-exclamation-sign text-danger"></span> <span class="text-danger">' + label + '</span>';
             else return v;
         }
         dtype = function(v){
+            if ( v == null ) v = 'NULL';
             var t = {
                 LECTURE: "лек.",
                 WORKSHOP: "пр.",
                 LAB: "лаб.",
                 QUIZ: "зачёт",
                 TUTORIAL: "конс.",
-                EXAMINATION: "экзамен"
+                EXAMINATION: "экзамен",
+                NULL: null
             };
-            return elt( t[v] );
+            return elt(t[v], 'тип');
         }
+        dlecturer = function(v){
+            if ( v == '0' ) v = '<преподаватель не указан>';
+            //alert('v is: ' + v);
+            return elt(v, 'преподаватель');
+        };
+        droom = function(v){
+            if ( v == 0 ) v = '<ауд. не указана>';
+            return elt(v, 'аудитория');
+        };
         comment = function(v){
             if (v !== null) return '<li class="comment"><span class="glyphicon glyphicon-comment" data-toggle="tooltip" title="' + v + '"></span></li>';
             else return "";
@@ -90,17 +101,17 @@
                     <td class="summary">
                         <ol class="breadcrumb">
                             <li class="group">{%#o.group%}</li>
-                            <li class="room">{%#elt(o.room)%}</li>
+                            <li class="room">{%#droom(o.room)%}</li>
                             <li class="type">{%#dtype(o.type)%}</li>
                             
                             {%#comment(o.comment)%}
                             
                             <br />
                             <li class="date"><span class="glyphicon glyphicon-time"></span> {%#o.time%}</li>
-                            <li class="lecturer">{%#elt(o.lecturer)%}</li>
+                            <li class="lecturer">{%#dlecturer(o.lecturer)%}</li>
                         </ol>
                     </td>
-                    <td class="discipline">{%#elt(o.discipline)%}</td>
+                    <td class="discipline">{%#elt(o.discipline, 'дисциплина')%}</td>
                 </tr>
                 <tr>
                     <td colspan="2" class="dump"><div>{%#highlight(o)%}</div></td>

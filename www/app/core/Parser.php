@@ -66,6 +66,9 @@ class Parser extends TableHandler
                         case 'вечернего':
                             return 'Evening';
                         
+                        case 'заочного':
+                            return 'PostalSession';
+                        
                         default:
                             return false;
                     }
@@ -131,6 +134,8 @@ class Parser extends TableHandler
             list ( $cx, $rx ) = $coords;
             
             $tableType = $this->getTableType($sheet, $rx);
+            
+            if ( !$tableType ) throw new Exception("Неизвестный тип таблицы (лист &laquo;{$sheet->getTitle()}&raquo;)");
             
             $harvesterClass = 'Harvester' . $tableType;
             $harvester = new $harvesterClass($sheet, $cx, $rx);

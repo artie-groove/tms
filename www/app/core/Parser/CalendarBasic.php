@@ -6,7 +6,7 @@ class CalendarBasic extends TableHandler
     
     public $dayLimitRowIndexes = array();
     protected $dayLimitRowIndexesPre = array(); // здесь нулевым индексом вставлен индекс первой строки таблицы
-    protected $dates = array();
+    public $dates = array();
     protected $timetable = array('8:00', '9:40', '11:20', '13:00', '14:40', '16:20', '18:00', '19:40');
     protected $sheet; // для доступа к текущему листу при генерации исключений
     

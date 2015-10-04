@@ -78,7 +78,7 @@ class LocationBasic extends TableHandler
         if ( ! empty($this->innerBorderPosition) ) return;
         if ( $this->height === 1 ) {
             $row--;
-            throw new Exception("Некорректная локация близ ячейки C$col:R$row [высота меньше единицы] ({$sheet->getTitle()})");
+            throw new Exception("Некорректная локация близ ячейки C$col:R$row [высота меньше единицы] (лист &laquo;{$sheet->getTitle()}&raquo;)");
         } 
         
         // ищем внутренние границы
@@ -89,6 +89,30 @@ class LocationBasic extends TableHandler
 //                     if ( $cx === 11 && $rx === 46 && get_class($this) === 'LocationSingle' ) throw new Exception(var_export(array($rx, $r, $row, $cx, $c, $col, $this->innerBorderPosition))); 
                     //if ( $cx === 11 && $rx === 46 ) throw new Exception(var_export(array($this->innerBorderPosition)));
                     return;
+                }
+            }
+        }
+        
+        // в расписании консультаций заочников встречаются локации для потока групп,
+        // разделённые по диагонали, означающей разные занятия для данного потока по датам;
+        // в данном случае ищем две ячейки с полужирным текстом;
+        // эти ячейки должны находиться в разных столбцах и строках
+          
+        if ( $this->width === 4 )
+        {
+            for ( $c = $cx + floor($this->width / 2); $c <= $cx + $this->width - 1; $c++ ) {        
+                for ( $r = $rx + 1; $r <= $rx + $this->height - 1; $r++ )    
+                {
+                    // если текст помечен жирным, то это ещё одно название дисциплины
+                    $cell = $sheet->getCellByColumnAndRow($c, $r);
+                    if ( !empty(trim($cell)) ) {
+                        $isBold = ( $cell->getStyle()->getFont()->getBold() == 1 ) ? true : false;
+                        if ( $isBold )
+                        {
+                            $this->innerBorderPosition = 2;
+                            return;
+                        }
+                    }
                 }
             }
         }
@@ -174,8 +198,9 @@ class LocationBasic extends TableHandler
                     if ( $sheet->getCellByColumnAndRow($c, $r)->getStyle()->getFont()->getBold() == 1 )
                     {
                         // кроме названия дисциплины в строке могут находиться и другие сведения
-                        if ( preg_match('/((?:[А-яA-Z]+[\s.,\/-]{0,3})+)(?:\((?1)\))?/u', $str, $matches) !== false )
+                        if ( preg_match('/((?:[А-яA-z]+[\s.,\/-]{0,3})+)?(?:\((?1)\))?/u', $str, $matches) !== false )
                         {   
+                            //if ( stristr($str, 'Теория автом.') !== false ) throw new Exception("<pre>$str</pre>");
                             // конкатенация для тех случаев, когда название дисциплины
                             // продолжается в следующей ячейке
                             $result['discipline'] .= $matches[0] . ' ';
@@ -184,7 +209,7 @@ class LocationBasic extends TableHandler
                     }
                     
                     // поиск типа занятия                        
-                    if ( preg_match("/(?:^|\s)((?:лаб|лек|пр|зач(?:ет)?|экз(?:амен)?)\s*\.?)/u", $str, $matches) )
+                    if ( preg_match("/(?:^|\s)((?:лаб|лек|пр|конс|зач(?:ет)?|экз(?:амен)?)\s*\.?)/u", $str, $matches) )
                     {
                         $result['type'] = $matches[1];
                         $str = str_replace($matches[1], '', $str);
@@ -234,7 +259,7 @@ class LocationBasic extends TableHandler
                     */
 
                     // поиск преподавателя                        
-                    if ( preg_match('/[А-Я][а-я]+(?:\s*[А-Я]\.){0,2}/u', $str, $matches) )
+                    if ( preg_match('/[А-Я][а-яё]+(?:\s*[А-Я]\.){0,2}/u', $str, $matches) )
                     {                            
                         $result['lecturer'] = $matches[0];
                         $str= str_replace($matches[0], '', $str);

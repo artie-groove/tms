@@ -31,17 +31,33 @@ class Table extends TableHandler
     
     public function exploreSections($sheet, $cx, $rx, $width, $height, $calendarType)
     {
-        for ( $w = 0, $cs = $c = $cx; $c < $cx + $width + 1; $c++, $w++ ) {
-            if ( ! $this->hasBottomBorder($sheet, $c, $rx)
-              && ! $this->hasBottomBorder($sheet, $c, $rx-1) ) {
-                $section = new TableSection($sheet, $cs, $rx, $w, $height, $calendarType);
-                $section->init();
-                $this->sections[] = $section;
+        for ( $w = 0, $cs = $c = $cx; $c < $cx + $width + 1; $c++ ) {
+            // если находим ячейку "Дни", то начинается новая секция
+            if ( in_array(trim($sheet->getCellByColumnAndRow($c, $rx)), array('Дни', 'дни')) ) {
+                $w = 1;
+                $cs = $c;
+                $c++;
+                while (
+                    ( $c < $cx + $width ) 
+                    && $this->hasBottomBorder($sheet, $c, $rx)
+                    && $this->hasBottomBorder($sheet, $c, $rx-1) 
+                    && !in_array(trim($sheet->getCellByColumnAndRow($c, $rx)), array('Дни', 'дни'))  )
+                {
+                    $c++;
+                    $w++;
+                }                
+                $this->addSection($sheet, $cs, $rx, $w, $height, $calendarType);     
                 $w = 0;
-                $cs = $c + 1;
-                $c += 1;
-            }
+                $c--;
+            }            
         }
+    }
+    
+    protected function addSection($sheet, $cs, $rx, $w, $height, $calendarType)
+    {
+        $section = new TableSection($sheet, $cs, $rx, $w, $height, $calendarType);
+        $section->init();
+        $this->sections[] = $section;
     }
     
     

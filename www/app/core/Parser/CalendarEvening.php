@@ -7,15 +7,7 @@ class CalendarEvening extends CalendarBasic {
     
     public function lookupTimeByRow($r)
     {
-        for ( $i = 1; $r >= $this->dayLimitRowIndexesPre[$i]; $i++ ); // смещаем указатель к текущей строке
-        
-        /*
-        // занятие может занимать от двух до трёх строк
-        // определить, сколько строк занимает занятие можно по чётности / нечётности
-        // если разница между текущей позицией и разделом чётная, то это трёхстрочка
-        // к первому занятию это, естественно, не относится (там всегда единица)
-        */
-        
+        for ( $i = 1; $r >= $this->dayLimitRowIndexesPre[$i]; $i++ ); // смещаем указатель к текущей строке        
         $offset = ( $r - $this->dayLimitRowIndexesPre[$i-1] ) / $this->meetingHeight;
         if ( $i % 6 !== 0 ) $offset += 6; // по субботам занятия начинаются как обычно с 8:00
         if ( $offset >= count($this->timetable) ) throw new Exception("Ошибка в расчёте номера занятия в строке $r (лист &laquo;{$this->sheet->getTitle()}&raquo;)" . var_export($this->timetable) . $offset);

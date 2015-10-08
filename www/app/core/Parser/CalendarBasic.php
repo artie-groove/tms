@@ -3,27 +3,29 @@
 
 class CalendarBasic extends TableHandler
 {
-    
     public $dayLimitRowIndexes = array();
     protected $dayLimitRowIndexesPre = array(); // здесь нулевым индексом вставлен индекс первой строки таблицы
     public $dates = array();
     protected $timetable = array('8:00', '9:40', '11:20', '13:00', '14:40', '16:20', '18:00', '19:40');
     protected $sheet; // для доступа к текущему листу при генерации исключений
     
-    public $meetingHeight; // высота занятия в строках (2 или 3)
+    public $meetingHeight = 2; // высота занятия в строках (2 или 3)
     public $timeshift; // для хранания динамического индекса смещения в массиве $timetable
     
-    public function __construct($sheet, $firstCol, $width, $firstRow, $height, $timeshift = null)
+    public function __construct($sheet)
     {
-        $this->meetingHeight = 2;
         $this->sheet = $sheet;
+    }
+    
+    public function init($firstCol, $width, $firstRow, $height, $timeshift = null)
+    {
+        $sheet = $this->sheet;
         $this->dayLimitRowIndexes = $this->lookupDayLimitRowIndexes($sheet, $firstCol - 1, $firstRow, $firstRow + $height);
         $this->dayLimitRowIndexesPre = $this->dayLimitRowIndexes;
         array_unshift($this->dayLimitRowIndexesPre, $firstRow);
         $this->dates = $this->gatherDates($sheet, $firstRow - 1, $firstCol, $width, $this->dayLimitRowIndexes);
         $this->timeshift = $timeshift;
     }
-    
     
     // === Определить индексы разделителей дней недели
     

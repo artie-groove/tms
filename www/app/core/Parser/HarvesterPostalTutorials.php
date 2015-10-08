@@ -4,10 +4,8 @@
  *  Реализует сборщик расписания консультаций заочного факультета
  */
 
-class HarvesterPostalTutorials extends HarvesterEvening
+class HarvesterPostalTutorials extends HarvesterFulltime
 {
-    protected $locationType = 'Single';
-    
     protected function postProcess(&$harvest) {
         foreach ( $harvest as &$meeting )
             $meeting->type = 'конс';

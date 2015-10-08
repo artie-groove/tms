@@ -38,84 +38,17 @@ class Parser extends TableHandler
     }
     
     
-    // === Определить тип таблицы
-    private function getTableType($sheet, $bottomRow)
+    // === Получить заголовок таблицы таблицы
+    private function getTableCaption($sheet, $bottomRow)
     {        
         $caption = '';
         for ( $r = 1; $r < $bottomRow; $r++ )
             for ( $c = 0; $c < self::MAX_WIDTH; $c++)
                 $caption .= $sheet->getCellByColumnAndRow($c, $r);
         
-        $caption = preg_replace('/\s/u', '', $caption);
-        $caption = mb_strtolower($caption);
-        
-        $matches = array();
-        $pattern = '/расписание(занятий|консультаций|сессии).*(инженерно|автомеханического|вечернего|заочн(?:ого|ая|ое)|второго)/u';
-        
-        if ( preg_match($pattern, $caption, $matches) )
-        {
-            switch ( $matches[1] )
-            {
-                case 'занятий':
-                    switch ( $matches[2] )
-                    {
-                        case 'инженерно':
-                        case 'автомеханического':
-                            return 'Fulltime';
-                        
-                        case 'вечернего':
-                            return 'Evening';
-                        
-                        case 'заочного':
-                        case 'заочная':
-                        case 'заочное':
-                            return 'PostalSession';
-                        
-                        case 'второго':
-                            return 'Secondary';
-                        
-                        default:
-                            return false;
-                    }
-                
-                case 'консультаций':
-                    switch ( $matches[2] )
-                    {
-                        case 'инженерно':
-                        case 'автомеханического':
-                        case 'вечернего':
-                            return 'BasicTutorials';
-                        
-                        case 'заочного':
-                        case 'заочная':
-                        case 'заочное':                        
-                            return 'PostalTutorials';
-                        
-                        default:
-                            return false;
-                    }
-                
-                case 'сессии':
-                    switch ( $matches[2] )
-                    {
-                        case 'инженерно':
-                        case 'автомеханического':
-                        case 'вечернего':
-                            return 'BasicSession';
-                        
-                        case 'заочного':
-                            return 'PostalSession';
-                        
-                        default:
-                            return false;
-                    } 
-                
-                default: return false;
-            }
-        }
-        return false;
+        return $caption;
     }
-
+    
     
     // === Запустить анализ файла расписания
     
@@ -140,15 +73,15 @@ class Parser extends TableHandler
             if ( ! $coords ) break;
             list ( $cx, $rx ) = $coords;
             
-            $tableType = $this->getTableType($sheet, $rx);
+            $caption = $this->getTableCaption($sheet, $rx);
             
-            if ( !$tableType ) throw new Exception("Неизвестный тип таблицы (лист &laquo;{$sheet->getTitle()}&raquo;)");
-            
-            $harvesterClass = 'Harvester' . $tableType;
-            $harvester = new $harvesterClass($sheet, $cx, $rx);
+            $harvesterFactory = new HarvesterFactory();
+            $harvester = $harvesterFactory->getHarvester($caption, $sheet, $cx, $rx);
             $data = $harvester->run();
            
-            $storage[] = array('type' => $tableType, 'data' => $data);
+            $storage[] = array(
+                'type' => $harvester->getType(),
+                'data' => $data);
         }
         return $storage;
     }

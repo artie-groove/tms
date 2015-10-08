@@ -2,6 +2,7 @@
 
 class Table extends TableHandler
 {
+    public $harvester;
     public $sheet;
     public $cx;
     public $rx;
@@ -12,25 +13,26 @@ class Table extends TableHandler
     public $sections = array();
     
     
-    public function __construct(&$sheet, $cx, $rx)
+    public function __construct($harvester, &$sheet, $cx, $rx)
     {
+        $this->harvester = $harvester;
         $this->sheet = $sheet;
         $this->cx = $cx;
         $this->rx = $rx;
     }
     
-    public function init($calendarType)
+    public function init()
     {
-        $sheet = $this->sheet;
         $cx = $this->cx;
         $rx = $this->rx;
-        $this->inspectGeometry($sheet, $cx, $rx);
-        $this->cleanup($sheet, $cx, $rx, $this->width, $this->height);
-        $this->exploreSections($sheet, $cx, $rx, $this->width, $this->height, $calendarType);
+        $this->inspectGeometry($cx, $rx);
+        $this->cleanup($cx, $rx, $this->width, $this->height);
+        $this->exploreSections($cx, $rx, $this->width, $this->height);
     }
     
-    public function exploreSections($sheet, $cx, $rx, $width, $height, $calendarType)
+    public function exploreSections($cx, $rx, $width, $height)
     {
+        $sheet = $this->sheet;
         for ( $w = 0, $cs = $c = $cx; $c < $cx + $width + 1; $c++ ) {
             // если находим ячейку "Дни", то начинается новая секция
             if ( in_array(trim($sheet->getCellByColumnAndRow($c, $rx)), array('Дни', 'дни')) ) {
@@ -46,17 +48,22 @@ class Table extends TableHandler
                     $c++;
                     $w++;
                 }                
-                $this->addSection($sheet, $cs, $rx, $w, $height, $calendarType);     
+                $this->addSection($cs, $rx, $w, $height);     
                 $w = 0;
                 $c--;
             }            
         }
     }
     
-    protected function addSection($sheet, $cs, $rx, $w, $height, $calendarType)
+    protected function getSection()
     {
-        $section = new TableSection($sheet, $cs, $rx, $w, $height, $calendarType);
-        $section->init();
+        return $this->harvester->getSection();
+    }
+    
+    protected function addSection($cs, $rx, $w, $height)
+    {
+        $section = $this->getSection();
+        $section->init($cs, $rx, $w, $height);
         $this->sections[] = $section;
     }
     
@@ -65,8 +72,10 @@ class Table extends TableHandler
     // таблица просматривается поячеечно вправо и вниз
     // до тех пор, пока не встретится ячейка, лишённая границ
     
-    protected function inspectGeometry($sheet, $cx, $rx)
+    protected function inspectGeometry($cx, $rx)
     {
+        $sheet = $this->sheet;
+
         $w = 1; // cols
         $h = 0; // rows
     
@@ -93,8 +102,9 @@ class Table extends TableHandler
     // === Препроцессинг таблицы
     // удаляет все невидимые строки и столбцы, а также сносит плашки первой и второй недель
     
-    protected function cleanup(&$sheet, $cx, $rx, &$w, &$h)
+    protected function cleanup($cx, $rx, &$w, &$h)
     {
+        $sheet = $this->sheet;
         /*
         // избавляемся от пустых столбцов
         for ( $c = 0; $c < $w; $c++ )

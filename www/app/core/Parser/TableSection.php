@@ -11,27 +11,32 @@ class TableSection extends TableHandler
     public $firstDataColumn;
     public $groupWidth;
     public $groups;
-    public $calendarType;
     public $calendar;
 
-    public function __construct($sheet, $cx, $rx, $width, $height, $calendarType)
+    public function __construct($sheet, $calendar)
     {
         $this->sheet = $sheet;
-        $this->cx = $cx;
-        $this->rx = $rx;
-        $this->width = $width;
-        $this->height = $height;
-        $this->calendarType = $calendarType;
+        $this->calendar = $calendar;
     }
     
-    public function init()
+    public function init($cx, $rx, $width, $height)
     {
         $sheet = $this->sheet;
+        
+        
+        /*
         $cx = $this->cx;
         $rx = $this->rx;
         $width = $this->width;
         $height = $this->height;
-        $calendarType = $this->calendarType;
+           */
+        
+        
+        $this->cx = $cx;
+        $this->rx = $rx;
+        $this->width = $width;
+        $this->height = $height;
+     
         
         $this->validateBorders($sheet, $cx, $rx, $width, $height);
         
@@ -45,8 +50,7 @@ class TableSection extends TableHandler
         $this->groups = $this->exploreGroups($sheet, $cx, $rx, $this->firstDataColumn, $width, $this->groupWidth);
         
         $timeshift = new Timeshift(count($this->groups));
-        $calendarClass = 'Calendar' . $calendarType;
-        $this->calendar = new $calendarClass($sheet, $this->datesMatrixFirstColumn, $this->datesMatrixWidth, $rx + 1, $height - 1, $timeshift);
+        $this->calendar->init($this->datesMatrixFirstColumn, $this->datesMatrixWidth, $rx + 1, $height - 1, $timeshift);
     }
     
     

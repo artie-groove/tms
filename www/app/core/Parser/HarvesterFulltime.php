@@ -15,8 +15,8 @@ class HarvesterFulltime extends HarvesterBasic
         $cx = $this->firstColumn;
         $rx = $this->firstRow;
         
-        $table = new Table($sheet, $cx, $rx);
-        $table->init($this->calendarType);
+        $table = new Table($this, $sheet, $cx, $rx);
+        $table->init();
         
         /*
         $params = $this->establishTableParams($sheet, $rx);
@@ -25,7 +25,7 @@ class HarvesterFulltime extends HarvesterBasic
         */
         
         foreach ( $table->sections as $section ) {
-            $chunk = $this->harvestSection($section, $this->calendarType);
+            $chunk = $this->harvestSection($section);
             $harvest = array_merge($harvest, $chunk);
         }
         
@@ -42,7 +42,7 @@ class HarvesterFulltime extends HarvesterBasic
     {
         $harvest = array(); // массив занятий
         
-        $sheet = $section->sheet;
+        $sheet = $this->sheet;
         $cx = $section->cx;
         $rx = $section->rx;
         $width = $section->width;
@@ -69,8 +69,7 @@ class HarvesterFulltime extends HarvesterBasic
                     
                     // эксплорим занятие (спускаемся в клетку) если под курсором локация
                     if ( $this->isLocationEntryPoint($sheet, $c, $r) ) {
-                        $locationType = 'Location' . $this->locationType;
-                        $location = new $locationType();
+                        $location = $this->getLocation();
                         $chunk = $location->collect($sheet, $calendar, $c, $r, $groups, $groupWidth, $gid);
                         
                         if ( ! empty($chunk) )

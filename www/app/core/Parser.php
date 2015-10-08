@@ -25,8 +25,8 @@ class Parser extends TableHandler
             if ( $reachedLeftBorder ) {
                 while ( $r >= 1 ) {
                     $r--;
-                    $rightBorderIsLost = !$this->hasRightBorder($sheet, $c, $r);
-                    if ( $rightBorderIsLost && $this->hasBottomBorder($sheet, $c+1, $w) ) {
+                    $cantSeeBorderAnymore = !$this->hasRightBorder($sheet, $c, $r);
+                    if ( $cantSeeBorderAnymore && $this->hasBottomBorder($sheet, $c+1, $r) ) {
                         return array($c+1, $r+1);
                     }
                 }
@@ -50,7 +50,7 @@ class Parser extends TableHandler
         $caption = mb_strtolower($caption);
         
         $matches = array();
-        $pattern = '/расписание(занятий|консультаций|сессии).*(инженерно|автомеханического|вечернего|заочного)/u';
+        $pattern = '/расписание(занятий|консультаций|сессии).*(инженерно|автомеханического|вечернего|заочн(?:ого|ая|ое)|второго)/u';
         
         if ( preg_match($pattern, $caption, $matches) )
         {
@@ -67,7 +67,12 @@ class Parser extends TableHandler
                             return 'Evening';
                         
                         case 'заочного':
+                        case 'заочная':
+                        case 'заочное':
                             return 'PostalSession';
+                        
+                        case 'второго':
+                            return 'Secondary';
                         
                         default:
                             return false;
@@ -82,6 +87,8 @@ class Parser extends TableHandler
                             return 'BasicTutorials';
                         
                         case 'заочного':
+                        case 'заочная':
+                        case 'заочное':                        
                             return 'PostalTutorials';
                         
                         default:

@@ -27,8 +27,8 @@ class ImportChecker extends Handler implements IStatus {
         $query = "
             SELECT DISTINCT
                 COUNT(*) AS n, g.name AS `group`, d.name AS discipline,
-                IF(t.id_room, r.name, 0) AS room,
-                IF(t.id_lecturer <> 0, CONCAT(l.surname, ' ', SUBSTR(l.name, 1, 1), '. ', SUBSTR(l.patronymic, 1, 1), '.'), 0) AS lecturer,
+                IF(t.id_room = 0, 0, r.name) AS room,
+                IF(t.id_lecturer = 0, 0, CONCAT(l.surname, ' ', SUBSTR(l.name, 1, 1), '. ', SUBSTR(l.patronymic, 1, 1), '.')) AS lecturer,
                 TIME_FORMAT(t.`time`, '%k:%i') AS time, t.type, t.comment, t.debug
             FROM timetable_stage AS t
             LEFT JOIN groups AS g ON t.id_group = g.id

@@ -5,6 +5,9 @@ abstract class HarvesterBasic extends TableHandler
     protected $sheet;
     protected $firstColumn;
     protected $firstRow;
+    protected $calendarType = 'Basic';
+    protected $locationType = 'Basic';
+    protected $sectionType = 'Basic';
     
     public function __construct($sheet, $firstColumn, $firstRow)
     {

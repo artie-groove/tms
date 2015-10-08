@@ -7,9 +7,6 @@
 
 class HarvesterFulltime extends HarvesterBasic
 {
-    protected $calendarType = 'Basic';
-    protected $locationType = 'Basic';
-    
     public function run()
     {
         $harvest = array();

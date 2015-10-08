@@ -7,7 +7,7 @@
 
 class LocationSingle extends LocationBasic
 {
-    protected function getMeetingsCount($height) {
+    protected function getMeetingsCount($height, $meetingHeight) {
         return 1;
     }
 }

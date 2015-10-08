@@ -19,15 +19,16 @@ class LocationBasic extends TableHandler
         $height = $this->height;
         $innerBorderPosition = $this->innerBorderPosition;
         
+        // устанавливаем высоту занятия в строках
+        if ( empty($calendar->meetingHeight) ) {
+            if ( $height == 3 ) $calendar->meetingHeight = 3;
+            else if ( $height == 2 || $height == 4 ) $calendar->meetingHeight = 2;
+            else throw new Exception("Не удаётся достоверно установить высоту одного занятия по высоте текущей ячейки: $height");
+        }
+        
         $retrieverAlgorithm = $innerBorderPosition ? 'retrieveMeetingsSplit' : 'retrieveMeeting';
         $meetings = $this->$retrieverAlgorithm($sheet, $calendar, $cx, $width, $rx, $height, $innerBorderPosition);
-        
-//         if ( $cx === 11 && $rx === 16 && $meetings[0]->dates == '3.03,31.03,28.04,26.05' ) throw new Exception(var_export(array($meetings, $width, $height, $innerBorderPosition, $cx, $rx)));
-        
-//         if ( $cx === 11 && $rx === 46 && $meetings[0]->dates == '6.04,4.05' ) throw new Exception(var_export(array($meetings, $width, $height, $innerBorderPosition, $cx, $rx, $groups)));
-        
-        
-        
+
         if ( empty($meetings[0]->discipline) )
             return false;
         
@@ -35,7 +36,7 @@ class LocationBasic extends TableHandler
         $groupsCount = $this->getGroupsCount($this->width, $groupWidth);
         
         // количество занятий
-        $meetingsCount = $this->getMeetingsCount($this->height);
+        $meetingsCount = $this->getMeetingsCount($this->height, $calendar->meetingHeight);
 
         $chunk = $this->pack($groupsCount, $groups, $gid, $calendar, $rx, $meetings, $meetingsCount);
         
@@ -68,13 +69,14 @@ class LocationBasic extends TableHandler
                 $this->innerBorderPosition = $col - $cx + 1;     
                 while ( ! $this->hasRightBorder($sheet, $col, $row) ) $col++;
                 $this->width = $col - $cx + 1;
-                while ( ! $this->hasBottomBorder($sheet, $col, $row) ) $row++;             
+                while ( ! $this->hasBottomBorder($sheet, $col, $row) ) $row++;        
                 $this->height = $row - $rx; 
             }     
             $row++;
         }  
         $this->height = $row - $rx;
         
+        // определяемся внутренней границей
         if ( ! empty($this->innerBorderPosition) ) return;
         if ( $this->height === 1 ) {
             $row--;
@@ -86,8 +88,6 @@ class LocationBasic extends TableHandler
             for ( $c = $cx; $c < $col; $c++ ) {                
                 if ( $this->hasRightBorder($sheet, $c, $r) ) {
                     $this->innerBorderPosition = $c - $cx + 1;
-//                     if ( $cx === 11 && $rx === 46 && get_class($this) === 'LocationSingle' ) throw new Exception(var_export(array($rx, $r, $row, $cx, $c, $col, $this->innerBorderPosition))); 
-                    //if ( $cx === 11 && $rx === 46 ) throw new Exception(var_export(array($this->innerBorderPosition)));
                     return;
                 }
             }
@@ -311,10 +311,10 @@ class LocationBasic extends TableHandler
                     $m->copyFrom($meeting);
                     $shift = $calendar->timeshift->get($g);
                     if ( empty($shift) )
-                        $m->time = $calendar->lookupTimeByRow($i + $z * 2);
+                        $m->time = $calendar->lookupTimeByRow($i + $z * $calendar->meetingHeight);
                     else {
                         if ( $z > 0 || empty($meeting->time) ) {
-                            $gridOffset = $calendar->lookupOffsetByRow($i + $z * 2);
+                            $gridOffset = $calendar->lookupOffsetByRow($i + $z * $calendar->meetingHeight);
                             if ( $gridOffset >= $shift ) { // всё ок, идём по сетке
                                 $m->time = $calendar->convertOffsetToTime($gridOffset);
                                  $calendar->timeshift->set($g, $gridOffset + 100);
@@ -351,9 +351,9 @@ class LocationBasic extends TableHandler
     }
     
     
-    protected function getMeetingsCount($height)
+    protected function getMeetingsCount($height, $meetingHeight)
     {
-        return floor($height / 2);   
+        return floor($height / $meetingHeight);
     }
     
     

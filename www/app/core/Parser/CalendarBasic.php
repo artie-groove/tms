@@ -10,12 +10,14 @@ class CalendarBasic extends TableHandler
     protected $timetable = array('8:00', '9:40', '11:20', '13:00', '14:40', '16:20', '18:00', '19:40');
     protected $sheet; // для доступа к текущему листу при генерации исключений
     
-    public $timeshift;
+    public $meetingHeight; // высота занятия в строках (2 или 3)
+    public $timeshift; // для хранания динамического индекса смещения в массиве $timetable
     
     public function __construct($sheet, $firstCol, $width, $firstRow, $height, $timeshift = null)
     {
+        $this->meetingHeight = 2;
         $this->sheet = $sheet;
-        $this->dayLimitRowIndexes = $this->lookupDayLimitRowIndexes($sheet, $firstRow, $firstRow + $height);
+        $this->dayLimitRowIndexes = $this->lookupDayLimitRowIndexes($sheet, $firstCol - 1, $firstRow, $firstRow + $height);
         $this->dayLimitRowIndexesPre = $this->dayLimitRowIndexes;
         array_unshift($this->dayLimitRowIndexesPre, $firstRow);
         $this->dates = $this->gatherDates($sheet, $firstRow - 1, $firstCol, $width, $this->dayLimitRowIndexes);
@@ -25,14 +27,14 @@ class CalendarBasic extends TableHandler
     
     // === Определить индексы разделителей дней недели
     
-    protected function lookupDayLimitRowIndexes($sheet, $firstRow, $finalRow)
+    protected function lookupDayLimitRowIndexes($sheet, $firstCol, $firstRow, $finalRow)
     {        
         $dayLimitRowIndexes = array();
         $k = 0;
         for ( $i = $firstRow; $i < $finalRow; $i++ )
         {   
             // если наткнулись на границу
-            if ( $this->hasBottomBorder($sheet, 0, $i) && $this->hasRightBorder($sheet, 0, $i) ) {  
+            if ( $this->hasBottomBorder($sheet, $firstCol, $i) && $this->hasRightBorder($sheet, $firstCol, $i) ) {  
                 $dayLimitRowIndexes[$k] = $i + 1;
                 $k++;
             }
@@ -99,7 +101,7 @@ class CalendarBasic extends TableHandler
     public function lookupTimeByRow($r)
     {
         for ( $i = 1; $r >= $this->dayLimitRowIndexesPre[$i]; $i++ );
-        $offset = ( $r - $this->dayLimitRowIndexesPre[$i-1] ) / 2;
+        $offset = ( $r - $this->dayLimitRowIndexesPre[$i-1] ) / $this->meetingHeight;
         if ( $offset >= count($this->timetable) )
         {
             $limitsDump = implode(',', $this->dayLimitRowIndexesPre);
@@ -116,7 +118,7 @@ class CalendarBasic extends TableHandler
 //         $dayLimitRowIndexes = $this->dayLimitRowIndexes;
 //         array_unshift($dayLimitRowIndexes, $rx + 1);
         for ( $i = 1; $r >= $this->dayLimitRowIndexesPre[$i]; $i++ );
-        return ( $r - $this->dayLimitRowIndexesPre[$i-1] ) / 2 * 100;
+        return ( $r - $this->dayLimitRowIndexesPre[$i-1] ) / $this->meetingHeight * 100;
     }
     
     

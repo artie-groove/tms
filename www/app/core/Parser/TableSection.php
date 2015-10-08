@@ -38,7 +38,7 @@ class TableSection extends TableHandler
         // определяем ширину матрицы дат
         $this->datesMatrixFirstColumn = $cx + 1;       
         
-        $this->datesMatrixWidth = $this->fetchDatesMatrixWidth($sheet, $this->datesMatrixFirstColumn, $rx);        
+        $this->datesMatrixWidth = $this->fetchDatesMatrixWidth($sheet, $this->datesMatrixFirstColumn, $rx);   
         $this->firstDataColumn = $this->establishFirstDataColumn();
         $dataWidth = $this->cx + $width - $this->firstDataColumn;
         $this->groupWidth = $this->getGroupWidth($sheet, $this->firstDataColumn, $rx, $dataWidth);
@@ -47,7 +47,6 @@ class TableSection extends TableHandler
         $timeshift = new Timeshift(count($this->groups));
         $calendarClass = 'Calendar' . $calendarType;
         $this->calendar = new $calendarClass($sheet, $this->datesMatrixFirstColumn, $this->datesMatrixWidth, $rx + 1, $height - 1, $timeshift);
-        //throw new Exception(var_export($this->calendar->dates));        
     }
     
     
@@ -104,7 +103,7 @@ class TableSection extends TableHandler
     {
         $groupWidth = 1;
         $c = $firstDataColumn;
-        while ( empty(trim($sheet->getCellByColumnAndRow($c + 1, $rx))) ) $c++;
+        while ( empty(trim($sheet->getCellByColumnAndRow($c + 1, $rx))) && $c < $firstDataColumn + $dataWidth - 1 ) $c++;
         $groupWidth = $c - $firstDataColumn + 1;
         if ( $dataWidth % $groupWidth !== 0 ) throw new Exception("Ширина групп должна быть равной (лист &laquo;{$sheet->getTitle()}&raquo;)");
         return $groupWidth;

@@ -19,13 +19,11 @@ class CalendarPostalSession extends CalendarBasic
             {
                 $dateCellData = trim($sheet->getCellByColumnAndRow($firstCol, $r));
                 if ( empty($dateCellData) ) continue; // пустые ячейки пропускаем
-                /*
-                if ( $dateCellData === "8.1199999999999991" ) {
-                    $cell = $sheet->getCellByColumnAndRow($firstCol, $r);
-                    throw new Exception(var_dump((string)$cell->getValue()));
-                }
-                */
-                $dates[$wd] = $this->floatToString($dateCellData);
+                //$dates[$wd] = $this->floatToString($dateCellData);
+                if ( preg_match("/[0-3]?[0-9]\.[01][0-9]/u", $dateCellData, $matches) )
+                    $dates[$wd] = $matches[0];
+                else
+                    throw new Exception("Неверный формат даты: $dateCellData (ожидается: ДД.ММ) [лист &laquo;{$sheet->getTitle()}&raquo;, строка $r]");
                 break;
             }
             $r = $dayLimitRowIndexes[$wd];
@@ -34,11 +32,13 @@ class CalendarPostalSession extends CalendarBasic
         return $dates;
     }
     
+    /*
     private function floatToString($value)
     {
         $day = floor($value);
         $month = round(($value - $day) * 100);
         return implode('.', array($day, $month));
     }
+    */
 }
 

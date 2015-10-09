@@ -10,7 +10,8 @@ class Table extends TableHandler
     public $height;
     
     protected $sectionStartCols = array();
-    public $sections = array();
+    public $sectionRegions = array();
+    public $sections = array();    
     
     
     public function __construct($harvester, &$sheet, $cx, $rx)
@@ -48,23 +49,11 @@ class Table extends TableHandler
                     $c++;
                     $w++;
                 }                
-                $this->addSection($cs, $rx, $w, $height);     
+                $this->sectionRegions[] = array($cs, $rx, $w, $height);
                 $w = 0;
                 $c--;
             }            
         }
-    }
-    
-    protected function getSection()
-    {
-        return $this->harvester->getSection();
-    }
-    
-    protected function addSection($cs, $rx, $w, $height)
-    {
-        $section = $this->getSection();
-        $section->init($cs, $rx, $w, $height);
-        $this->sections[] = $section;
     }
     
     

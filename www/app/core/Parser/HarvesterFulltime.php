@@ -17,12 +17,13 @@ class HarvesterFulltime extends HarvesterBasic
         
         $table = new Table($this, $sheet, $cx, $rx);
         $table->init();
-        
-        /*
-        $params = $this->establishTableParams($sheet, $rx);
-        list ( $width, $height, $datesMatrixFirstColumn, $datesMatrixWidth, $firstDataColumn, $groupWidth ) = array_values($params);
-        $groups = $this->exploreGroups($sheet, $firstDataColumn, $width, $rx, $groupWidth);
-        */
+        foreach ( $table->sectionRegions as $region )
+        {
+            $section = $this->getSection();
+            list ( $cs, $rx, $w, $h ) = $region;
+            $section->init($cs, $rx, $w, $h);
+            $table->sections[] = $section;
+        }
         
         foreach ( $table->sections as $section ) {
             $chunk = $this->harvestSection($section);

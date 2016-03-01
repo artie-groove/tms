@@ -2,53 +2,14 @@
 
 class Parser extends TableHandler
 {
-    const MAX_PROBE_DEPTH = 15; // количество строк при "прощупывании" верхней границы таблицы
-    const MAX_PROBE_WIDTH = 5;  // количество столбцов при "прощупывании" левой границы таблицы
-    const MAX_WIDTH = 120;      // максимальное количество столбцов, формирующих таблицу
-    
+    public $skipped;   
     private $PHPExcel;
 
-    
-    // === Зондировать лист на предмет наличия таблицы
-    // если найдена граница в верхней части листа, возвращает номер строки
-    
-    private function probeTable($sheet)
+  
+    public function __construct()
     {
-        $c = 0;
-        for ( $r = 1; $r < self::MAX_PROBE_DEPTH; $r++ ) {
-            $reachedBottomBorder = $this->hasBottomBorder($sheet, 0, $r);
-            if ( $reachedBottomBorder ) return array($c, $r+1); 
-        }
-        
-        for ( $c = 0; $c < self::MAX_PROBE_WIDTH; $c++ ) {
-            $reachedLeftBorder = $this->hasRightBorder($sheet, $c, $r);
-            if ( $reachedLeftBorder ) {
-                while ( $r >= 1 ) {
-                    $r--;
-                    $cantSeeBorderAnymore = !$this->hasRightBorder($sheet, $c, $r);
-                    if ( $cantSeeBorderAnymore && $this->hasBottomBorder($sheet, $c+1, $r) ) {
-                        return array($c+1, $r+1);
-                    }
-                }
-                break;
-            }
-        }
-        
-        return false;
+        $this->skipped = 0;
     }
-    
-    
-    // === Получить заголовок таблицы таблицы
-    private function getTableCaption($sheet, $bottomRow)
-    {        
-        $caption = '';
-        for ( $r = 1; $r < $bottomRow; $r++ )
-            for ( $c = 0; $c < self::MAX_WIDTH; $c++)
-                $caption .= $sheet->getCellByColumnAndRow($c, $r);
-        
-        return $caption;
-    }
-    
     
     // === Запустить анализ файла расписания
     
@@ -62,27 +23,33 @@ class Parser extends TableHandler
         $this->PHPExcel = $objReader->load($filename);
 
         
-//         $this->PHPExcel = PHPExcel_IOFactory::load($filename);
         $storage = array();
+        $harvesterFactory = new HarvesterFactory();
+        
         $sheetsTotal = $this->PHPExcel->getSheetCount();
+        
         for ( $s = 0; $s < $sheetsTotal; $s++ )
         {
             $sheet = $this->PHPExcel->getSheet($s);
             
-            $coords = $this->probeTable($sheet);
-            if ( ! $coords ) break;
-            list ( $cx, $rx ) = $coords;
+            $table = new Table($sheet);
+            $tableIsInitialised = $table->init();
+            if ( ! $tableIsInitialised ) {
+                $this->skipped++;
+                continue;
+            }
+            $harvester = $harvesterFactory->getHarvester($table);
             
-            $caption = $this->getTableCaption($sheet, $rx);
-            
-            $harvesterFactory = new HarvesterFactory();
-            $harvester = $harvesterFactory->getHarvester($caption, $sheet, $cx, $rx);
-            $data = $harvester->run();
+            $harvester->run();
+            $data = $harvester->getHarvest();
+            $type = $harvester->getType();
            
             $storage[] = array(
-                'type' => $harvester->getType(),
-                'data' => $data);
+                'type' => $type,
+                'data' => $data
+            );
         }
+        
         return $storage;
     }
     

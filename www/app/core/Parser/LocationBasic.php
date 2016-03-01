@@ -12,9 +12,9 @@ class LocationBasic extends TableHandler
     }
     
     
-    public function collect($sheet, &$calendar, $cx, $rx, $groups, $groupWidth, $gid)
+    public function collect($sheet, &$calendar, $cx, $rx, $groups, $groupWidth, $gid, $lastColumn, $lastRow)
     {
-        $this->inspect($sheet, $cx, $rx);
+        $this->inspect($sheet, $cx, $rx, $lastColumn, $lastRow);
         $width = $this->width;
         $height = $this->height;
         $innerBorderPosition = $this->innerBorderPosition;
@@ -51,32 +51,67 @@ class LocationBasic extends TableHandler
     // если нет - проходимся по строкам локации в поисках внутренней границы типа А
     // факт существования границы говорит о том, что у локации нарушена целостность
     
-    protected function inspect($sheet, $cx, $rx)
+    protected function inspect($sheet, $cx, $rx, $lastColumn, $lastRow)
     {   
         $row = $rx; // начальная строка
         $col = $cx; // начальный столбец
         
-        // находим правую границу локации        
-        while ( ! $this->hasRightBorder($sheet, $col, $rx) ) $col++;
+        // находим правую границу локации
+        $i = 0; // счётчик цикла while 
+        while ( ! $this->hasRightBorder($sheet, $col, $rx) && $col < $lastColumn)
+        {
+            if ( $i > 0 )
+            {
+                $cell = $sheet->getCellByColumnAndRow($col, $rx);
+                $isBold = $cell->getStyle()->getFont()->getBold() == 1;
+                $value = $cell->getValue();
+                $isEmpty = trim($value) == false;
+                if ( $isBold && !$isEmpty ) // скорее всего, опущена граница между двумя занятиями
+                {
+                    $styleArray = array(
+                        'borders' => array(
+                            'left' => array(
+                                'style' => PHPExcel_Style_Border::BORDER_THICK,
+                                'color' => array('argb' => 'FF000000'),
+                            ),
+                        ),
+                    );
+                    $coord = $sheet->getCellByColumnAndRow($col, $rx)->getCoordinate();
+                    $sheet->getStyle($coord)->applyFromArray($styleArray);
+                    $this->width = $col - $cx + 1;
+                    // тут нужно сразу найти нижнюю границу, без проверки правой
+                    $this->width = $col - $cx + 1;
+                    $row++;
+                    while ( ! $this->hasBottomBorder($sheet, $col, $row - 1) && $row <= $lastRow ) {
+                        $row++;
+                    }
+                    $this->height = $row - $rx;
+                    //throw new DebugException("C{$col}R{$rx}", array($this->width, $this->height, $value, $isBold, $isEmpty));
+                    return;
+                }
+            }
+            $col++;
+            $i++;
+        }
         $this->width = $col - $cx + 1;
         // ищем нижнюю границу локации начиная со второй строки
         $row++;
-        while ( ! $this->hasBottomBorder($sheet, $col, $row - 1) ) { // хитрое условие: пока нет нижней границы предыдущей ячейки
+        while ( ! $this->hasBottomBorder($sheet, $col, $row - 1) && $row <= $lastRow ) { // хитрое условие: пока нет нижней границы предыдущей ячейки
             // в это же время поглядываем на правую границу
             if ( ! $this->hasRightBorder($sheet, $col, $row) ) {
                 // если справа "дырка", то фиксируем это в протокол,
                 // смещаемся до правой границы, корректируем ширину и падаем на дно 
                 $this->innerBorderPosition = $col - $cx + 1;     
-                while ( ! $this->hasRightBorder($sheet, $col, $row) ) $col++;
+                while ( ! $this->hasRightBorder($sheet, $col, $row) && $col < $lastColumn ) $col++;
                 $this->width = $col - $cx + 1;
-                while ( ! $this->hasBottomBorder($sheet, $col, $row) ) $row++;        
+                while ( ! $this->hasBottomBorder($sheet, $col, $row) && $row < $lastRow ) $row++;
                 $this->height = $row - $rx; 
             }     
             $row++;
         }  
         $this->height = $row - $rx;
         
-        // определяемся внутренней границей
+        // определяемся c внутренней границей
         if ( ! empty($this->innerBorderPosition) ) return;
         if ( $this->height === 1 ) {
             $row--;
@@ -194,6 +229,45 @@ class LocationBasic extends TableHandler
                 {
                     $matches = array();
                     
+                    // ищем временные диапазоны (типа коментариев: с 18:30 или 13:00-16:00)
+                    // важно выполнять этот поиск в самом начале, чтобы избавиться от значений времени,
+                    // вписываемых в название дисциплины
+
+                    /*
+                        // если этого не сделать, то эти данные могут быть интерпретированы как даты                        
+                        if ( preg_match("/(?:с\s+)?\d{1,2}\.\d\d\s*-\s*\d{1,2}\.\d\d/i", $str, $matches) )
+                        {
+                            $result['comment'] .= ' ' . $matches[0];
+                            $str = str_replace($matches[0], '', $str);                           
+                        }
+                        */
+
+                    if ( preg_match('/(?:[СCсc]\s*)?([012]?\d)[.:]([0-5]0)(?:\s*-\s*(?1)[.:](?2))?/u', $str, $matches) )
+                    {
+                        $result['time'] = $matches[1] . ':' . $matches[2];
+                        $result['comment'] .= ' ' . $matches[0];
+                        $str = str_replace($matches[0], '', $str);
+                    }
+                    
+                    // поиск эксплицитных дат
+                    
+                    //if ( preg_match('/(\d{1,2}\.\d{2}(?:,\s?|$))+/u', $str, $matches) )
+                    //if ( preg_match('/(?:([1-3]?\d\.[01]\d)(?:\s?(?=,),\s*|(?:(?!\1)|(?!))))+/u', $str, $matches) )
+                    if ( preg_match('/(?<![CcСс]\s)(?<!\d|-\s|-)(?:(?:[12]?\d|30|31)\.(?:0\d|1[0-2])(?:\s?(?=,),\s*)?(?!\s-|-))+/u', $str, $matches) )
+                    {   
+                        $result['dates'] = preg_replace('/\s/u', '', $matches[0]);
+                        $str = str_replace($matches[0], '', $str);
+                    }
+                    
+                    /*
+                        // вырезаем подстроку с датами из комментария
+                        $posFrom = $mc[0][1];
+                        $posTo = $posFrom + mb_strlen($mc[0][0]);
+                        $data['comment'] = mb_substr($data['comment'], 0, $posFrom) . mb_substr($data['comment'], $posTo);
+                        // вырезаем все пробелы из строки с датами                                    
+                        $data['dates'] = preg_replace('/\s/u', '', $mc[0][0]);
+                    */
+                    
                     // если текст помечен жирным, то это название дисциплины
                     if ( $sheet->getCellByColumnAndRow($c, $r)->getStyle()->getFont()->getBold() == 1 )
                     {
@@ -215,25 +289,6 @@ class LocationBasic extends TableHandler
                         $str = str_replace($matches[1], '', $str);
                     }
 
-                    // ищем временные диапазоны (типа коментариев: с 18:30 или 13:00-16:00)
-
-                    /*
-                        // если этого не сделать, то эти данные могут быть интерпретированы как даты                        
-                        if ( preg_match("/(?:с\s+)?\d{1,2}\.\d\d\s*-\s*\d{1,2}\.\d\d/i", $str, $matches) )
-                        {
-                            $result['comment'] .= ' ' . $matches[0];
-                            $str = str_replace($matches[0], '', $str);                           
-                        }
-                        */
-
-                    if ( preg_match('/(?:[СCсc]\s*)?([012]?\d:[0-5]0)(?:\s*-\s*(?-1))?/u', $str, $matches) )
-                    {
-                        $result['time'] = $matches[1];
-                        $result['comment'] .= ' ' . $matches[0];
-                        $str = str_replace($matches[0], '', $str);
-                        //if ( $matches[1] == "11:50" ) throw new Exception($matches[0] . '/' . $str);
-                    }
-
                     // поиск аудитории                        
                     if ( preg_match("/((?:[АБВД]|БЛК)-\d{2,3}|ВПЗ|гараж\s№3)(?:\s|$|,)/u", $str, $matches) )
                     {   
@@ -241,25 +296,8 @@ class LocationBasic extends TableHandler
                         $str = str_replace($matches[0], '', $str);
                     }
 
-                    // поиск эксплицитных дат
-                    //if ( preg_match('/(\d{1,2}\.\d{2}(?:,\s?|$))+/u', $str, $matches) )
-                    if ( preg_match('/(?:([1-3]?\d\.[01]\d)(?:\s?(?=,),\s*|(?:(?!\1)|(?!))))+/u', $str, $matches) )
-                    {   
-                        $result['dates'] = preg_replace('/\s/u', '', $matches[0]);
-                        $str = str_replace($matches[0], "", $str);
-                    }
-                    
-                    /*
-                        // вырезаем подстроку с датами из комментария
-                        $posFrom = $mc[0][1];
-                        $posTo = $posFrom + mb_strlen($mc[0][0]);
-                        $data['comment'] = mb_substr($data['comment'], 0, $posFrom) . mb_substr($data['comment'], $posTo);
-                        // вырезаем все пробелы из строки с датами                                    
-                        $data['dates'] = preg_replace('/\s/u', '', $mc[0][0]);
-                    */
-
                     // поиск преподавателя                        
-                    if ( preg_match('/[А-Я][а-яё]+(?:\s*[А-Я]\.){0,2}/u', $str, $matches) )
+                    if ( preg_match('/(?<!,)[А-Я][а-яё]+(?= |,|\(|$)(?:\s*[А-Я]\.){0,2}(?= |,|\(|$)/u', $str, $matches) )
                     {                            
                         $result['lecturer'] = $matches[0];
                         $str= str_replace($matches[0], '', $str);

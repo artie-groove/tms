@@ -90,6 +90,12 @@ class TestHarvester {
         $isTestPassed = true;
         foreach ( $items as $item ) {
             list ( $id, $sampleMeeting ) = $item;
+            if ( empty($this->harvest[$id]) )
+            {
+                $this->report($title, false, "<pre>{$strSampleMeeting} not parsed</pre>");
+                $isTestPassed = false;
+                break;
+            }
             $harvestedMeeting = $this->harvest[$id];
             $isMatch = $harvestedMeeting == $sampleMeeting;
             $isTestPassed &= $isMatch;

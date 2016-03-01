@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Загрузка XLSX-файлов расписания</title>
+    <title>Загрузка файлов расписания</title>
 
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -134,8 +134,8 @@
                 <span class="glyphicon glyphicon-upload"></span>&nbsp;
                 <span>Выберите файл</span>
                 <p>Максимальный размер: 1&nbsp;МБ</p>
-                <p>Принимаются только XLSX-файлы</p>
-                <input id="fileupload" type="file" name="data_xlsx">
+                <p>Принимаются только файлы XLS и XLSX</p>
+                <input id="fileupload" type="file" name="data">
             </div>
             <br/><br/>
 
@@ -271,9 +271,9 @@
             add: function( e, data ) {
                 // check if the input file name ends with .xlsx
                 var ext = data.files[0].name.toLowerCase().split('.').pop();
-                if ( ext !== 'xlsx' ) {
+                if ( ext !== 'xlsx' && ext !== 'xls' ) {
                     $('#log').addClass('bg-warning');
-                    $('#log').text('Стоп. Принимаются только файлы расписания в формате xlsx');
+                    $('#log').text('Стоп. Принимаются только файлы расписания в форматах XLS и XLSX');
                     return false;
                 }
                 $('#log').hide();

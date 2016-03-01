@@ -8,10 +8,6 @@ class CalendarBasic extends TableHandler
     public $dates = array();
     protected $timetable = array('8:00', '9:40', '11:20', '13:00', '14:40', '16:20', '18:00', '19:40');
     protected $sheet; // для доступа к текущему листу при генерации исключений
-    public $months = array(
-        'январь', 'февраль', 'март', 'апрель', 'май', 'июнь',
-        'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'
-    );
     
     public $meetingHeight = 2; // высота занятия в строках (2 или 3)
     public $timeshift; // для хранания динамического индекса смещения в массиве $timetable
@@ -23,11 +19,10 @@ class CalendarBasic extends TableHandler
     
     public function init($firstCol, $width, $firstRow, $height, $timeshift = null)
     {
-        $sheet = $this->sheet;
-        $this->dayLimitRowIndexes = $this->lookupDayLimitRowIndexes($sheet, $firstCol - 1, $firstRow, $firstRow + $height);
+        $this->dayLimitRowIndexes = $this->lookupDayLimitRowIndexes($this->sheet, $firstCol - 1, $firstRow, $firstRow + $height);
         $this->dayLimitRowIndexesPre = $this->dayLimitRowIndexes;
         array_unshift($this->dayLimitRowIndexesPre, $firstRow);
-        $this->dates = $this->gatherDates($sheet, $firstRow - 1, $firstCol, $width, $this->dayLimitRowIndexes);
+        $this->dates = $this->gatherDates($this->sheet, $firstRow - 1, $firstCol, $width, $this->dayLimitRowIndexes);
         $this->timeshift = $timeshift;
     }
     
@@ -53,7 +48,12 @@ class CalendarBasic extends TableHandler
     // массив проиндексирован по каждому дню из таблицы
     
     protected function gatherDates($sheet, $rx, $firstCol, $width, $dayLimitRowIndexes)
-    {   
+    {        
+        $months = array(
+            'январь', 'февраль', 'март', 'апрель', 'май', 'июнь',
+            'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'
+        );
+        
         $nDays = count($dayLimitRowIndexes);
         $dates = array_fill(0, $nDays, '');
         
@@ -62,7 +62,7 @@ class CalendarBasic extends TableHandler
             // вытащим название месяца строкой
             $monthName = mb_strtolower(trim($sheet->getCellByColumnAndRow($m, $rx)));
             // найдём числовое соответствие месяцу и запишем его в формате "ММ"
-            $month = sprintf('%02d', array_search($monthName, $this->months) + 1);
+            $month = sprintf('%02d', array_search($monthName, $months) + 1);
 
             $r = $rx + 1; // счётчик индекса строки
             

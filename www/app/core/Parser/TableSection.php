@@ -2,6 +2,7 @@
    
 class TableSection extends TableHandler
 {
+    const datesMatrixMaxWidth = 5;
     public $sheet;
     public $rx;
     public $cx;
@@ -23,27 +24,17 @@ class TableSection extends TableHandler
     {
         $sheet = $this->sheet;
         
-        
-        /*
-        $cx = $this->cx;
-        $rx = $this->rx;
-        $width = $this->width;
-        $height = $this->height;
-           */
-        
-        
         $this->cx = $cx;
         $this->rx = $rx;
         $this->width = $width;
-        $this->height = $height;
-     
+        $this->height = $height;     
         
-        $this->validateBorders($sheet, $cx, $rx, $width, $height);
+        //$this->validateBorders($sheet, $cx, $rx, $width, $height);
         
         // определяем ширину матрицы дат
         $this->datesMatrixFirstColumn = $cx + 1;       
         
-        $this->datesMatrixWidth = $this->fetchDatesMatrixWidth($sheet, $this->datesMatrixFirstColumn, $rx);   
+        $this->datesMatrixWidth = $this->fetchDatesMatrixWidth($sheet, $this->datesMatrixFirstColumn, $rx);
         $this->firstDataColumn = $this->establishFirstDataColumn();
         $dataWidth = $this->cx + $width - $this->firstDataColumn;
         $this->groupWidth = $this->getGroupWidth($sheet, $this->firstDataColumn, $rx, $dataWidth);
@@ -82,15 +73,28 @@ class TableSection extends TableHandler
     
     protected function fetchDatesMatrixWidth($sheet, $datesMatrixFirstColumn, $rx)
     {
+        $hoursColumnCaptions = array('часы', 'время');
         $datesMatrixWidth = 0;
-        while ( ! in_array(trim($sheet->getCellByColumnAndRow($datesMatrixFirstColumn + $datesMatrixWidth, $rx)), array('Часы', 'часы', 'Время', 'время'))
-              && $datesMatrixWidth <= 10 ) $datesMatrixWidth++;
+        do {
+            $value = mb_strtolower(trim($sheet->getCellByColumnAndRow($datesMatrixFirstColumn + $datesMatrixWidth, $rx)));
+            $hoursColumnReached = in_array($value, $hoursColumnCaptions);
+            $nonDomainValueRead = ! in_array($value, $this->calendar->months);
+            if ( $hoursColumnReached || $nonDomainValueRead ) break;            
+            $datesMatrixWidth++;
+        } while ( $datesMatrixWidth < self::datesMatrixMaxWidth );
         
-        
-       if ( $datesMatrixWidth >= 10 )
+       /*
+       if ( $datesMatrixWidth > 5 )
            throw new Exception("Не удаётся обнаружить столбец времени занятий (&laquo;Часы&raquo; или &laquo;Время&raquo;) на&nbsp;листе &laquo;{$sheet->getTitle()}&raquo;");
-        
+
         if ( $datesMatrixWidth > 5 ) throw new Exception("Некорректное количество столбцов в календаре. Удалите все скрытые столбцы (&laquo;{$sheet->getTitle()}&raquo;)");
+        */
+        
+        if ( ! $datesMatrixWidth )
+        {
+            if ( empty($value) ) $datesMatrixWidth = 1; // for PostalSession calendar type
+            else throw new Exception('Не удалось распознать матрицу дат');
+        }
         
         return $datesMatrixWidth;
     }
@@ -98,7 +102,19 @@ class TableSection extends TableHandler
     
     protected function establishFirstDataColumn()
     {
-        return $this->datesMatrixFirstColumn + $this->datesMatrixWidth + 1;
+        $firstDataColumn = $this->datesMatrixFirstColumn + $this->datesMatrixWidth - 1;
+        do {
+            $firstDataColumn++;
+            $cellValue = $this->sheet->getCellByColumnAndRow($firstDataColumn, $this->rx)->getValue();
+            if ( ! empty($cellValue) ) {
+                $cellValueContainsDigits = preg_match("/\d+/", $cellValue);
+                if ( $cellValueContainsDigits )
+                    break;
+            }
+            
+        } while ( $firstDataColumn < $this->cx + $this->width - 1 );
+
+        return $firstDataColumn;
     }
     
     
@@ -109,6 +125,7 @@ class TableSection extends TableHandler
         $c = $firstDataColumn;
         while ( empty(trim($sheet->getCellByColumnAndRow($c + 1, $rx))) && $c < $firstDataColumn + $dataWidth - 1 ) $c++;
         $groupWidth = $c - $firstDataColumn + 1;
+//         throw new DebugException('x', array($firstDataColumn, $dataWidth, $groupWidth));
         if ( $dataWidth % $groupWidth !== 0 ) throw new Exception("Ширина групп должна быть равной (лист &laquo;{$sheet->getTitle()}&raquo;)");
         return $groupWidth;
     }

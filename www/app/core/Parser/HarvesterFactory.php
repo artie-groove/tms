@@ -3,14 +3,17 @@
 
 class HarvesterFactory
 {
-    public function getHarvester($caption, $sheet, $cx, $rx)
+    public function getHarvester($table)
     {
-        $type = $this->fetchType($caption);
-        if ( !$type ) throw new Exception("Неизвестный тип таблицы (лист &laquo;{$sheet->getTitle()}&raquo;)");
-        $customHarvesterTypes = array('PostalTutorials', 'Secondary');
-        $harvesterType = in_array($type, $customHarvesterTypes) ? $type : 'Fulltime';
-        $harvesterClass = 'Harvester' . $harvesterType;
-        return new $harvesterClass($type, $sheet, $cx, $rx);
+        $type = $this->fetchType($table->getCaption());
+        if ( !$type )
+            throw new Exception("Неизвестный тип таблицы (лист &laquo;{$table->sheet->getTitle()}&raquo;)");
+
+//         $customHarvesterTypes = array('Evening', 'PostalTutorials', 'Secondary');
+//         $harvesterType = in_array($type, $customHarvesterTypes) ? $type : 'Fulltime';
+        $harvesterClass = 'Harvester' . $type;
+        
+        return new $harvesterClass($table);
     }
     
     public function fetchType($caption)

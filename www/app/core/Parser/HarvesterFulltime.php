@@ -9,15 +9,7 @@ class HarvesterFulltime extends HarvesterBasic
 {
     public function run()
     {
-        $harvest = array();
-        
-        $sheet = $this->sheet;
-        $cx = $this->firstColumn;
-        $rx = $this->firstRow;
-        
-        $table = new Table($this, $sheet, $cx, $rx);
-        $table->init();
-        foreach ( $table->sectionRegions as $region )
+        foreach ( $this->table->sectionRegions as $region )
         {
             $section = $this->getSection();
             list ( $cs, $rx, $w, $h ) = $region;
@@ -27,14 +19,10 @@ class HarvesterFulltime extends HarvesterBasic
         
         foreach ( $table->sections as $section ) {
             $chunk = $this->harvestSection($section);
-            $harvest = array_merge($harvest, $chunk);
+            $this->harvest = array_merge($this->harvest, $chunk);
         }
         
-        return $this->postProcess($harvest);
-    }
-    
-    protected function postProcess(&$harvest) {
-        return $harvest;
+        return count($this->harvest);
     }
     
     // === Собрать данные с секции
@@ -43,7 +31,7 @@ class HarvesterFulltime extends HarvesterBasic
     {
         $harvest = array(); // массив занятий
         
-        $sheet = $this->sheet;
+        $sheet = $this->table->sheet;
         $cx = $section->cx;
         $rx = $section->rx;
         $width = $section->width;
@@ -71,7 +59,9 @@ class HarvesterFulltime extends HarvesterBasic
                     // эксплорим занятие (спускаемся в клетку) если под курсором локация
                     if ( $this->isLocationEntryPoint($sheet, $c, $r) ) {
                         $location = $this->getLocation();
-                        $chunk = $location->collect($sheet, $calendar, $c, $r, $groups, $groupWidth, $gid);
+                        $lastColumn = $section->cx + $section->width - 1;
+                        $lastRow = $section->rx + $section->height - 1;
+                        $chunk = $location->collect($sheet, $calendar, $c, $r, $groups, $groupWidth, $gid, $lastColumn, $lastRow);
                         
                         if ( ! empty($chunk) )
                             $harvest = array_merge($harvest, $chunk);
@@ -102,8 +92,8 @@ class HarvesterFulltime extends HarvesterBasic
 
     private function obtainTimeMarker($cellData, &$calendar, $gid)
     {
-        if ( preg_match('/[СCсc]\s(1?\d:[0-5]0)/u', $cellData, $matches) ) {
-            $shift = $calendar->convertTimeToOffset($matches[1]);
+        if ( preg_match('/[СCсc]\s(1?\d)[.:]([0-5]0)/u', $cellData, $matches) ) {
+            $shift = $calendar->convertTimeToOffset($matches[1] . ':' . $matches[2]);
             if ( $calendar->timeshift->get($gid) < $shift ) {
                 // фиксируем смещение в регистре, если оно больше уже установленного
                 $calendar->timeshift->set($gid, $shift);
@@ -118,10 +108,5 @@ class HarvesterFulltime extends HarvesterBasic
     {
         return floor(($c - $firstDataColumn) / $groupWidth);
     }
-    
-    
-    
-    
-    
     
 }

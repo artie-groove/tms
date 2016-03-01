@@ -2,27 +2,19 @@
 
 abstract class HarvesterBasic extends TableHandler
 {
-    protected $factory;
-    protected $sheet;
     protected $type;
-    protected $firstColumn;
-    protected $firstRow;
+    protected $table;
+    protected $harvest;
     
-    public function __construct($type, $sheet, $firstColumn, $firstRow)
+    public function __construct($table)
     {
-        $this->type = $type;
-        $this->sheet = $sheet;
-        $this->firstColumn = $firstColumn;
-        $this->firstRow = $firstRow;
+        $this->type = str_replace('Harvester', '', get_class($this));
+        $this->table = $table;
+        $this->harvest = array();
     }
-    
-    
+        
     // === Запустить сбор данных
     abstract public function run();
-    
-    
-    // === Постобработка собранных данных
-    abstract protected function postProcess(&$harvest);
     
     public function getType()
     {
@@ -34,7 +26,7 @@ abstract class HarvesterBasic extends TableHandler
         $customSections = array('Secondary');
         $section = in_array($this->type, $customSections) ? $this->type : '';
         $section = 'TableSection' . $section;
-        return new $section($this->sheet, $this->getCalendar());
+        return new $section($this->table->sheet, $this->getCalendar());
     }
     
     public function getCalendar()
@@ -44,7 +36,7 @@ abstract class HarvesterBasic extends TableHandler
         if ( $type == 'PostalTutorials' ) $type = 'Evening';
         $calendar = in_array($type, $customCalendars) ? $type : 'Basic';
         $calendar = 'Calendar' . $calendar;
-        return new $calendar($this->sheet);
+        return new $calendar($this->table->sheet);
     }
     
     public function getLocation()
@@ -65,6 +57,11 @@ abstract class HarvesterBasic extends TableHandler
         }
         $location = 'Location' . $location;
         return new $location();
+    }
+    
+    public function getHarvest()
+    {
+        return $this->harvest;
     }
     
 }

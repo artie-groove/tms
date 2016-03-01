@@ -2,6 +2,57 @@
 
 class DataImporter extends Handler implements IStatus
 {
+    protected function mb_split_string($str)
+    {
+        $split = array();
+        $len = mb_strlen($str, "UTF-8");                                          
+        for ($i = 0; $i < $len; $i++) {
+            $split[] = mb_substr($str, $i, 1, "UTF-8");
+        }
+        return $split;
+    }
+    
+    /**
+     * Returns array of matches in same format as preg_match or preg_match_all
+     * @param bool   $matchAll If true, execute preg_match_all, otherwise preg_match
+     * @param string $pattern  The pattern to search for, as a string.
+     * @param string $subject  The input string.
+     * @param int    $offset   The place from which to start the search (in bytes).
+     * @return array
+     */
+    protected function pregMatchCapture($matchAll, $pattern, $subject, $offset = 0)
+    {
+        $matchInfo = array();
+        $method    = 'preg_match';
+        $flag      = PREG_OFFSET_CAPTURE;
+        if ($matchAll) {
+            $method .= '_all';
+        }
+        $n = $method($pattern, $subject, $matchInfo, $flag, $offset);
+        $result = array();
+        if ( $n !== 0 && !empty($matchInfo) ) {
+            if (!$matchAll) {
+                $matchInfo = array($matchInfo);
+            }
+            foreach ($matchInfo as $matches) {
+                $positions = array();
+                foreach ($matches as $match) {
+                    $matchedText   = $match[0];
+                    $matchedLength = $match[1];
+                    $positions[]   = array(
+                        $matchedText,
+                        mb_strlen(mb_strcut($subject, 0, $matchedLength))
+                    );
+                }
+                $result[] = $positions;
+            }
+            if (!$matchAll) {
+                $result = $result[0];
+            }
+        }
+        return $result;
+    }
+    
     public function import($storage, $DisciplineMatcher)//Запись в базу данных массива
     {
         try
@@ -115,6 +166,8 @@ class DataImporter extends Handler implements IStatus
         //                     if (count($mc) > 0)
         //                     {
         //                     // сначала поищем в таблице сокращений
+        //                     
+                                
                                 $res = $dbh->query("SELECT id, shortening, id_discipline FROM disciplines_shortenings WHERE shortening = '" . $par_mass[$i]->discipline . "'");
 
                                 if ($row = $res->fetch(PDO::FETCH_ASSOC))
@@ -125,6 +178,7 @@ class DataImporter extends Handler implements IStatus
                                         $predmet_id = $row['id_discipline'];
                                     }
                                 }
+                                
 
                                 // если не нашли, включаем основной алгоритм поиска
                                 if ( is_null($predmet_id) )
@@ -148,52 +202,130 @@ class DataImporter extends Handler implements IStatus
 
                                     // вычленяем союзы из аббревиатур (например, союз "и" в аббревиатуре "ИСПиУ")
                                     $mc = preg_replace('/(?<=[А-Я])([а-я])(?=[А-Я])/u', '% $1 ', $mc);
-
-                                    
+   
                                     $query = "SELECT id, name FROM disciplines WHERE name LIKE '" . $mc . "' ORDER BY CHAR_LENGTH(name) ASC";
                                     $res = $dbh->query($query);                 
                                     $data = $res->fetch(PDO::FETCH_ASSOC);
+                                    
 
                                     if ( $data !== FALSE )
                                     {
-                                        $predmet_id = $data['id']; 
+                                        $predmet_id = $data['id'];
                                     }
                                     else
                                     {
-                                        file_put_contents($logfile, $par_mass[$i]->discipline . "\n", FILE_APPEND);
+                                        // избавляемся от случайной подмены кириллических букв визуально схожими
+                                        // латинскими: [ABCEHKMOPTX] в начале слова и [aceknopruxy]
 
-                                        $a = mb_substr($mc, 0, 1);
+                                        //$mc = "Oптимuзaцuя paбo% call-цeнтpa, CAD-систем c контрольной цифрой в cтилe wep call ceo в И% C% П% u %У";
 
-                                        $query = "SELECT id, name FROM disciplines WHERE name LIKE '" . $a . "%'";
-
-                                        $res = $dbh->query($query);                            
-                                        $data = $res->fetchAll(PDO::FETCH_ASSOC);
-
-                                        if ( count($data) )
+                                        $pattern = '/(?(DEFINE)(?<ch>[aceknopruxy]))([ABCEHKMOPTX](?=[А-я])|(?<=[а-я])(?&ch)|(?&ch)(?=[а-я])|(?<![a-z]{2})(?&ch)(?=[,\.% ]|$))/u';
+                                        $illegal_letters = $this->pregMatchCapture(true, $pattern, $mc);
+                                        if ( !empty($illegal_letters) ) // заменяем все вхождения по таблице
                                         {
-                                            $base_dump = array();
-                                            $p = 0;
-                                            foreach($data as $row)
-                                            {
-                                                $base_dump['id'][$p] = $row['id'];
-                                                $base_dump['name'][$p] = $row['name'];                                    
-                                                $p++;
-
+                                            // из-за плохой поддержки Юникода в PHP приходится городить
+                                            // такие костыли для замены символов в строке
+                                            $illegal_chars  = 'ABCEHKMOPTXaceknopruxy';
+                                            $subst_chars = $this->mb_split_string('АВСЕНКМОРТХасекпоргиху');
+                                            $mc = $this->mb_split_string($mc);
+                                            foreach ( $illegal_letters[0] as $letter ) {
+                                                list ( $ch, $pos ) = $letter;
+                                                $k = strpos($illegal_chars, $ch);
+                                                $mc[$pos] = $subst_chars[$k];
                                             }
-
-                                            $index = $DisciplineMatcher->GetMatch($base_dump['name'], $par_mass[$i]->discipline);
-                                            if (!is_null($index))
-                                            {
-                                                $positive++;
-                                                $predmet_id = $base_dump['id'][$index];
-                                            }
-                                            else
-                                                $negative++;
+                                            $mc_restored = '';
+                                            foreach ( $mc as $ch ) $mc_restored .= $ch;
+                                            $mc = $mc_restored;
+                                            //throw new DebugException('substituted', array($illegal_letters, $mc));
                                         }
-                                    }                            
+                                        
+                                        $mc_orig = $mc;
+                                        // упрощаем шаблон поиска дисциплины: убираем всю пунктуацию и однобуквенные предлоги
+                                        $mc = preg_replace('/([,.]| [а-я])(?= )/u', '', $mc);
+
+                                        $mc_prev = $mc;
+                                        // упрощаем шаблон поиска дисциплины: обрезаем все слова до трёх символов
+                                        // а также добавляем символ % к последнему слову, если его там не было 
+                                        $mc = preg_replace('/(?|([А-Яа-я][а-я]{2})(?:[а-я]+%|[а-я]*(?= |$))|([А-Яа-я][а-я]+)(?:%[а-я]{1,3}(?= |$)))/u', '$1%', $mc);
+
+                                        $excluded_list = array(
+                                            'Спе% арх% про% пр% сис%',
+                                            'Пак% при% инж% про%',
+                                            'Мет% ста% сер%',
+                                            'Дет% маш% осн% кон%',
+                                            'Спр%%пра% сис%',
+                                            'Мет% ср%ва изм% кон%',
+                                            'Выч% маш% сис% сет%',
+                                            'Опт% ада% сис%',
+                                            'Кон% рас%',
+                                            'Мет% ср% изм% кон%',
+                                            'Про% авт% пр%',
+                                            'Про% маш% пр%',
+                                            'Авт% фир% Обс%',
+                                            'Эко% обо% нау% реш%',
+                                            'Рас% мод% кон% при% К%Т%',
+                                            'Тех% тр% тр% ср% Тео% авт%',
+                                            'Ста% Ч%П%У% авт% лин%',
+                                            'Тео% осн% авт% упр%',
+                                            'Эко% ста% сер% кач%',
+                                            'Сис% авт% про%',
+                                            'Сис% иск% инт%',
+                                            'Мет% фин% рас%',
+                                            'Кон% рас% эл% обо%',
+                                            'Инт% сис% про%',
+                                            'Эко% ста% сер% У%К%',
+                                            'Авт% упр% Ж%Ц%П%',
+                                            'Тех% изг% изд% на осн% эла%'
+                                        );
+                                        if ( !in_array($mc, $excluded_list) )
+                                            throw new Exception($par_mass[$i]->discipline . '<br>' . $mc_orig . '<br>' . $mc_prev . '<br>' . $mc);
+
+                                        $query = "SELECT id, name FROM disciplines WHERE name LIKE '" . $mc . "' ORDER BY CHAR_LENGTH(name) ASC";
+                                        $res = $dbh->query($query);                 
+                                        $data = $res->fetch(PDO::FETCH_ASSOC);
+
+                                        if ( $data !== FALSE )
+                                        {
+                                            $predmet_id = $data['id'];
+                                        }                                        
+                                        else
+                                        {
+                                            throw new Exception($par_mass[$i]->discipline . ' was failed to match');
+                                            file_put_contents($logfile, $par_mass[$i]->discipline . "\n", FILE_APPEND);
+
+                                            $a = mb_substr($mc, 0, 1);
+
+                                            $query = "SELECT id, name FROM disciplines WHERE name LIKE '" . $a . "%'";
+
+                                            $res = $dbh->query($query);                            
+                                            $data = $res->fetchAll(PDO::FETCH_ASSOC);
+
+                                            if ( count($data) )
+                                            {
+                                                $base_dump = array();
+                                                $p = 0;
+                                                foreach($data as $row)
+                                                {
+                                                    $base_dump['id'][$p] = $row['id'];
+                                                    $base_dump['name'][$p] = $row['name'];                                    
+                                                    $p++;
+
+                                                }
+
+                                                $index = $DisciplineMatcher->GetMatch($base_dump['name'], $par_mass[$i]->discipline);
+                                                if (!is_null($index))
+                                                {
+                                                    $positive++;
+                                                    $predmet_id = $base_dump['id'][$index];
+                                                }
+                                                else
+                                                    $negative++;
+                                            }
+                                        } 
+                                    }
                                 }
-        //                     }
-                        }
+                            }
+                        
 
                         
                         $special_list = array(631, 717); // Физическая культура
@@ -220,7 +352,7 @@ class DataImporter extends Handler implements IStatus
                                 $auditoria_id = $row['id'];
                         }
 
-                        if ( empty($par_mass[$i]->dates) ) throw new Exception("Не указана дата занятия " . var_export($par_mass[$i]));
+                        if ( empty($par_mass[$i]->dates) ) throw new Exception("Не указана дата занятия " . var_export($par_mass[$i], true));
                         {
                             $date_m = explode(",", $par_mass[$i]->dates);
                             $correct = 0;
@@ -246,7 +378,7 @@ class DataImporter extends Handler implements IStatus
                                 case "зачет":   $type_sabjeckt = "QUIZ";        break;
                                 case "экз":
                                 case "экзамен": $type_sabjeckt = "EXAMINATION"; break;
-                                default:        $type_sabjeckt = null;             break;
+                                default:        $type_sabjeckt = "WORKSHOP";     break;
                             }                    
 
                             $nay_year = date('Y'); // обратить внимание!

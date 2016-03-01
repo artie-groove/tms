@@ -59,6 +59,8 @@
         $msg = $e->getFile() . ':' . $e->getLine() . '<br>';
         $msg .= '<strong>' . $e->getMessage() . '</strong><br><br><br>';
         foreach ( $e->getTrace() as $trace ) {
+            if ( empty($trace['line']) ) $trace['line'] = 'anonymous function';
+            if ( empty($trace['file']) ) $trace['file'] = 'anonymous function';
             $msg .= $trace['file'] . ':' . $trace['line'] . '<br>';
             $args = array();
             foreach ( $trace['args'] as $argument )

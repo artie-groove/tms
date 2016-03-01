@@ -3,9 +3,9 @@
 	//try {
         include $_SERVER['DOCUMENT_ROOT'] . "/app/bootstrap.php";
 
-        $uploader = new XlsxFileUploader();
+        $uploader = new FileUploader();
 
-        if ( !$uploader->uploadFile($_FILES['data_xlsx']) ) {
+        if ( !$uploader->uploadFile($_FILES['data']) ) {
             respond_from_object($uploader);
             exit(2);
         }

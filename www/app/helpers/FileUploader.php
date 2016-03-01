@@ -1,5 +1,5 @@
 <?
-class XlsxFileUploader extends Handler implements IStatus
+class FileUploader extends Handler implements IStatus
 {
 	private $uploadPath = '/files/';
 	private $mimeFileType = array('xls' => 'application/vnd.ms-excel', 'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -13,9 +13,9 @@ class XlsxFileUploader extends Handler implements IStatus
 	
 	public function uploadFile()
 	{        
-        $formFileName = 'data_xlsx';
+        $formFileName = 'data';
         try
-        {
+        {   
             if ( !isset($_FILES[$formFileName]) )
             {
                 $this->setStatus('Error', 'Ошибка приёма файла');
@@ -47,9 +47,9 @@ class XlsxFileUploader extends Handler implements IStatus
             }*/
 
 
-            if ( $uploadedFileInfo['size']>=($this->maxUploadFileSize * 1024 * 1024) ) // размер файла >= 1 MB
+            if ( $uploadedFileInfo['size'] >= ($this->maxUploadFileSize * 1024 * 1024) ) // размер файла >= 1 MB
             {
-                $this->setStatus('Error', 'Максимально допустимый размер загружаемого файла 1 мегабайт.');
+                $this->setStatus('Error', 'Максимально допустимый размер загружаемого файла: 1 мегабайт.');
                 return false;
             }
 
@@ -67,6 +67,14 @@ class XlsxFileUploader extends Handler implements IStatus
             */
             
             $this->uploadFileName = $uploadedFileInfo['tmp_name'];
+            
+            $filename = $uploadedFileInfo['name'];
+            $ext = substr( $filename, strripos($filename, '.') + 1);
+            
+            if ( !in_array($ext, array_keys($this->mimeFileType))) {
+                $this->setStatus('error', 'Принимаются только файлы с расширением .xls или .xlsx. Принят файл с расширением: "' . $ext . '"');
+                return false;
+            }
 
             $this->setStatus('ok', 'Файл успешно загружен на сервер');
             return true;        

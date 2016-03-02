@@ -68,9 +68,10 @@ class LocationBasic extends TableHandler
                 $isEmpty = trim($value) == false;
                 if ( $isBold && !$isEmpty ) // скорее всего, опущена граница между двумя занятиями
                 {
+                    $col--;
                     $styleArray = array(
                         'borders' => array(
-                            'left' => array(
+                            'right' => array(
                                 'style' => PHPExcel_Style_Border::BORDER_THICK,
                                 'color' => array('argb' => 'FF000000'),
                             ),
@@ -79,14 +80,14 @@ class LocationBasic extends TableHandler
                     $coord = $sheet->getCellByColumnAndRow($col, $rx)->getCoordinate();
                     $sheet->getStyle($coord)->applyFromArray($styleArray);
                     $this->width = $col - $cx + 1;
+                    
                     // тут нужно сразу найти нижнюю границу, без проверки правой
-                    $this->width = $col - $cx + 1;
                     $row++;
                     while ( ! $this->hasBottomBorder($sheet, $col, $row - 1) && $row <= $lastRow ) {
                         $row++;
                     }
                     $this->height = $row - $rx;
-                    //throw new DebugException("C{$col}R{$rx}", array($this->width, $this->height, $value, $isBold, $isEmpty));
+//                     throw new DebugException("C{$col}R{$rx}", array($this->width, $this->height, $this->hasRightBorder($sheet, $col, $rx)));
                     return;
                 }
             }

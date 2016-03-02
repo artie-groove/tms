@@ -4,16 +4,19 @@ class Table extends TableHandler
 {
     const MAX_PROBE_DEPTH = 15; // количество строк при "прощупывании" верхней границы таблицы
     const MAX_PROBE_WIDTH = 5;  // количество столбцов при "прощупывании" левой границы таблицы
-    const MAX_WIDTH = 120;      // максимальное количество столбцов, формирующих таблицу
+    const MAX_COL = 100;        // ограничение на верхнее значение индекса столбца
+    const MAX_ROW = 200;        // ограничение на верхнее значение индекса строки
     const lookupWindowSize = 5; // окно просмотра эвристики определения границы
     
     public $sheet;
-    public $cx;
-    public $rx;
-    public $width;
-    public $height;
+    public $cx;                 // индекс первого столбца
+    public $rx;                 // индекс первой строки
+    public $width;              // ширина таблицы
+    public $height;             // высота таблицы
     
-    protected $caption;
+    protected $caption;         // заголовок таблицы
+    protected $cmax;            // максимальное значение столбца
+    protected $rmax;            // максимальное значение строки
  
     protected $sectionStartCols = array();
     public $sectionRegions = array();
@@ -30,9 +33,15 @@ class Table extends TableHandler
     
     public function init()
     {        
+        $this->cmax = PHPExcel_Cell::columnIndexFromString($this->sheet->getHighestColumn());
+        $this->rmax = $this->sheet->getHighestRow();
+        
+        if ( $this->cmax > self::MAX_COL ) $this->cmax = self::MAX_COL;
+        if ( $this->rmax > self::MAX_ROW ) $this->rmax = self::MAX_ROW;
+        
         $this->removeHiddenRows();
         $this->removeHiddenCols();
-       
+        
         $tableIsPresent = $this->probe();
         if ( ! $tableIsPresent )
             return false;
@@ -94,7 +103,7 @@ class Table extends TableHandler
     {        
         $this->caption = '';
         for ( $r = 1; $r < $this->rx; $r++ )
-            for ( $c = 0; $c < self::MAX_WIDTH; $c++)
+            for ( $c = 0; $c < self::MAX_COL; $c++)
                 $this->caption .= $this->sheet->getCellByColumnAndRow($c, $r);
         
         if ( empty($this->caption) ) return false;
@@ -138,87 +147,62 @@ class Table extends TableHandler
     }
     
     
+    // === Определить ширину или высоту таблицы
+    // определение производится на основе анализа частичной непрерывности границы
+    // алгоритм управляется параметром $horizontal: true - ширина, false - высота
+    // описание алгоритма на примере поиска высоты
+    // Go down the last border, make steps equal to lookupWindowSize
+    // At each iteration find at least one border on the right
+    // When you find no border on the right break the main cycle
+    // and move upwards row by row, exploring its bottom borders
+    // On the first border met consider its row the last row of the table  
+    protected function lookupEdge($horizontal)
+    {
+        $d = 0;
+        $m1 = 'hasTopBorder';
+        $m2 = 'hasRightBorder';
+        $m3 = 'hasBottomBorder';
+        $config = array(
+            array( $m1, $m2, $this->cx, $this->cmax, $this->rx, $this->rx + self::lookupWindowSize ), // horizontal (width)
+            array( $m2, $m3, $this->rx, $this->rmax, $this->cx + $this->width - 1, $this->cx + $this->width - 1 ) // vertical (height)
+        );
+        list ( $method_main, $method_fine, $a, $dmax, $b, $b1 ) = $horizontal ? $config[0] : $config[1]; 
+        
+        while ( $d < $dmax ) {
+            $flag = false;
+            for ( $i = $a + $d; $i < $a + $d + self::lookupWindowSize && !$flag; $i++ ) { // diving into the window
+                list ( $c, $r ) = $horizontal ? array($i, $b) : array($b, $i);
+                $flag |= $this->$method_main($this->sheet, $c, $r);
+            }
+            $d += self::lookupWindowSize; // increase depth and go to the next cycle
+            if ( ! $flag ) break;
+        }        
+        
+        // no more borders in the set direction
+        if ( $d < self::lookupWindowSize * 2 ) throw new DebugException('Не удаётся определить параметр', $config[0]);
+        for ( $j = $a + $d; $j >= $a + $d - self::lookupWindowSize * 2; $j-- ) { // crawl backwards line by line
+            $flag = false;
+            for ( $k = $b1; $k >= $b1 - self::lookupWindowSize && !$flag; $k-- ) { // explore line borders
+                list ( $c, $r ) = $horizontal ? array($j, $k) : array($k, $j);
+                $flag |= $this->$method_fine($this->sheet, $c, $r);
+            }
+            if ( $flag ) { // a cell on this index has border
+                $d = $j - $a + 1; // consider this index the last one for the table
+                break;
+            }
+        }
+        
+        return $d;
+    }
+    
     // === Определить размеры таблицы (ширину и высоту)
     // таблица просматривается поячеечно вправо и вниз
     // до тех пор, пока не встретится ячейка, лишённая границ
     
     protected function inspectGeometry()
     {
-        $sheet = $this->sheet;
-        $rx = $this->rx;
-        $cx = $this->cx;
- 
-        $w = 1; // cols
-        $h = 0; // rows
-        
-        while ( $this->hasRightBorder($sheet, $cx + $w, $rx)      || $this->hasBottomBorder($sheet, $cx + $w, $rx) 
-             || $this->hasRightBorder($sheet, $cx + $w-1, $rx)    || $this->hasBottomBorder($sheet, $cx + $w, $rx-1) )
-        {
-            $w++;    
-        }
-        $w--;
-        
-        $c = $cx + $w - 1;
-        /*
-        while ( $this->hasRightBorder($sheet, $c, $rx+$h)   || $this->hasBottomBorder($sheet, $c, $rx+$h) 
-             || $this->hasRightBorder($sheet, $c-1, $rx+$h) || $this->hasBottomBorder($sheet, $c, $rx+$h-1) )
-        {
-            $h++;
-        }
-        $h--;
-        */
-        
-        // Go down the last border, make steps equal to lookupWindowSize
-        // At each iteration find at least one border on the right
-        // When you find no border on the right take the previous iteration
-        // and move upwards row by row, exploring its bottom borders
-        // On the first border met consider its row the last row of the table  
-
-//         $steps = array();
-        $rmax = $sheet->getHighestRow();
-        while ( $h < $rmax) {
-            $flag = false;
-            for ( $i = $rx + $h; $i < $rx + $h + self::lookupWindowSize && !$flag; $i++ ) { // diving into the window
-                $flag |= $this->hasRightBorder($sheet, $c, $i);
-//                 $steps[] = $i;
-            }
-            if ( $flag ) $h += self::lookupWindowSize; // increase height and go to the next cycle
-            else break;
-        }        
-        
-        // no more borders on the right
-        if ( $h < self::lookupWindowSize ) throw new Exception('Не удаётся определить высоту таблицы');
-        for ( $j = $rx + $h; $j >= $rx + $h - self::lookupWindowSize; $j-- ) { // crawl upwards row by row
-//             $steps[] = $j;
-            $flag = false;
-            for ( $k = $c; $k >= $c - self::lookupWindowSize && !$flag; $k-- ) { // explore row bottom borders
-                $flag |= $this->hasBottomBorder($sheet, $k, $j);
-            }
-            if ( $flag ) { // a cell on the row has bottom border
-                $h = $j - $rx + 1; // consider this row the last row of the table 
-                break;
-            }
-        }
-        
-        
-//         $log = "";
-//         for ( $i = 0; $i < count($steps); $i++ ) {
-//             $log .= "$i => {$steps[$i]}<br>";
-//         }
-        
-//         $debug_info = array(
-//             'width' => $this->remapCol($w),
-//             'rx' => $this->remapRow($rx),
-//             'height' => $h,
-//             'lastRow' => $this->remapRow($rx + $h - 1),
-//             //'leftCellValue' => $this->sheet->getCellByColumnAndRow($c - 1, $rx + $h - 1)->getValue()
-//         );
-
-//         throw new DebugException($log, $debug_info);
-     
-   
-        $this->width = $w;
-        $this->height = $h;
+        $this->width = $this->lookupEdge(true);     // всегда должна вызываться первой
+        $this->height = $this->lookupEdge(false);   // вычисляется на основе установленной ширины
     }
   
     

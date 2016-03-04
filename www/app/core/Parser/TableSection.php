@@ -2,7 +2,8 @@
    
 class TableSection extends TableHandler
 {
-    const datesMatrixMaxWidth = 5;
+    const datesMatrixMaxWidth = 5;  // максимальная ширина матрицы дат
+    
     public $sheet;
     public $rx;
     public $cx;
@@ -83,13 +84,6 @@ class TableSection extends TableHandler
             $datesMatrixWidth++;
         } while ( $datesMatrixWidth < self::datesMatrixMaxWidth );
         
-       /*
-       if ( $datesMatrixWidth > 5 )
-           throw new Exception("Не удаётся обнаружить столбец времени занятий (&laquo;Часы&raquo; или &laquo;Время&raquo;) на&nbsp;листе &laquo;{$sheet->getTitle()}&raquo;");
-
-        if ( $datesMatrixWidth > 5 ) throw new Exception("Некорректное количество столбцов в календаре. Удалите все скрытые столбцы (&laquo;{$sheet->getTitle()}&raquo;)");
-        */
-        
         if ( ! $datesMatrixWidth )
         {
             if ( empty($value) ) $datesMatrixWidth = 1; // for PostalSession calendar type
@@ -111,9 +105,8 @@ class TableSection extends TableHandler
                 if ( $cellValueContainsDigits )
                     break;
             }
-            
         } while ( $firstDataColumn < $this->cx + $this->width - 1 );
-
+        
         return $firstDataColumn;
     }
     
@@ -121,12 +114,11 @@ class TableSection extends TableHandler
     // рассчитываем ширину на группу по первой ячейке для группы
     protected function getGroupWidth($sheet, $firstDataColumn, $rx, $dataWidth)
     {
-        $groupWidth = 1;
         $c = $firstDataColumn;
         while ( empty(trim($sheet->getCellByColumnAndRow($c + 1, $rx))) && $c < $firstDataColumn + $dataWidth - 1 ) $c++;
         $groupWidth = $c - $firstDataColumn + 1;
-//         throw new DebugException('x', array($firstDataColumn, $dataWidth, $groupWidth));
         if ( $dataWidth % $groupWidth !== 0 ) throw new Exception("Ширина групп должна быть равной (лист &laquo;{$sheet->getTitle()}&raquo;)");
+        
         return $groupWidth;
     }
     
@@ -135,7 +127,6 @@ class TableSection extends TableHandler
     protected function exploreGroups($sheet, $cx, $rx, $firstDataColumn, $width, $groupWidth)
     {
         $groups = array();
-        
         for ( $c = $firstDataColumn; $c < $cx + $width; $c += $groupWidth )
         {   
             $groupName = trim($sheet->getCellByColumnAndRow($c, $rx));            
@@ -144,7 +135,8 @@ class TableSection extends TableHandler
                 throw new Exception("Неверное название группы: &laquo;$groupName&raquo; (&laquo;{$sheet->getTitle()}&raquo;). Приведите названия групп в соответствие с утверждённым форматом. Возможно, есть скрытые столбцы в календаре.");
             
             $groups[] = $groupNameRecognized[1];
-        }        
+        }    
+        
         return $groups;
     }
     

@@ -15,24 +15,17 @@ class Meeting
     public function __construct($params = null) {
         if ( !is_array($params) || count($params) === 0 ) return;
         $fields = array( 'dates', 'time', 'room', 'discipline', 'type', 'lecturer', 'group', 'comment' );
-        foreach ( $fields as $i => $f )
+        foreach ( $fields as $i => $f ) // предполагается, что на вход подаётся вектор с данными в определённом порядке
             $this->$f = isset($params[$i]) ? $params[$i] : null;
+        foreach ( $fields as $f ) // для инициализации из ассоциативных массивов
+            if ( array_key_exists($f, $params) ) $this->$f = $params[$f];
     }
 
     public function copyFrom($original)
     {
-        //$fields = array_keys(get_class_vars(__CLASS__));
         $fields = array( 'dates', 'time', 'room', 'discipline', 'type', 'lecturer', 'group', 'comment' ); 
         foreach ( $fields as $f )
             $this->$f = $original->$f;
-    }
-
-    public function initFromArray($src)
-    {
-        //$fields = array_keys(get_class_vars(__CLASS__));
-        $fields = array( 'dates', 'time', 'discipline', 'type', 'group', 'room', 'lecturer', 'comment' ); 
-        foreach ( $fields as $f )
-            if ( array_key_exists($f, $src) ) $this->$f = $src[$f];
     }
     
     public function __get($property)

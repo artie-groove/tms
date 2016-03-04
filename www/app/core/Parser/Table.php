@@ -124,19 +124,18 @@ class Table extends TableHandler
         
         for ( $w = 0, $cs = $c = $cx; $c < $cx + $this->width + 1; $c++ ) {
             // если находим ячейку "Дни", то начинается новая секция
-            if ( in_array(trim($this->sheet->getCellByColumnAndRow($c, $rx)), array('Дни', 'дни')) ) {
+            if ( mb_stristr(trim($this->sheet->getCellByColumnAndRow($c, $rx)), 'дни') !== false ) {
                 $w = 1;
                 $cs = $c;
                 $c++;
-                while (
-                    ( $c < $cx + $this->width ) 
-                    && $this->hasBottomBorder($this->sheet, $c, $rx)
-                    && $this->hasBottomBorder($this->sheet, $c, $rx-1) 
-                    && !in_array(trim($this->sheet->getCellByColumnAndRow($c, $rx)), array('Дни', 'дни'))  )
+                while ( $c < $cx + $this->width // в пределах ширины таблицы
+                    && ( mb_stristr(trim($this->sheet->getCellByColumnAndRow($c, $rx)), 'дни') === false // в ячейке не записано "Дни"
+                        && ! ( trim($this->sheet->getCellByColumnAndRow($c, $rx)) == false // ячейка пуста
+                            && !$this->lookupDownwards($c, $rx, self::lookupWindowSize) ) ) ) // столбец пуст 
                 {
                     $c++;
                     $w++;
-                }                
+                }
                 $this->sectionRegions[] = array($cs, $rx, $w, $this->height);
                 $w = 0;
                 $c--;
@@ -144,6 +143,15 @@ class Table extends TableHandler
         }
         
         return ! empty($this->sectionRegions);
+    }
+    
+    protected function lookupDownwards($c, $r, $dmax)
+    {
+        $flag = false;
+        for ( $i = $r; $i < $r + $dmax && !$flag; $i++ ) { // diving down the column
+            $flag |= $this->hasBottomBorder($this->sheet, $c, $i);
+        }
+        return $flag;
     }
     
     

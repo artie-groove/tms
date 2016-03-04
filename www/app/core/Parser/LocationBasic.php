@@ -86,8 +86,7 @@ class LocationBasic extends TableHandler
                     while ( ! $this->hasBottomBorder($sheet, $col, $row - 1) && $row <= $lastRow ) {
                         $row++;
                     }
-                    $this->height = $row - $rx;
-//                     throw new DebugException("C{$col}R{$rx}", array($this->width, $this->height, $this->hasRightBorder($sheet, $col, $rx)));
+                    $this->height = $row - $rx;                    
                     return;
                 }
             }
@@ -159,10 +158,9 @@ class LocationBasic extends TableHandler
     private function retrieveMeeting($sheet, $calendar, $c, $w, $r, $h, $innerBorderPosition = null)
     {
         $res = $this->extract($sheet, $c, $w, $r, $h);
-        if ( empty($res['dates']) )
-            $res['dates'] = $calendar->getDatesByRow($r);
-        $meetings[] = new Meeting();
-        $meetings[0]->initFromArray($res);
+        $this->setDates($res, $calendar, $r);
+        $meetings[] = new Meeting($res);
+        
         return $meetings;
     }
     
@@ -177,33 +175,52 @@ class LocationBasic extends TableHandler
         $areEqual = true;
         foreach ( $basis as $el )
             $areEqual &= empty($res1[$el]) ^ empty($res2[$el]);
-        if ( $areEqual ) {
+        if ( $areEqual )
+        {
             foreach ( $basis as $el )
                 if ( empty($res1[$el]) ) $res1[$el] = $res2[$el];
-                $res1['comment'] = trim($res1['comment'] . ' ' . $res2['comment']);
-            if ( empty($res1['dates']) )
-                $res1['dates'] = $calendar->getDatesByRow($r);
-            $meetings[] = new Meeting();
-            $meetings[0]->initFromArray($res1);
+            $res1['comment'] = trim($res1['comment'] . ' ' . $res2['comment']);            
+            if ( isset($res2['dateTill']) ) $res1['dateTill'] = $res2['dateTill'];
+            $this->setDates($res1, $calendar, $r);
+            $meetings[] = new Meeting($res1);
         }
-        else {
+        else
+        {
             foreach ( array($res1, $res2) as $res )
-                if ( empty($res['dates']) )
-                $res['dates'] = $calendar->getDatesByRow($r);
-                $meetings[] = new Meeting();
-            $meetings[] = new Meeting();
-            $meetings[0]->initFromArray($res1);
-            $meetings[1]->initFromArray($res2);
+                $this->setDates($res, $calendar, $r);
+            $meetings[] = new Meeting($res1);
+            $meetings[] = new Meeting($res2);
             $this->crossFillItems($meetings[0], $meetings[1]);
         }
+        
         return $meetings;
     }
     
+    // === Установить даты шаблона встречи
+    // если даты не были эксплицитно указаны, то они импортируются из календаря
+    // если задана дата конца встреч, список дат корректируется с учётом этого ограничения
+    protected function setDates(&$res, $calendar, $r)
+    {
+        if ( empty($res['dates']) )
+        {
+            $res['dates'] = $calendar->getDatesByRow($r);
+            if ( !empty($res['dateTill']) ) $this->truncDates($res);
+        }
+    }
+    
+    
+    // === Обрезать строку дат, если есть ограничение по дате
+    protected function truncDates(&$res)
+    {
+        $pos = mb_strpos($res['dates'], $res['dateTill']);
+        $len = mb_strlen($res['dateTill']);
+        $res['dates'] = mb_substr($res['dates'], 0, $pos + $len);
+        unset($res['dateTill']);
+    }
     
     
     // === Прочесать локацию
     // извлекает данные из локации и возвращает массивом 
-    
     protected function extract($sheet, $cx, $w, $rx, $h)
     {   
         $row = $rx;     // начальная строка
@@ -254,9 +271,10 @@ class LocationBasic extends TableHandler
                     
                     //if ( preg_match('/(\d{1,2}\.\d{2}(?:,\s?|$))+/u', $str, $matches) )
                     //if ( preg_match('/(?:([1-3]?\d\.[01]\d)(?:\s?(?=,),\s*|(?:(?!\1)|(?!))))+/u', $str, $matches) )
-                    if ( preg_match('/(?<![CcСс]\s)(?<!\d|-\s|-)(?:(?:[12]?\d|30|31)\.(?:0\d|1[0-2])(?:\s?(?=,),\s*)?(?!\s-|-))+/u', $str, $matches) )
+                    if ( preg_match('/(?<![CcСс]\s)(?<!\d|-\s|-)(?:(до)\s?)?((?:(?:[12]?\d|30|31)\.(?:0\d|1[0-2])(?:\s?(?=,),\s*)?(?!\s-|-))+)/u', $str, $matches) )
                     {   
-                        $result['dates'] = preg_replace('/\s/u', '', $matches[0]);
+                        if ( !empty($matches[1]) ) $result['dateTill'] = $matches[2]; // если встретили предлог "до" перед датой
+                        else $result['dates'] = preg_replace('/\s/u', '', $matches[0]);                      
                         $str = str_replace($matches[0], '', $str);
                     }
                     

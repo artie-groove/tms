@@ -214,30 +214,7 @@ class DataImporter extends Handler implements IStatus
                                     }
                                     else
                                     {
-                                        // избавляемся от случайной подмены кириллических букв визуально схожими
-                                        // латинскими: [ABCEHKMOPTX] в начале слова и [aceknopruxy]
-
-                                        //$mc = "Oптимuзaцuя paбo% call-цeнтpa, CAD-систем c контрольной цифрой в cтилe wep call ceo в И% C% П% u %У";
-
-                                        $pattern = '/(?(DEFINE)(?<ch>[aceknopruxy]))([ABCEHKMOPTX](?=[А-я])|(?<=[а-я])(?&ch)|(?&ch)(?=[а-я])|(?<![a-z]{2})(?&ch)(?=[,\.% ]|$))/u';
-                                        $illegal_letters = $this->pregMatchCapture(true, $pattern, $mc);
-                                        if ( !empty($illegal_letters) ) // заменяем все вхождения по таблице
-                                        {
-                                            // из-за плохой поддержки Юникода в PHP приходится городить
-                                            // такие костыли для замены символов в строке
-                                            $illegal_chars  = 'ABCEHKMOPTXaceknopruxy';
-                                            $subst_chars = $this->mb_split_string('АВСЕНКМОРТХасекпоргиху');
-                                            $mc = $this->mb_split_string($mc);
-                                            foreach ( $illegal_letters[0] as $letter ) {
-                                                list ( $ch, $pos ) = $letter;
-                                                $k = strpos($illegal_chars, $ch);
-                                                $mc[$pos] = $subst_chars[$k];
-                                            }
-                                            $mc_restored = '';
-                                            foreach ( $mc as $ch ) $mc_restored .= $ch;
-                                            $mc = $mc_restored;
-                                            //throw new DebugException('substituted', array($illegal_letters, $mc));
-                                        }
+                                        
                                         
                                         $mc_orig = $mc;
                                         // упрощаем шаблон поиска дисциплины: убираем всю пунктуацию и однобуквенные предлоги
@@ -247,7 +224,36 @@ class DataImporter extends Handler implements IStatus
                                         // упрощаем шаблон поиска дисциплины: обрезаем все слова до трёх символов
                                         // а также добавляем символ % к последнему слову, если его там не было 
                                         $mc = preg_replace('/(?|([А-Яа-я][а-я]{2})(?:[а-я]+%|[а-я]*(?= |$))|([А-Яа-я][а-я]+)(?:%[а-я]{1,3}(?= |$)))/u', '$1%', $mc);
+                                        
+                                        $n_spaces = mb_substr_count($mc, ' ');
+                                        $avg_word_len = (mb_strlen($mc) - $n_spaces) / ($n_spaces + 1);
+                                        
+                                        if ( $avg_word_len > 3 )
+                                        {
+                                            // избавляемся от случайной подмены кириллических букв визуально схожими
+                                            // латинскими: [ABCEHKMOPTX] в начале слова и [aceknopruxy]
 
+                                            $pattern = '/(?(DEFINE)(?<ch>[aceknopruxy]))([ABCEHKMOPTX](?=[А-я])|(?<=[а-я])(?&ch)|(?&ch)(?=[а-я])|(?<![a-z]{2})(?&ch)(?=[,\.% ]|$))/u';
+                                            $illegal_letters = $this->pregMatchCapture(true, $pattern, $mc);
+                                            if ( !empty($illegal_letters) ) // заменяем все вхождения по таблице
+                                            {
+                                                // из-за плохой поддержки Юникода в PHP приходится городить
+                                                // такие костыли для замены символов в строке
+                                                $illegal_chars  = 'ABCEHKMOPTXaceknopruxy';
+                                                $subst_chars = $this->mb_split_string('АВСЕНКМОРТХасекпоргиху');
+                                                $mc = $this->mb_split_string($mc);
+                                                foreach ( $illegal_letters[0] as $letter ) {
+                                                    list ( $ch, $pos ) = $letter;
+                                                    $k = strpos($illegal_chars, $ch);
+                                                    $mc[$pos] = $subst_chars[$k];
+                                                }
+                                                $mc_restored = '';
+                                                foreach ( $mc as $ch ) $mc_restored .= $ch;
+                                                $mc = $mc_restored;
+                                                //throw new DebugException('substituted', array($illegal_letters, $mc));
+                                            }
+                                        }
+                                        /*
                                         $excluded_list = array(
                                             'Спе% арх% про% пр% сис%',
                                             'Пак% при% инж% про%',
@@ -279,7 +285,7 @@ class DataImporter extends Handler implements IStatus
                                         );
                                         if ( !in_array($mc, $excluded_list) )
                                             throw new Exception($par_mass[$i]->discipline . '<br>' . $mc_orig . '<br>' . $mc_prev . '<br>' . $mc);
-
+                                        */
                                         $query = "SELECT id, name FROM disciplines WHERE name LIKE '" . $mc . "' ORDER BY CHAR_LENGTH(name) ASC";
                                         $res = $dbh->query($query);                 
                                         $data = $res->fetch(PDO::FETCH_ASSOC);

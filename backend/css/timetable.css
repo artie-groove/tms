@@ -1,0 +1,258 @@
+/*
+    Document   : tms/www/css/timetable.css
+    Created on : 2015-02-24 07:53 PM
+    Author     : tema4ka
+    Description:
+    Purpose of the stylesheet follows.
+    
+*/
+
+@import url(http://fonts.googleapis.com/css?family=Tinos:400,700,400italic,700italic&subset=cyrillic);
+@import url(http://fonts.googleapis.com/css?family=Play&subset=cyrillic);
+
+#timetable {
+    margin-top: 50px;
+}
+
+#navigator {
+    width: 100%;
+    position: fixed;
+    z-index: 1;
+}
+
+#status-bar {
+    font-family: 'Play', sans-serif;
+    background: #f0f0f0;
+}
+
+#status-bar .status-buttons {
+    padding-left: 0;
+    margin-bottom: 0;
+    list-style: none;
+}
+
+#status-bar .status-buttons > li {
+    position: relative;
+    display: block;
+    float: left;
+    line-height: 1.7em;
+}
+
+#status-bar .status-buttons > li + li {
+/*     margin-left: 2px; */
+}
+
+#status-bar .status-buttons > li > a {
+    position: relative;
+    display: block;
+    padding: 10px 15px;
+    text-decoration: none;
+}
+
+#status-bar .status-buttons > li > a:hover,
+#status-bar .status-buttons > li > a:focus {
+    background-color: #ddd;
+    color: #428bca;
+}
+
+#status-bar .status-buttons > li.active {
+    border-bottom: 3px solid #428bca;
+    line-height: 20px;
+}
+
+#status-bar .status-buttons > li.active > a {
+    background-color: #e9e9e9;
+    color: #428bca;
+    font-weight: bold;
+    padding-right: 0;
+    float: left;
+    border: none;
+    vertical-align: middle;
+}
+
+#status-bar .status-buttons > li.active > a > span {
+    vertical-align: -15%;
+}
+
+
+#status-bar .status-buttons > li > a.remove {
+/*     border: none; */
+    padding-right: 15px;
+    padding-left: 10px;
+}
+
+#status-bar .status-buttons > li > a.remove:hover {
+/*     border: none; */
+    color: #f22;
+}
+
+#status-bar .status-buttons li#bar-more {
+/*     background-color: #f0f0ff; */
+    border-left: 2px solid #e0e0e0;
+/*     border-bottom: 1px solid red; */
+}
+
+#status-bar .status-buttons li#bar-more a {
+    color: #999;
+    font-weight: bold;
+}
+
+#status-bar .status-buttons li#bar-more a span.glyphicon {
+    vertical-align: -15%;
+}
+
+#controls {
+    background: #f9f9f9;
+}
+
+#controls .nav {
+    background: #fefefe;
+}
+
+#group-panel {
+/*     margin: 20px 0 50px 0; */
+    background: #fafafa;
+    font-family: 'Play', sans-serif;
+    border-radius: 5px;
+}
+
+.tap-form {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.tap-form > div {
+    padding: 5px 0 5px 15px;
+}
+
+.tap-form span {
+    color: #555;
+    line-height: 2.8em;
+}
+
+.tap-form .hidden-xs {
+    text-align: right;
+}
+
+#lecturer-panel {
+    font-family: 'Play', sans-serif;
+/*     margin: 20px 0; */
+    background: #fafafa;
+}
+
+#lecturer-panel .nav > li + li {
+    margin-left: 0;
+}
+
+#lecturer-panel #lecturer-alphabet {
+    margin: 0 0 10px 0;
+}
+
+#lecturer-panel #lecturer-list div {
+    width: 100px;
+    height: 20px;
+    overflow: hidden;
+}
+
+#timetable {
+    font-size: 16px;
+    color: #333;
+    font-family: 'Tinos', serif;
+}
+
+#timetable .row {
+    margin-bottom: 25px;
+}
+
+#timetable .halved {
+    padding-top: 3px;
+    overflow: hidden;
+}
+
+#timetable .info-left {
+    padding-right: 0;
+/*     border: 1px solid red; */
+}
+
+#timetable .info-left div {
+    text-align: right;
+}
+
+#timetable .date {
+    text-align: right;
+    font-size: 1em;
+    line-height: 1.1em;
+    padding: 2px 0 15px 0;
+/*     border: 1px solid grey; */
+}
+
+#timetable .date .visible-xs {
+    text-align: center;
+/*     border: 1px solid red; */
+}
+
+#timetable .date .day {
+    font-size: .9em;
+    color: #777;
+}
+
+#timetable .date .day-relative {
+    font-size: 1em;
+    color: #777;
+}
+
+#timetable .time {
+    font-size: .9em;
+    line-height: 1.6em;
+}
+
+#timetable .room {
+    font-size: .9em;
+    line-height: 1.2em;
+    padding-bottom: 0;
+}
+
+#timetable .type {
+    font-size: .9em;
+    line-height: 1.2em;
+}
+
+#timetable .lecturer {
+    line-height: .8em;
+    padding-top: 5px;
+    padding-bottom: 4px;
+}
+
+#timetable .lecturer .lecturer-name {
+    padding-right: 5px;    
+}
+
+#timetable .lecturer .lecturer-post {
+    font-size: .8em;
+    color: #999;
+}
+
+#timetable .discipline {
+    line-height: 1em;
+    font-size: 1.1em;
+}
+
+#timetable .gap {
+    color: #555;
+    font-size: .8em;
+    border-top: 1px solid #fafafa;
+    border-bottom: 1px solid #fafafa;
+    padding: 5px 5px 5px 35px;
+    margin-top: -10px;
+    margin-bottom: -10px;
+}
+
+#timetable .daybreak {
+    height: 50px;
+}
+
+#sidecolumn {
+    border: 1px solid #f5f5f5;
+    height: 500px;
+    
+}

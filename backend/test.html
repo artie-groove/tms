@@ -1,0 +1,31 @@
+<center>
+
+<script>
+$(document).ready(function() {
+
+if((navigator.userAgent.match(/iPhone/i)) ||
+       (navigator.userAgent.match(/Android/i))||
+       (navigator.userAgent.match(/iPod/i))   || 
+       (navigator.userAgent.match(/iPad/i))   ||
+       (navigator.userAgent.match(/webOS/i)))
+    { 
+        $('#video').html('<video src="http://camanage.powernet.com.ru:8080/telekanal_test/index.m3u8" id="vid" width=720 height=370 controls></video>');
+  $('#vid').load();    
+}
+    else
+    {
+
+
+$('#video').html('<object type="application/x-shockwave-flash" name="StrobeMediaPlayback" data="http://camanage.powernet.com.ru:8080/flu/GrindPlayer.swf" width="606" height="341" id="player-flash" style="visibility: visible;"><param name="wmode" value="opaque" /><param name="allowScriptAccess" value="always"><param name="allowFullScreen" value="true"><param name="allowNetworking" value="all"><param name="flashvars" value="src=http://camanage.powernet.com.ru:8080/telekanal_test/manifest.f4m&amp;autoPlay=true&amp;poster=http://camanage.powernet.com.ru:8080/telekanal_test/preview.jpg&amp;"></object>');
+}
+});
+
+</script>
+
+<div id="video"><object type="application/x-shockwave-flash" name="StrobeMediaPlayback" data="http://camanage.powernet.com.ru:8080/flu/GrindPlayer.swf" width="606" height="341" id="player-flash" style="visibility: visible;"><param name="wmode" value="opaque"><param name="allowScriptAccess" value="always"><param name="allowFullScreen" value="true"><param name="allowNetworking" value="all"><param name="flashvars" value="src=http://camanage.powernet.com.ru:8080/telekanal_test/manifest.f4m&amp;autoPlay=true&amp;poster=http://camanage.powernet.com.ru:8080/telekanal_test/preview.jpg&amp;"></object></div>
+
+
+  
+
+
+</center>

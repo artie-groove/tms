@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Загрузка файлов расписания</title>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Latest compiled and minified CSS -->
+    <!-- <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"> -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    <!-- Optional theme -->
+    <!-- <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css"> -->
+
+    <!-- JQuery Fileupload plugin CSS -->
+    <link rel="stylesheet" href="/css/jquery.fileupload.css">
+
+    <!-- Custom page styles -->
+    <link rel="stylesheet" href="/css/upload.css">
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="/js/jquery.min.js"></script>
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="/js/bootstrap.min.js"></script>
+
+    <!-- JavaScript Templates script -->
+    <script src="/js/tmpl.min.js"></script>
+
+    <script>
+        elt = function(v, label){
+            if (v === null) return '<span class="glyphicon glyphicon-exclamation-sign text-danger"></span> <span class="text-danger">' + label + '</span>';
+            else return v;
+        }
+        dtype = function(v){
+            if ( v == null ) v = 'NULL';
+            var t = {
+                LECTURE: "лек.",
+                WORKSHOP: "пр.",
+                LAB: "лаб.",
+                QUIZ: "зачёт",
+                TUTORIAL: "конс.",
+                EXAMINATION: "экзамен",
+                NULL: null
+            };
+            return elt(t[v], 'тип');
+        }
+        dlecturer = function(v){
+            if ( v == '0' ) v = '<преподаватель не указан>';
+            //alert('v is: ' + v);
+            return elt(v, 'преподаватель');
+        };
+        droom = function(v){
+            if ( v == 0 ) v = '<ауд. не указана>';
+            return elt(v, 'аудитория');
+        };
+        comment = function(v){
+            if (v !== null) return '<li class="comment"><span class="glyphicon glyphicon-comment" data-toggle="tooltip" title="' + v + '"></span></li>';
+            else return "";
+        }
+        wrap = function(v) {
+            return '<span class="badge">' + v + '</span>';
+        }
+        highlight = function(obj) {
+            var fields = obj.debug.split('|');
+            var dates = fields.shift();
+            var properties = ['time', 'discipline', 'type', 'group', 'room', 'lecturer'];
+            var str = '';
+            var nf = false;
+            for ( var i = 0; i < properties.length; i++ ) {
+                var prop = properties[i];
+                var propIsNull = (obj[prop] == null);           
+                str += propIsNull ? wrap(fields[i]) : fields[i];               
+                nf |= propIsNull;
+            }
+            if ( !nf ) dates = wrap(dates);
+            str = dates + '<br />' + str;
+            //str += fields.pop();
+            return str;
+        }
+        /*
+        totime = function(v) {
+            var map = [ '8:00', '9:40', '11:20', '13:00', '14:40', '16:20', '18:00', '19:30' ];
+            return elt(map[v]);
+        }
+        */
+    </script>
+
+    <script type="text/x-tmpl" id="tmpl-corrupted-list">
+        {% for ( var i = 0; i < o.length; i++) { %}
+            {% include('tmpl-corrupted-item', o[i]); %}
+        {% } %}
+    </script>
+
+    <script type="text/x-tmpl" id="tmpl-corrupted-item">
+        <div class="item">
+            <table>
+                <tr>
+                    <td rowspan="2" class="multiplier">{%#o.n%}</td>
+                    <td class="summary">
+                        <ol class="breadcrumb">
+                            <li class="group">{%#o.group%}</li>
+                            <li class="room">{%#droom(o.room)%}</li>
+                            <li class="type">{%#dtype(o.type)%}</li>
+                            
+                            {%#comment(o.comment)%}
+                            
+                            <br />
+                            <li class="date"><span class="glyphicon glyphicon-time"></span> {%#o.time%}</li>
+                            <li class="lecturer">{%#dlecturer(o.lecturer)%}</li>
+                        </ol>
+                    </td>
+                    <td class="discipline">{%#elt(o.discipline, 'дисциплина')%}</td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="dump"><div>{%#highlight(o)%}</div></td>
+                </tr>
+            </table>
+        </div>
+    </script>
+
+</head>
+<body>
+<script>
+    $(function() {
+        // after page is loaded
+    });
+</script>
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 col-md-offset-2 text-center">
+            <div id="upload-button" class="btn btn-success fileinput-button">
+                <span class="glyphicon glyphicon-upload"></span>&nbsp;
+                <span>Выберите файл</span>
+                <p>Максимальный размер: 1&nbsp;МБ</p>
+                <p>Принимаются только файлы XLS и XLSX</p>
+                <input id="fileupload" type="file" name="data">
+            </div>
+            <br/><br/>
+
+            <div id="progress" class="progress progress-striped active">
+                <div class="progress-bar" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+            </div>
+
+            <div id="log"></div>
+
+            <div id="corrupted-list">
+                <!--
+                <div class="item">
+                    <table>
+                        <tr>
+                            <td>
+                                <ol class="breadcrumb">
+                                    <li class="group">ВХАЗ-475</li>
+                                    <li class="room">А-29</li>
+                                    <li class="type"><span class="glyphicon glyphicon-exclamation-sign text-danger"></span></li>
+                                    <br />
+                                    <li class="date">25.05 <span class="glyphicon glyphicon-time"></span> <span class="glyphicon glyphicon-exclamation-sign text-danger"></span></li>
+                                    <li class="lecturer">Александрина А. Ю.</li>
+                                </ol>
+                            </td>
+                            <td class="discipline">Автоматизация технологических процессов и производств в химической промышленности</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="item">
+                    <table>
+                        <tr>
+                            <td>
+                                <ol class="breadcrumb">
+                                    <li class="group">ВЭ-511</li>
+                                    <li class="room">БЛК-30</li>
+                                    <li class="type">лек.</li>
+                                    <br />
+                                    <li class="date">20.03 <span class="glyphicon glyphicon-time"></span> 5</span></li>
+                                    <li class="lecturer">Капля В. И.</li>
+                                </ol>
+                            </td>
+                            <td class="discipline">Системы искусственного интеллекта</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="item">
+                    <table>
+                        <tr>
+                            <td>
+                                <ol class="breadcrumb">
+                                    <li class="group">ВИЗ-571</li>
+                                    <li class="room">гараж № 9</li>
+                                    <li class="type">лаб.</li>
+                                    <li class="comment"><span class="glyphicon glyphicon-comment" data-toggle="tooltip" title="Комментарий из файла, который частично распознался"></span></li>
+                                    <br />
+                                    <li class="date">14.05 <span class="glyphicon glyphicon-time"></span> 5</span></li>
+                                    <li class="lecturer">Рыбанов А. А.</li>
+                                </ol>
+                            </td>
+                            <td class="discipline"><span class="glyphicon glyphicon-exclamation-sign text-danger"></span></td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="item">
+                    <table>
+                        <tr>
+                            <td>
+                                <ol class="breadcrumb">
+                                    <li class="group">ВХТ-512</li>
+                                    <li class="room"><span class="glyphicon glyphicon-exclamation-sign text-danger"></span></li>
+                                    <li class="type"><span class="glyphicon glyphicon-exclamation-sign text-danger"></span></li>
+                                    <br />
+                                    <li class="date"><span class="glyphicon glyphicon-exclamation-sign text-danger"></span> <span class="glyphicon glyphicon-time"></span> 5</span></li>
+                                    <li class="lecturer"><span class="glyphicon glyphicon-exclamation-sign text-danger"></span></li>
+                                </ol>
+                            </td>
+                            <td class="discipline">Технология синтеза высокомолекулярных соединений</td>
+                        </tr>
+                    </table>
+                </div>
+                -->
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="/js/jquery.ui.widget.js"></script>
+<script src="/js/jquery.iframe-transport.js"></script>
+<script src="/js/jquery.fileupload.js"></script>
+<script>
+    $(function () {
+        /*
+        // By default, the iFrame Transport handles all responses as success,
+        // so we override the iFrame to JSON converter to handle error responses:
+        $.ajaxSetup({
+            converters: {
+                'iframe json': function (iframe) {
+                    var result = iframe && $.parseJSON($(iframe[0].body).text());
+                    if (result.error) {
+                        // Handling JSON responses with error property:
+                        // {"error": "Upload failed"}
+                        throw result.error;
+                    }
+                    return result;
+                }
+            }
+        });
+        */
+        
+        $.ajaxSetup({
+            error: function(jqXHR, textStatus, errorThrown) { 
+                $('#log').addClass('bg-danger');
+                $('#log').text('Server has crashed totally: "' + jqXHR.responseText + '"');
+                //$('#log').text('error: ' + data.errorThrown + ': ' + data.textStatus);
+            }
+        });
+        
+        $('#progress').hide();
+        
+        $('#fileupload').fileupload({
+            dataType: 'text',
+            url: '/upload/upload_handler.php',
+            maxNumberOfFiles: 1,
+            maxFileSize: 1024 * 1024, // 1 MB
+            minFileSize: 1024, // 1 kB
+            progressInterval: 100, // for debugging purposes
+            forceIframeTransport: true,
+            add: function( e, data ) {
+                // check if the input file name ends with .xlsx
+                var ext = data.files[0].name.toLowerCase().split('.').pop();
+                if ( ext !== 'xlsx' && ext !== 'xls' ) {
+                    $('#log').addClass('bg-warning');
+                    $('#log').text('Стоп. Принимаются только файлы расписания в форматах XLS и XLSX');
+                    return false;
+                }
+                $('#log').hide();
+                $('#corrupted-list').hide();
+                $('#log').removeClass();
+                data.submit();
+            },
+            send: function (e, data) {
+                //$('#progress .progress-bar').css('width', '0');
+                $('#progress').show();
+                return true;
+            },
+            /*
+            progress: function (e, data) {
+                var progress = parseInt(data.loaded / data.total * 100, 10);
+                $('#progress .progress-bar').css('width', progress + '%').attr('aria-valuenow', progress);
+                console.log(progress);
+            },
+            */            
+            done: function (e, response) {
+                var data;
+                const httpStatus = response.jqXHR.status;
+                if ( httpStatus !== 200 ) {
+                    $('#log').addClass('bg-danger');
+                    $('#log').text(`Server crash (${httpStatus}): "${response.result}"`);
+                    return false;
+                }
+                try {
+                    data = JSON.parse(response.result);
+                } catch (e) {
+                    $('#log').addClass('bg-danger');
+                    $('#log').text(`Invalid JSON response: "${response.result}" (${response.jqXHR.status})`);
+                    return false;
+                }
+                
+                status = data.status;
+                description = data.description;
+
+                if ( status === "ok" && data.details instanceof Array && data.details.length )
+                {
+                    $('#log').addClass('bg-warning');
+                    $('#log').html(description);
+                    document.getElementById("corrupted-list").innerHTML = tmpl("tmpl-corrupted-list", data.details);
+                    $('.comment span').tooltip();
+                    $('#corrupted-list').show();
+                }
+                else if ( status === "ok" )
+                {
+                    $('#log').addClass('bg-success');
+                    $('#log').html(description);
+                }
+                else
+                {
+                    $('#log').addClass('bg-danger');
+                    $('#log').html('Ошибка загрузки расписания: ' + description + '<br />' + data.details);
+                }
+            
+                return true;
+            },
+            fail: function ( e, data ) {
+                console.log('fail fired');
+                console.log(data.jqXHR);
+                return false;
+            },
+            always: function (e, data) {
+                $('#log').show();
+                $('#progress').hide();
+                // data.result
+                // data.textStatus;
+                // data.jqXHR;
+                //console.log(data.result + ': ' + data.textStatus);
+                //console.log(data);
+            }
+
+        });
+    });
+</script>
+
+
+</body>
+</html>

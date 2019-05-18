@@ -1,0 +1,176 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+class TableHandler {
+	bool hasRightBorder()
+	bool hasBottomBorder();
+	bool hasLeftBorder();
+	bool hasTopBorder();	
+}
+
+class Parser {
+	PHPExcel
+	void probeTable()
+	String getTableType()
+	array run()
+}
+
+abstract class HarvesterBasic {
+	$sheet
+	$firstColumn
+	$firstRow
+	__construct()
+	{abstract} run()
+	{abstract} postProcess()
+}
+
+class HarvesterFulltime {
+	$calendarType
+	$locationType
+	run()
+	postProcess()
+	harvestSection()
+	isLocationEntryPoint()
+	obtainTimeMarker()
+	getGroupId()
+}
+
+class TableSection {
+	$sheet
+	$rx
+	$cx
+	$width
+	$datesMatrixFirstColumn
+	$datesMatrixWidth
+	$firstDataColumn
+	$groupWidth
+	$groups
+	$calendarType
+	$calendar
+	__construct()
+	init()
+	validateBorders()
+	fetchDatesMatrixWidth()
+	establishFirstDataColumn()
+	getGroupWidth()
+	exploreGroups()
+}
+
+class LocationBasic {
+	$height
+	$width
+	$innerBorderPosition
+	collect()
+	inspect()
+	retrieveMeeting()
+	retrieveMeetingsSplit()
+	extract()
+	pack()
+	crossFillItems()
+	getMeetingsCount()
+	getGroupsCount()
+	getWidth()
+}
+
+class LocationSingle {
+	getMeetingsCount()
+}
+
+class CalendarBasic {
+	$daylimitRowIndexes
+	$daylimitRowIndexesPre
+	$dates
+	$timetable
+	$sheet
+	$meetingHeight
+	$timeshift
+	__construct()
+	lookupDayLimitRowIndexes()
+	gatherDates()
+	gatherDatesByRow()
+	lookupTimeByRow()
+	lookupOffsetByRow()
+	convertOffsetToTime()
+	convertTimeToOffset()
+}
+
+class CalendarEvening {
+	lookupTimeByRow()
+	lookupOffsetByRow()
+}
+
+class CalendarPostalSession {
+	gatherDates()
+}
+
+class HarvesterEvening {
+	$calendarType
+}
+
+class HarvesterPostalSession {
+	$calendarType
+}
+
+class HarvesterPostalTutorials {
+	$locationType
+	postProcess()
+}
+
+class HarvesterSecondary {
+
+}
+
+class Timeshift {
+	$registry
+	$snapshot
+	$capacity
+	__construct()
+	reset()
+	backup()
+	restore()
+	get()
+	set()
+}
+
+class Table {
+	$sheet
+	$cx
+	$rx
+	$width
+	$height
+	$sectionStartCols[]
+	$sections[]
+	__construct()
+	init()
+	exploreSections()
+	addSection()
+	inspectGeometry()
+	cleanup()
+
+}
+
+TableHandler <|-- Parser
+TableHandler <|-- HarvesterBasic
+TableHandler <|-- TableSection
+TableHandler <|-- LocationBasic
+TableHandler <|-- CalendarBasic
+TableHandler <|-- Table
+HarvesterBasic <|.. HarvesterFulltime
+HarvesterBasic <|.. HarvesterSecondary
+HarvesterBasic ..> Table
+HarvesterFulltime <|-- HarvesterEvening
+HarvesterFulltime <|-- HarvesterPostalSession
+HarvesterEvening <|-- HarvesterPostalTutorials
+LocationBasic <|-- LocationSingle
+CalendarBasic <|-- CalendarEvening
+CalendarBasic <|-- CalendarPostalSession
+CalendarBasic <|-- CalendarSecondary
+CalendarBasic *-- Timeshift
+TableSection ..> Timeshift
+TableSection ..> CalendarBasic
+HarvesterBasic ..> LocationBasic
+Table *-- TableSection
+Parser ..> HarvesterBasic
+
+
+@enduml
